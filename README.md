@@ -1,4 +1,4 @@
-#✂️ CutSeq
+# ✂️ CutSeq
 
 ## How to use?
 
