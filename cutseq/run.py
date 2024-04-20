@@ -159,16 +159,7 @@ def run_cutadapt_PE(
     steps.append(
         f"{cutadapt} -q {settings.min_quality} --max-n=0 -m {settings.min_length} --too-short-output={discard1} --too-short-paired-output={discard2} -o {output1} -p {output2} --interleaved -"
     )
-
-    if settings.dry_run:
-        print(
-            " |\\\n".join([("    " + s if i > 0 else s) for i, s in enumerate(steps)])
-        )
-        process = subprocess.run("true", shell=True, capture_output=True)
-    else:
-        cmd = " | ".join(steps)
-        process = subprocess.run(cmd, shell=True, capture_output=True)
-    return process.stdout.decode(), process.stderr.decode()
+    return steps
 
 
 def run_cutadapt_SE(input1, output1, discard1, barcode, settings):
@@ -215,8 +206,11 @@ def run_cutadapt_SE(input1, output1, discard1, barcode, settings):
     steps.append(
         f"{cutadapt} -q {settings.min_quality} --max-n=0 -m {settings.min_length} --too-short-output={discard1} -o {output1} -"
     )
+    return steps
 
-    if settings.dry_run:
+
+def run_steps(steps, dry_run=False):
+    if dry_run:
         print(
             " |\\\n".join([("    " + s if i > 0 else s) for i, s in enumerate(steps)])
         )
@@ -228,7 +222,7 @@ def run_cutadapt_SE(input1, output1, discard1, barcode, settings):
 
 
 def run_cutseq(args):
-    barcode_config = BarcodeConfig(args.adapter)
+    barcode_config = BarcodeConfig(args.adapter_scheme.upper())
     settings = CutadaptConfig()
     if args.with_rname_suffix:
         settings.rname_suffix = True
@@ -241,7 +235,7 @@ def run_cutseq(args):
     settings.dry_run = args.dry_run
     # Example command setup, you'll need to expand this based on your actual requirements
     if len(args.input_file) == 1:
-        stdout, stderr = run_cutadapt_SE(
+        steps = run_cutadapt_SE(
             args.input_file[0],
             args.output_file[0],
             args.discard_file[0],
@@ -249,7 +243,7 @@ def run_cutseq(args):
             settings,
         )
     else:
-        stdout, stderr = run_cutadapt_PE(
+        steps = run_cutadapt_PE(
             args.input_file[0],
             args.input_file[1],
             args.output_file[0],
@@ -259,6 +253,8 @@ def run_cutseq(args):
             barcode_config,
             settings,
         )
+    stdout, stderr = run_steps(steps, settings.dry_run)
+    print(stderr, file=sys.stderr)
     print(stdout)
 
 
@@ -277,11 +273,11 @@ def main():
     # if no output suffix provided it will generate based on the input file name
     parser.add_argument(
         "-a",
-        "--adapter",
+        "--adapter-scheme",
         type=str,
-        required=True,
         help="Adapter sequence configuration.",
     )
+    parser.add_argument("-A", "--adapter-name", type=str, help="Built-in adapter name.")
     parser.add_argument(
         "-O",
         "--output-suffix",
@@ -345,6 +341,25 @@ def main():
         help="Print command instead of running it.",
     )
     args = parser.parse_args()
+
+    if args.adapter_name is not None:
+        if args.adapter_scheme is not None:
+            logging.info("Adapter scheme is provided, ignore adapter name.")
+        else:
+            if args.adapter_name.upper() == "TAKARAV2":
+                args.adapter_scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
+            elif args.adapter_name.upper() == "STRANDED":
+                args.adapter_scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
+            elif args.adapter_name.upper() == "TAKARAV3":
+                args.adapter_scheme = (
+                    "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
+                )
+            else:
+                logging.error("Adapter name is not valid.")
+                sys.exit(1)
+    elif args.adapter_scheme is None:
+        logging.error("Adapter scheme or name is required.")
+        sys.exit(1)
 
     if len(args.input_file) > 2:
         raise ValueError("Input file can not be more than two.")
