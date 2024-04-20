@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "cutseq"
+version = "0.0.1"
+description = "Automatic cutadapter and barcode process for NGS data"
+authors = ["Ye Chang <yech1990@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+cutadapt = "^4.8"
+
+[tool.poetry.scripts]
+cutseq = 'cutseq.run:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
