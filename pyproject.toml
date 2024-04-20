@@ -5,6 +5,9 @@ description = "Automatic cutadapter and barcode process for NGS data"
 authors = ["Ye Chang <yech1990@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+keywords = ["bioinformatics", "NGS", "adapter", "barcode", "UMI"]
+repository = "https://github.com/y9c/cutseq"
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
