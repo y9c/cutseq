@@ -7,7 +7,6 @@
 # Created: 2024-04-19 18:57
 
 import argparse
-import copy
 import logging
 import re
 import subprocess
@@ -25,10 +24,11 @@ from cutadapt.modifiers import (
     AdapterCutter,
     PairedEndRenamer,
     QualityTrimmer,
+    Renamer,
     SuffixRemover,
     UnconditionalCutter,
 )
-from cutadapt.pipeline import PairedEndPipeline
+from cutadapt.pipeline import PairedEndPipeline, SingleEndPipeline
 from cutadapt.predicates import IsUntrimmed, TooShort
 from cutadapt.runners import make_runner
 from cutadapt.steps import (
@@ -126,114 +126,6 @@ class CutadaptConfig:
         self.threads = 1
 
 
-def run_cutadapt_PE(
-    input1, input2, output1, output2, discard1, discard2, barcode, settings
-):
-    cutadapt = f"cutadapt -j {settings.threads}"
-    steps = []
-    # step 1: remove adapter on the 5' end, artifact of template switching
-    if settings.rname_suffix:
-        config_rname = " --strip-suffix '/1' --strip-suffix '/2' --strip-suffix '.1' --strip-suffix '.2'"
-    else:
-        config_rname = ""
-    steps.append(
-        f"{cutadapt}{config_rname} -e 0.25 -n 2 -O 10 -g '{barcode.p5.fw};rightmost' -G '{barcode.p7.rc};rightmost' --interleaved {input1} {input2}"
-    )
-    # step 2: remove adapter on the 3' end, read though in the sequencing
-    steps.append(
-        f"{cutadapt} -e 0.2 -n 2 -O 3 -a '{barcode.p7.fw}' -A '{barcode.p5.rc}' --interleaved -"
-    )
-    # step 3: trim inline barcode
-    config_inline_args = []
-    if barcode.inline5.len > 0:
-        config_inline_args.append(f"-g ^{barcode.inline5.fw} -U -{barcode.inline5.len}")
-    if barcode.inline3.len > 0:
-        config_inline_args.append(f"-G ^{barcode.inline3.rc} -u -{barcode.inline3.len}")
-    if barcode.inline5.len + barcode.inline3.len > 0:
-        if settings.discarded_untrimmed:
-            config_inline_args.append(
-                f"--untrimmed-output={discard1} --untrimmed-paired-output={discard2}"
-            )
-        config_inline = " ".join(config_inline_args)
-        steps.append(f"{cutadapt} {config_inline} --interleaved -")
-    # step 4: extract UMI
-    if barcode.umi5.len + barcode.umi3.len > 0:
-        steps.append(
-            f"{cutadapt} -u {barcode.umi5.len} -u -{barcode.umi3.len} -U {barcode.umi3.len} -U -{barcode.umi5.len} --rename='{{id}}_{{r1.cut_prefix}}{{r2.cut_prefix}}' --interleaved -"
-        )
-    else:
-        steps.append(f"{cutadapt} --rename='{{id}}' --interleaved -")
-    # step 5: mask tail in the RNA, which might be artifact of RT
-    if barcode.mask5.len + barcode.mask3.len > 0:
-        steps.append(
-            f"{cutadapt} -u {barcode.mask5.len} -u -{barcode.mask3.len} -U {barcode.mask3.len} -U -{barcode.mask5.len} --interleaved -"
-        )
-    # step 6: trim polyA
-    if settings.trim_polyA:
-        if barcode.strand == "+":
-            steps.append(
-                f"{cutadapt} -O 6 -e 0.15 -a 'A{{100}}' -G 'T{{100}}' --interleaved -"
-            )
-        elif barcode.strand == "-":
-            steps.append(
-                f"{cutadapt} -O 6 -e 0.15 -g 'T{{100}}' -A 'A{{100}}' --interleaved -"
-            )
-        else:
-            logging.info("No strand information provided, skip polyA trimming.")
-    # step 7: quality control, remove short reads
-    steps.append(
-        f"{cutadapt} -q {settings.min_quality} --max-n=0 -m {settings.min_length} --too-short-output={discard1} --too-short-paired-output={discard2} -o {output1} -p {output2} --interleaved -"
-    )
-    return steps
-
-
-def run_cutadapt_SE(input1, output1, discard1, barcode, settings):
-    cutadapt = f"cutadapt -j {settings.threads}"
-    steps = []
-    # step 1: remove adapter on the 5' end, artifact of template switching
-    if settings.rname_suffix:
-        config_rname = " --strip-suffix '/1' --strip-suffix '.1'"
-    else:
-        config_rname = ""
-    steps.append(
-        f"{cutadapt}{config_rname} -e 0.25 -n 2 -O 10 -g '{barcode.p5.fw};rightmost' {input1}"
-    )
-    # step 2: remove adapter on the 3' end, read though in the sequencing
-    steps.append(f"{cutadapt} -e 0.2 -n 2 -O 3 -a '{barcode.p7.fw}' -")
-    # step 3: trim inline barcode
-    config_inline_args = []
-    if barcode.inline3.len > 0:
-        config_inline_args.append(f"-a {barcode.inline3.fw}$")
-    if barcode.inline5.len > 0:
-        config_inline_args.append(f"-g ^{barcode.inline5.fw}")
-    if barcode.inline5.len + barcode.inline3.len > 0:
-        if settings.discarded_untrimmed:
-            config_inline_args.append(f"--untrimmed-output={discard1}")
-
-        config_inline = " ".join(config_inline_args)
-        steps.append(f"{cutadapt} {config_inline} -")
-    # step 4: extract UMI
-    if barcode.umi5.len + barcode.umi3.len > 0:
-        steps.append(
-            f"{cutadapt} -u {barcode.umi5.len} -u -{barcode.umi3.len} --rename='{{id}}_{{cut_prefix}}{{cut_suffix}}' -"
-        )
-    # step 5: mask tail in the RNA, which might be artifact of RT
-    steps.append(f"{cutadapt} -u {barcode.mask5.len} -u -{barcode.mask3.len} -")
-    # step 6: trim polyA
-    if settings.trim_polyA:
-        if barcode.strand == "+":
-            steps.append(f"{cutadapt} -O 6 -e 0.15 -a 'A{{100}}' -")
-        elif barcode.strand == "-":
-            steps.append(f"{cutadapt} -O 6 -e 0.15 -g 'T{{100}}' -")
-        else:
-            logging.info("No strand information provided, skip polyA trimming.")
-    # step 7: quality control, remove short reads
-    steps.append(
-        f"{cutadapt} -q {settings.min_quality} --max-n=0 -m {settings.min_length} --too-short-output={discard1} -o {output1} -"
-    )
-    return steps
-
-
 def run_steps(steps, dry_run=False):
     if dry_run:
         print(
@@ -246,10 +138,74 @@ def run_steps(steps, dry_run=False):
     return process.stdout.decode(), process.stderr.decode()
 
 
-def pipeline_single(input1, output1, short1, barcode, settings):
-    trimmer = QualityTrimmer(cutoff_front=0, cutoff_back=15)
-    adapter = BackAdapter(sequence="GATCGGAAGA", max_errors=1, min_overlap=3)
-    modifiers = [UnconditionalCutter(5), trimmer, AdapterCutter([adapter])]
+def pipeline_single(input1, output1, short1, untrimed1, barcode, settings):
+    modifiers = []
+    # step 1: remove suffix in the read name
+    modifiers.extend([SuffixRemover(".1"), SuffixRemover("/1")])
+    # step 2: remove adapter on the 5' end, artifact of template switching
+    modifiers.append(
+        AdapterCutter(
+            [
+                RightmostFrontAdapter(
+                    sequence=barcode.p5.fw, max_errors=0.25, min_overlap=10
+                )
+            ],
+            times=1,
+        )
+    )
+    # step 3: remove adapter on the 3' end, read though in the sequencing
+    modifiers.append(
+        AdapterCutter(
+            [BackAdapter(sequence=barcode.p7.fw, max_errors=0.2, min_overlap=3)],
+            times=2,
+        ),
+    )
+    # step 4: trim inline barcode
+    if barcode.inline5.len > 0:
+        modifiers.append(
+            AdapterCutter(
+                [PrefixAdapter(sequence=barcode.inline5.fw, max_errors=0.2)],
+                times=1,
+            )
+        )
+    if barcode.inline3.len > 0:
+        modifiers.append(UnconditionalCutter(-barcode.inline3.len))
+
+    # step 5: extract UMI
+    if barcode.umi5.len > 0:
+        modifiers.append(UnconditionalCutter(barcode.umi5.len))
+    if barcode.umi3.len > 0:
+        modifiers.append(UnconditionalCutter(-barcode.umi3.len))
+    if barcode.umi5.len + barcode.umi3.len > 0:
+        modifiers.append(Renamer("{id}_{cut_prefix}{cut_suffix}"))
+    else:
+        modifiers.append(Renamer("{id}"))
+
+    # step 6: mask tail in the RNA, which might be artifact of RT
+    if barcode.mask5.len > 0:
+        modifiers.append(UnconditionalCutter(barcode.mask5.len))
+    if barcode.mask3.len > 0:
+        modifiers.append(UnconditionalCutter(-barcode.mask3.len))
+    # step 7: trim polyA
+    if settings.trim_polyA:
+        if barcode.strand == "+":
+            modifiers.append(
+                AdapterCutter(
+                    [NonInternalBackAdapter(sequence="A" * 100, max_errors=0.15)]
+                )
+            )
+        elif barcode.strand == "-":
+            modifiers.append(
+                AdapterCutter(
+                    [NonInternalFrontAdapter(sequence="T" * 100, max_errors=0.15)]
+                )
+            )
+        else:
+            logging.info("No strand information provided, skip polyA trimming.")
+    # step 8: quality control, remove short reads
+    modifiers.append(
+        QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
+    )
 
     inpaths = InputPaths(input1)
 
@@ -261,25 +217,34 @@ def pipeline_single(input1, output1, short1, barcode, settings):
         )
         steps = [
             # --info-file=info.txt
-            PairedSingleEndStep(InfoFileWriter(outfiles.open_text("info.txt"))),
-            # -m 10:0
+            # PairedSingleEndStep(InfoFileWriter(outfiles.open_text("info.txt"))),
+            # -m 10
             SingleEndFilter(
-                TooShort(settings.min_length),
-                outfiles.open_record_writer(short1, interleaved=False),
+                TooShort(settings.min_length), outfiles.open_record_writer(short1)
             ),
+            # TODO: --max-n=0 support
             # --discard-untrimmed
-            SingleEndFilter(IsUntrimmed()),
-            # -o ... -p ...
-            SingleEndSink(outfiles.open_record_writer(output1)),
+            # SingleEndFilter( IsUntrimmed(), IsUntrimmed(), pair_filter_mode="any"),
+            # -o
+            SingleEndSink(outfiles.open_record_writer(output1, interleaved=False)),
         ]
-        pipeline = PairedEndPipeline(modifiers, steps)
-        stats = runner.run(pipeline, Progress(), outfiles)
-    _ = stats.as_json()
+        pipeline = SingleEndPipeline(modifiers, steps)
+        _stats = runner.run(pipeline, Progress(), outfiles)
+        # _ = stats.as_json()
     outfiles.close()
 
 
 def pipeline_paired(
-    input1, input2, output1, output2, short1, short2, barcode, settings
+    input1,
+    input2,
+    output1,
+    output2,
+    short1,
+    short2,
+    untrimed1,
+    untrimmed2,
+    barcode,
+    settings,
 ):
     modifiers = []
     # step 1: remove suffix in the read name
@@ -344,7 +309,6 @@ def pipeline_paired(
                 ),
             )
         )
-    # TODO: check inline barcode is trimmed in the `info.matches` tag
 
     # step 5: extract UMI
     if barcode.umi5.len > 0:
@@ -410,8 +374,8 @@ def pipeline_paired(
     # step 8: quality control, remove short reads
     modifiers.append(
         (
-            QualityTrimmer(cutoff_front=0, cutoff_back=15),
-            QualityTrimmer(cutoff_front=0, cutoff_back=15),
+            QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
+            QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
         )
     )
 
@@ -430,7 +394,7 @@ def pipeline_paired(
             PairedEndFilter(
                 TooShort(settings.min_length),
                 TooShort(settings.min_length),
-                outfiles.open_record_writer(discard1, discard2, interleaved=False),
+                outfiles.open_record_writer(short1, short2, interleaved=False),
             ),
             # TODO: --max-n=0 support
             # --discard-untrimmed
@@ -449,7 +413,7 @@ def run_cutseq(args):
     settings = CutadaptConfig()
     if args.with_rname_suffix:
         settings.rname_suffix = True
-    if args.discarded_untrimmed:
+    if args.untrimmed_file is None:
         settings.discarded_untrimmed = True
     if args.trim_polyA:
         settings.trim_polyA = True
@@ -460,7 +424,8 @@ def run_cutseq(args):
         pipeline_single(
             args.input_file[0],
             args.output_file[0],
-            args.discard_file[0],
+            args.short_file[0],
+            args.untrimmed_file[0],
             barcode_config,
             settings,
         )
@@ -470,8 +435,10 @@ def run_cutseq(args):
             args.input_file[1],
             args.output_file[0],
             args.output_file[1],
-            args.discard_file[0],
-            args.discard_file[1],
+            args.short_file[0],
+            args.short_file[1],
+            args.untrimmed_file[0],
+            args.untrimmed_file[1],
             barcode_config,
             settings,
         )
@@ -488,8 +455,8 @@ def main():
         nargs="+",
         help="Input file path for NGS data, one or two files.",
     )
-    # output file can be number of files matching the input files, if not provided it will generate based on the output suffix,
-    # if no output suffix provided it will generate based on the input file name
+    # output file can be number of files matching the input files, if not provided it will generate based on the output prefix,
+    # if no output prefix provided it will generate based on the input file name
     parser.add_argument(
         "-a",
         "--adapter-scheme",
@@ -499,9 +466,9 @@ def main():
     parser.add_argument("-A", "--adapter-name", type=str, help="Built-in adapter name.")
     parser.add_argument(
         "-O",
-        "--output-suffix",
+        "--output-prefix",
         type=str,
-        help="Output file suffix for keep trimmed data.",
+        help="Output file prefix for keep trimmed data.",
     )
     parser.add_argument(
         "-o",
@@ -511,6 +478,13 @@ def main():
         help="Output file path for keep trimmed data.",
     )
 
+    parser.add_argument(
+        "-q",
+        "--min-quality",
+        type=int,
+        default=20,
+        help="Minimum quality of the read tails in the reads to keep.",
+    )
     # discard short reads
     parser.add_argument(
         "-S",
@@ -526,13 +500,6 @@ def main():
         default=20,
         help="Minimum length of the reads to keep.",
     )
-    parser.add_argument(
-        "-q",
-        "--min-quality",
-        type=int,
-        default=20,
-        help="Minimum quality of the read tails in the reads to keep..",
-    )
 
     parser.add_argument(
         "--with-rname-suffix",
@@ -546,6 +513,7 @@ def main():
         nargs="+",
         help="Output file path for discarded reads without inline barcode.",
     )
+
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
 
     parser.add_argument(
@@ -583,51 +551,47 @@ def main():
         sys.exit(1)
 
     if len(args.input_file) > 2:
-        raise ValueError("Input file can not be more than two.")
+        logging.error("Input file can not be more than two.")
+        sys.exit(1)
 
-    if args.output_file:
-        if len(args.output_file) != len(args.input_file):
-            raise ValueError("Output file should be same as input file.")
-    elif args.output_suffix:
-        if len(args.input_file) == 1:
-            args.output_file = [args.output_suffix + "_trimmed_R1.fastq.gz"]
+    def validate_output_file(output_files, input_files, output_prefix, output_suffix):
+        default_format = ".fastq.gz"
+        r1 = "_" + output_suffix + "_R1" + default_format
+        r2 = "_" + output_suffix + "_R2" + default_format
+        if output_files:
+            if len(output_files) != len(input_files):
+                logging.error("Output file should be same as input file.")
+                sys.exit(1)
+            return output_files
+        elif output_prefix is not None:
+            if len(input_files) == 1:
+                return [output_prefix + r1]
+            else:
+                return [output_prefix + r1, output_prefix + r2]
         else:
-            args.output_file = [
-                args.output_suffix + "_trimmed_R1.fastq.gz",
-                args.output_suffix + "_trimmed_R2.fastq.gz",
-            ]
-    else:
-        if len(args.input_file) == 1:
-            args.output_file = [
-                remove_fq_suffix(args.input_file[0]) + "_trimmed_R1.fastq.gz",
-            ]
-        else:
-            args.output_file = [
-                remove_fq_suffix(args.input_file[0]) + "_trimmed_R1.fastq.gz",
-                remove_fq_suffix(args.input_file[1]) + "_trimmed_R2.fastq.gz",
-            ]
+            if len(input_files) == 1:
+                return [remove_fq_suffix(input_files[0]) + r1]
+            else:
+                return [
+                    remove_fq_suffix(input_files[0]) + r1,
+                    remove_fq_suffix(input_files[1]) + r2,
+                ]
+        return output_files
 
-    if args.short_file:
-        if len(args.short_file) != len(args.input_file):
-            raise ValueError("short file should be same as input file.")
-    elif args.output_suffix:
-        if len(args.input_file) == 1:
-            args.short_file = [args.output_suffix + "_shorted_R1.fastq.gz"]
-        else:
-            args.short_file = [
-                args.output_suffix + "_shorted_R1.fastq.gz",
-                args.output_suffix + "_shorted_R2.fastq.gz",
-            ]
-    else:
-        if len(args.input_file) == 1:
-            args.short_file = [
-                remove_fq_suffix(args.input_file[0]) + "_shorted_R1.fastq.gz",
-            ]
-        else:
-            args.short_file = [
-                remove_fq_suffix(args.input_file[0]) + "_shorted_R1.fastq.gz",
-                remove_fq_suffix(args.input_file[1]) + "_shorted_R2.fastq.gz",
-            ]
+    args.output_file = validate_output_file(
+        args.output_file, args.input_file, args.output_prefix, "trimmed"
+    )
+    args.short_file = validate_output_file(
+        args.short_file, args.input_file, args.output_prefix, "short"
+    )
+    args.untrimmed_file = (
+        validate_output_file(
+            args.untrimmed_file, args.input_file, args.output_prefix, "untrimmed"
+        )
+        if args.untrimmed_file is not None
+        else [None] * len(args.input_file)
+    )
+
     run_cutseq(args)
 
 
