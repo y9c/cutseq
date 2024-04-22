@@ -83,7 +83,7 @@ class ReverseComplementConverter(SingleEndModifier):
         self.rcd = False
 
     def __repr__(self):
-        return f"UnconditionalCutter(length={self.length})"
+        return "ReverseComplementConverter()"
 
     def __call__(self, read, info):
         return read.reverse_complement()
@@ -256,6 +256,8 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
 
     # step 9: reverse complement the read
     if settings.reverse_complement:
+        if barcode.strand == "+":
+            logging.warn("Library is + strand, but reverse complement is enabled.")
         modifiers.append(ReverseComplementConverter())
 
     inpaths = InputPaths(input1)
@@ -267,14 +269,16 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
             interleaved=False,
         )
         steps = []
+        # TODO: report info
+        # --info-file=info.txt
+        # PairedSingleEndStep(InfoFileWriter(outfiles.open_text("info.txt"))),
         steps.append(
-            # --info-file=info.txt
-            # PairedSingleEndStep(InfoFileWriter(outfiles.open_text("info.txt"))),
             # -m 10
             SingleEndFilter(
                 TooShort(settings.min_length), outfiles.open_record_writer(short1)
             ),
         )
+        # TODO: --max-n=0 support
         if (
             settings.ensure_inline_barcode
             and barcode.inline5.len + barcode.inline3.len > 0
@@ -285,7 +289,6 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
             if barcode.inline3.len > 0:
                 ref_adapters.append(adapter_inline3)
             steps.append(
-                # TODO: --max-n=0 support
                 SingleEndFilter(
                     IsUntrimmedAny(ref_adapters),
                     outfiles.open_record_writer(untrimmed1, interleaved=False),
@@ -444,6 +447,8 @@ def pipeline_paired(
 
     # step 9: reverse complement the read
     if settings.reverse_complement:
+        if barcode.strand == "+":
+            logging.warn("Library is + strand, but reverse complement is enabled.")
         modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
 
     inpaths = InputPaths(input1, input2)
@@ -465,12 +470,12 @@ def pipeline_paired(
                 outfiles.open_record_writer(short1, short2, interleaved=False),
             )
         )
+        # TODO: --max-n=0 support
         if (
             settings.ensure_inline_barcode
             and barcode.inline5.len + barcode.inline3.len > 0
         ):
             steps.append(
-                # TODO: --max-n=0 support
                 PairedEndFilter(
                     IsUntrimmedAny([adapter_inline5])
                     if barcode.inline5.len > 0
@@ -495,7 +500,7 @@ def pipeline_paired(
 
 
 def run_cutseq(args):
-    barcode_config = BarcodeConfig(args.adapter_scheme.upper())
+    barcode_config = BarcodeConfig(args.replace(" ", "").adapter_scheme.upper())
     settings = CutadaptConfig()
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
@@ -629,6 +634,11 @@ def main():
     parser.add_argument(
         "-V", "--version", action="version", version=f"%(prog)s {__version__}"
     )
+
+    # Check if no arguments were provided
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stdout)
+        sys.exit(0)
 
     args = parser.parse_args()
 
