@@ -7,6 +7,7 @@
 # Created: 2024-04-19 18:57
 
 import argparse
+import importlib.metadata
 import logging
 import re
 import subprocess
@@ -31,6 +32,7 @@ from cutadapt.modifiers import (
 )
 from cutadapt.pipeline import PairedEndPipeline, SingleEndPipeline
 from cutadapt.predicates import Predicate, TooShort
+from cutadapt.report import Statistics
 from cutadapt.runners import make_runner
 from cutadapt.steps import (
     PairedEndFilter,
@@ -39,6 +41,22 @@ from cutadapt.steps import (
     SingleEndSink,
 )
 from cutadapt.utils import Progress
+
+#  monkey patching ....
+original_method = Statistics._collect_modifier
+
+
+def patched_problematic_method(self, *args, **kwargs):
+    try:
+        return original_method(self, *args, **kwargs)
+    except AssertionError:
+        pass
+
+
+Statistics._collect_modifier = patched_problematic_method
+
+
+__version__ = importlib.metadata.version(__package__ or __name__)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -578,6 +596,11 @@ def main():
         action="store_true",
         help="Print command instead of running it.",
     )
+
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+    )
+
     args = parser.parse_args()
 
     if args.adapter_name is not None:
