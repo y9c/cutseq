@@ -10,7 +10,6 @@ import argparse
 import importlib.metadata
 import logging
 import re
-import subprocess
 import sys
 
 from cutadapt.adapters import (
@@ -176,18 +175,6 @@ class CutadaptConfig:
         self.threads = 1
 
 
-def run_steps(steps, dry_run=False):
-    if dry_run:
-        print(
-            " |\\\n".join([("    " + s if i > 0 else s) for i, s in enumerate(steps)])
-        )
-        process = subprocess.run("true", shell=True, capture_output=True)
-    else:
-        cmd = " | ".join(steps)
-        process = subprocess.run(cmd, shell=True, capture_output=True)
-    return process.stdout.decode(), process.stderr.decode()
-
-
 def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     modifiers = []
     # step 1: remove suffix in the read name
@@ -259,6 +246,12 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         if barcode.strand == "+":
             logging.warn("Library is + strand, but reverse complement is enabled.")
         modifiers.append(ReverseComplementConverter())
+
+    # dry run and exit code
+    if settings.dry_run:
+        for i, m in enumerate(modifiers, 1):
+            print(f"Step {i}: {m}")
+        return
 
     inpaths = InputPaths(input1)
 
@@ -451,6 +444,12 @@ def pipeline_paired(
         if barcode.strand == "+":
             logging.warn("Library is + strand, but reverse complement is enabled.")
         modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
+
+    # dry run and exit code
+    if settings.dry_run:
+        for i, m in enumerate(modifiers, 1):
+            print(f"Step {i}: {m}")
+        return
 
     inpaths = InputPaths(input1, input2)
 
