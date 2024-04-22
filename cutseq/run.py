@@ -602,7 +602,7 @@ def main():
         "-s",
         "--short-file",
         type=str,
-        nargs="+",
+        nargs="*",
         help="Output file path for discarded too short data.",
     )
     # discard inline barcode untrimmed reads
@@ -610,7 +610,7 @@ def main():
         "-u",
         "--untrimmed-file",
         type=str,
-        nargs="+",
+        nargs="*",
         help="Output file path for discarded reads without inline barcode.",
     )
     parser.add_argument(
