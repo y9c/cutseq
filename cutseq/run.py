@@ -125,7 +125,7 @@ class CutadaptConfig:
         self.threads = 1
 
 
-class IsUntrimmedRef(Predicate):
+class IsUntrimmedAny(Predicate):
     """
     Select reads for which no adapter match was found
     """
@@ -134,7 +134,7 @@ class IsUntrimmedRef(Predicate):
         self.ref_adapters = ref_adapters
 
     def __repr__(self):
-        return "IsUntrimmedRef()"
+        return "IsUntrimmedAny()"
 
     def test(self, read, info):
         # check not all adapters with ref_adapters are exist in the matches
@@ -251,7 +251,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
             steps.append(
                 # TODO: --max-n=0 support
                 SingleEndFilter(
-                    IsUntrimmedRef(ref_adapters),
+                    IsUntrimmedAny(ref_adapters),
                     outfiles.open_record_writer(untrimmed1, interleaved=False),
                 ),
             )
@@ -432,10 +432,10 @@ def pipeline_paired(
             steps.append(
                 # TODO: --max-n=0 support
                 PairedEndFilter(
-                    IsUntrimmedRef([adapter_inline5])
+                    IsUntrimmedAny([adapter_inline5])
                     if barcode.inline5.len > 0
                     else None,
-                    IsUntrimmedRef([adapter_inline3])
+                    IsUntrimmedAny([adapter_inline3])
                     if barcode.inline3.len > 0
                     else None,
                     outfiles.open_record_writer(
