@@ -225,9 +225,13 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     if barcode.inline5.len > 0:
         adapter_inline5 = PrefixAdapter(sequence=barcode.inline5.fw, max_errors=0.2)
         modifiers.append(AdapterCutter([adapter_inline5], times=1))
+    else:
+        adapter_inline5 = None
     if barcode.inline3.len > 0:
         adapter_inline3 = SuffixAdapter(sequence=barcode.inline3.fw, max_errors=0.2)
         modifiers.append(AdapterCutter([adapter_inline3], times=1))
+    else:
+        adapter_inline3 = None
 
     # step 5: extract UMI
     if barcode.umi5.len > 0:
@@ -297,13 +301,13 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         )
         # TODO: --max-n=0 support
         if (
-            settings.ensure_inline_barcode
-            and barcode.inline5.len + barcode.inline3.len > 0
-        ):
+            barcode.inline5.len + barcode.inline3.len > 0
+            and settings.ensure_inline_barcode
+        ) or (untrimmed1 is not None):
             ref_adapters = []
-            if barcode.inline5.len > 0:
+            if adapter_inline5 is not None:
                 ref_adapters.append(adapter_inline5)
-            if barcode.inline3.len > 0:
+            if adapter_inline3 is not None:
                 ref_adapters.append(adapter_inline3)
             steps.append(
                 SingleEndFilter(
@@ -387,6 +391,8 @@ def pipeline_paired(
                 UnconditionalCutter(-barcode.inline5.len),
             )
         )
+    else:
+        adapter_inline5 = None
     if barcode.inline3.len > 0:
         adapter_inline3 = PrefixAdapter(sequence=barcode.inline3.rc, max_errors=0.2)
         modifiers.append(
@@ -395,6 +401,8 @@ def pipeline_paired(
                 AdapterCutter([adapter_inline3], times=1),
             )
         )
+    else:
+        adapter_inline3 = None
 
     # step 5: extract UMI
     if barcode.umi5.len > 0:
@@ -498,17 +506,13 @@ def pipeline_paired(
         )
         # TODO: --max-n=0 support
         if (
-            settings.ensure_inline_barcode
-            and barcode.inline5.len + barcode.inline3.len > 0
-        ):
+            barcode.inline5.len + barcode.inline3.len > 0
+            and settings.ensure_inline_barcode
+        ) or (untrimmed1 is not None and untrimmed2 is not None):
             steps.append(
                 PairedEndFilter(
-                    IsUntrimmedAny([adapter_inline5])
-                    if barcode.inline5.len > 0
-                    else None,
-                    IsUntrimmedAny([adapter_inline3])
-                    if barcode.inline3.len > 0
-                    else None,
+                    IsUntrimmedAny([adapter_inline5] if adapter_inline5 else []),
+                    IsUntrimmedAny([adapter_inline3] if adapter_inline3 else []),
                     outfiles.open_record_writer(
                         untrimmed1, untrimmed2, interleaved=False
                     ),
@@ -530,7 +534,7 @@ def pipeline_paired(
 
 
 def run_cutseq(args):
-    barcode_config = BarcodeConfig(args.adapter_scheme.replace(" ", "").upper())
+    barcode_config = BarcodeConfig(args.adapter_scheme)
     settings = CutadaptConfig()
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
@@ -603,7 +607,7 @@ def main():
         "-s",
         "--short-file",
         type=str,
-        nargs="*",
+        nargs="+",
         help="Output file path for discarded too short data.",
     )
     # discard inline barcode untrimmed reads
@@ -611,7 +615,7 @@ def main():
         "-u",
         "--untrimmed-file",
         type=str,
-        nargs="*",
+        nargs="+",
         help="Output file path for discarded reads without inline barcode.",
     )
     parser.add_argument(
@@ -696,6 +700,7 @@ def main():
     elif args.adapter_scheme is None:
         logging.error("Adapter scheme or name is required.")
         sys.exit(1)
+    args.adapter_scheme = args.adapter_scheme.replace(" ", "").upper()
 
     if args.auto_rc is not None:
         if args.reverse_complement:
@@ -738,8 +743,23 @@ def main():
     args.short_file = validate_output_file(
         args.short_file, args.input_file, args.output_prefix, "short"
     )
-    args.untrimmed_file = validate_output_file(
-        args.untrimmed_file, args.input_file, args.output_prefix, "untrimmed"
+
+    def _check_with_inline_barcode(s):
+        # inline barcode is in bracket () and length > 0
+        return re.match(r".*\([ATGCatgc]+\).*", s) is not None
+
+    args.untrimmed_file = (
+        validate_output_file(
+            args.untrimmed_file, args.input_file, args.output_prefix, "untrimmed"
+        )
+        if (
+            args.untrimmed_file is not None
+            or (
+                _check_with_inline_barcode(args.adapter_scheme)
+                and args.ensure_inline_barcode
+            )
+        )
+        else [None, None]
     )
 
     run_cutseq(args)
