@@ -33,7 +33,7 @@ from cutadapt.modifiers import (
 )
 from cutadapt.pipeline import PairedEndPipeline, SingleEndPipeline
 from cutadapt.predicates import Predicate, TooShort
-from cutadapt.report import Statistics
+from cutadapt.report import Statistics, minimal_report
 from cutadapt.runners import make_runner
 from cutadapt.steps import (
     PairedEndFilter,
@@ -300,6 +300,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         )
         pipeline = SingleEndPipeline(modifiers, steps)
         _stats = runner.run(pipeline, Progress(), outfiles)
+        print(minimal_report(_stats, time=None, gc_content=None), file=sys.stderr)
         # _ = stats.as_json()
     outfiles.close()
 
@@ -495,12 +496,13 @@ def pipeline_paired(
         )
         pipeline = PairedEndPipeline(modifiers, steps)
         _stats = runner.run(pipeline, Progress(), outfiles)
+        print(minimal_report(_stats, time=None, gc_content=None), file=sys.stderr)
         # _ = stats.as_json()
     outfiles.close()
 
 
 def run_cutseq(args):
-    barcode_config = BarcodeConfig(args.replace(" ", "").adapter_scheme.upper())
+    barcode_config = BarcodeConfig(args.adapter_scheme.replace(" ", "").upper())
     settings = CutadaptConfig()
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
