@@ -175,6 +175,29 @@ class CutadaptConfig:
         self.threads = 1
 
 
+BUILDIN_ADAPTERS = {
+    "INLINE": "CACGACGCTCTTCCGATCTNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
+    # Small RNA, double ligation method, without barcode
+    # p5 - insert - p7
+    # (Optional) trim 2nt on both end to increase quality
+    "SMALLRNA": "CACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
+    # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
+    "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
+    # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
+    "STRANDED": "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
+    # p5 - reverse insert - 14ntUMI - p7
+    # 14nt UMI = (8 nt UMIs + 3 nt UMI linker + 3 nt from Pico v3 SMART UMI Adapter)
+    # IMPORTANT: The UMI liker and UMI adapter can be different, even the 8nt UMI is the same. very weired.
+    # NOTE: if insert is too short, also need to add -u -14 to trim readthrough in R1
+    "TAKARAV3": "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
+    # p5 - [might be 6bp of polyC] - reverse insert (cDNA) - adaptase tail (CCCCCC) - p7
+    # 6nt of polyG in 5' of R1 might from random RT primer
+    # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
+    # no UMI, but try to use random polyC tail as UMI
+    "SWIFT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+}
+
+
 def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     modifiers = []
     # step 1: remove suffix in the read name
@@ -647,15 +670,8 @@ def main():
         if args.adapter_scheme is not None:
             logging.info("Adapter scheme is provided, ignore adapter name.")
         else:
-            if args.adapter_name.upper() == "TAKARAV2":
-                args.adapter_scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
-            elif args.adapter_name.upper() == "STRANDED":
-                args.adapter_scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
-            elif args.adapter_name.upper() == "TAKARAV3":
-                args.adapter_scheme = (
-                    "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
-                )
-            else:
+            args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
+            if args.adapter_scheme is None:
                 logging.error("Adapter name is not valid.")
                 sys.exit(1)
     elif args.adapter_scheme is None:
