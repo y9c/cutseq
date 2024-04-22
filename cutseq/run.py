@@ -27,6 +27,7 @@ from cutadapt.modifiers import (
     PairedEndRenamer,
     QualityTrimmer,
     Renamer,
+    SingleEndModifier,
     SuffixRemover,
     UnconditionalCutter,
 )
@@ -54,6 +55,38 @@ def patched_problematic_method(self, *args, **kwargs):
 
 
 Statistics._collect_modifier = patched_problematic_method
+
+## Enhnace function for cutadapt
+
+
+class IsUntrimmedAny(Predicate):
+    """
+    Select reads for which no adapter match was found
+    """
+
+    def __init__(self, ref_adapters):
+        self.ref_adapters = ref_adapters
+
+    def __repr__(self):
+        return "IsUntrimmedAny()"
+
+    def test(self, read, info):
+        # check not all adapters with ref_adapters are exist in the matches
+        match_adapters = [match.adapter for match in info.matches]
+        if any([adapter not in match_adapters for adapter in self.ref_adapters]):
+            return True
+        return False
+
+
+class ReverseComplementConverter(SingleEndModifier):
+    def __init__(self):
+        self.rcd = False
+
+    def __repr__(self):
+        return f"UnconditionalCutter(length={self.length})"
+
+    def __call__(self, read, info):
+        return read.reverse_complement()
 
 
 __version__ = importlib.metadata.version(__package__ or __name__)
@@ -143,25 +176,6 @@ class CutadaptConfig:
         self.threads = 1
 
 
-class IsUntrimmedAny(Predicate):
-    """
-    Select reads for which no adapter match was found
-    """
-
-    def __init__(self, ref_adapters):
-        self.ref_adapters = ref_adapters
-
-    def __repr__(self):
-        return "IsUntrimmedAny()"
-
-    def test(self, read, info):
-        # check not all adapters with ref_adapters are exist in the matches
-        match_adapters = [match.adapter for match in info.matches]
-        if any([adapter not in match_adapters for adapter in self.ref_adapters]):
-            return True
-        return False
-
-
 def run_steps(steps, dry_run=False):
     if dry_run:
         print(
@@ -239,6 +253,10 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     modifiers.append(
         QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
     )
+
+    # step 9: reverse complement the read
+    if settings.reverse_complement:
+        modifiers.append(ReverseComplementConverter())
 
     inpaths = InputPaths(input1)
 
@@ -424,6 +442,10 @@ def pipeline_paired(
         )
     )
 
+    # step 9: reverse complement the read
+    if settings.reverse_complement:
+        modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
+
     inpaths = InputPaths(input1, input2)
 
     with make_runner(inpaths, cores=settings.threads) as runner:
@@ -481,6 +503,7 @@ def run_cutseq(args):
     settings.threads = args.threads
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
+    settings.reverse_complement = args.reverse_complement
     if len(args.input_file) == 1:
         pipeline_single(
             args.input_file[0],
@@ -582,6 +605,12 @@ def main():
     )
 
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
+
+    parser.add_argument(
+        "--reverse-complement",
+        action="store_true",
+        help="Reverse complement the reads.",
+    )
 
     parser.add_argument(
         "-t",
