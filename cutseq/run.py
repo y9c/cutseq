@@ -8,6 +8,7 @@
 
 import argparse
 import importlib.metadata
+import json
 import logging
 import re
 import sys
@@ -315,9 +316,11 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
             SingleEndSink(outfiles.open_record_writer(output1, interleaved=False)),
         )
         pipeline = SingleEndPipeline(modifiers, steps)
-        _stats = runner.run(pipeline, Progress(), outfiles)
-        print(minimal_report(_stats, time=None, gc_content=None), file=sys.stderr)
-        # _ = stats.as_json()
+        stats = runner.run(pipeline, Progress(), outfiles)
+        if settings.json_file:
+            with open(settings.json_file, "w") as json_file:
+                json_file.write(json.dumps(stats.as_json(), indent=2))
+        print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
 
 
@@ -517,9 +520,12 @@ def pipeline_paired(
             PairedEndSink(outfiles.open_record_writer(output1, output2))
         )
         pipeline = PairedEndPipeline(modifiers, steps)
-        _stats = runner.run(pipeline, Progress(), outfiles)
-        print(minimal_report(_stats, time=None, gc_content=None), file=sys.stderr)
-        # _ = stats.as_json()
+        stats = runner.run(pipeline, Progress(), outfiles)
+        if settings.json_file:
+            with open(settings.json_file, "w") as json_file:
+                json_file.write(json.dumps(stats.as_json(), indent=2))
+        print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
+
     outfiles.close()
 
 
@@ -533,6 +539,7 @@ def run_cutseq(args):
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
     settings.reverse_complement = args.reverse_complement
+    settings.json_file = args.json_file
     if len(args.input_file) == 1:
         pipeline_single(
             args.input_file[0],
@@ -641,6 +648,11 @@ def main():
         help="Reverse complement the reads.",
     )
 
+    parser.add_argument(
+        "--json-file",
+        type=str,
+        help="Output json file for statistics.",
+    )
     parser.add_argument(
         "-t",
         "--threads",
