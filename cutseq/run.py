@@ -607,7 +607,7 @@ def main():
     )
     # discard short reads
     parser.add_argument(
-        "-S",
+        "-s",
         "--short-file",
         type=str,
         nargs="+",
@@ -633,7 +633,7 @@ def main():
         help="Output discarded reads without inline barcode.",
     )
     parser.add_argument(
-        "-U",
+        "-u",
         "--untrimmed-file",
         type=str,
         nargs="+",
