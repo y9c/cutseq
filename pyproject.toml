@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cutseq"
-version = "0.0.10"
+version = "0.0.11"
 description = "Automatically cut adapter / barcode / UMI from NGS data"
 authors = ["Ye Chang <yech1990@gmail.com>"]
 license = "MIT"
