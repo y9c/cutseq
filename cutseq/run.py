@@ -597,14 +597,6 @@ def main():
         nargs="+",
         help="Output file path for keep trimmed data.",
     )
-
-    parser.add_argument(
-        "-q",
-        "--min-quality",
-        type=int,
-        default=20,
-        help="Minimum quality of the read tails in the reads to keep.",
-    )
     # discard short reads
     parser.add_argument(
         "-s",
@@ -612,6 +604,27 @@ def main():
         type=str,
         nargs="+",
         help="Output file path for discarded too short data.",
+    )
+    # discard inline barcode untrimmed reads
+    parser.add_argument(
+        "-u",
+        "--untrimmed-file",
+        type=str,
+        nargs="+",
+        help="Output file path for discarded reads without inline barcode.",
+    )
+    parser.add_argument(
+        "--json-file",
+        type=str,
+        help="Output json file for statistics.",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--min-quality",
+        type=int,
+        default=20,
+        help="Minimum quality of the read tails in the reads to keep.",
     )
     parser.add_argument(
         "-m",
@@ -632,13 +645,6 @@ def main():
         action="store_true",
         help="Output discarded reads without inline barcode.",
     )
-    parser.add_argument(
-        "-u",
-        "--untrimmed-file",
-        type=str,
-        nargs="+",
-        help="Output file path for discarded reads without inline barcode.",
-    )
 
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
 
@@ -648,11 +654,6 @@ def main():
         help="Reverse complement the reads.",
     )
 
-    parser.add_argument(
-        "--json-file",
-        type=str,
-        help="Output json file for statistics.",
-    )
     parser.add_argument(
         "-t",
         "--threads",
