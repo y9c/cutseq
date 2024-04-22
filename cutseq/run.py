@@ -266,10 +266,10 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     )
 
     # step 9: reverse complement the read
-    if settings.reverse_complement:
-        if barcode.strand == "+":
-            logging.warn("Library is + strand, but reverse complement is enabled.")
-        modifiers.append(ReverseComplementConverter())
+    if settings.reverse_complement and barcode.strand == "+":
+        logging.warn("Library is + strand, but reverse complement is enabled.")
+    if (settings.auto_rc and barcode.strand == "-") or settings.reverse_complement:
+        modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
 
     # dry run and exit code
     if settings.dry_run:
@@ -466,9 +466,9 @@ def pipeline_paired(
     )
 
     # step 9: reverse complement the read
-    if settings.reverse_complement:
-        if barcode.strand == "+":
-            logging.warn("Library is + strand, but reverse complement is enabled.")
+    if settings.reverse_complement and barcode.strand == "+":
+        logging.warn("Library is + strand, but reverse complement is enabled.")
+    if (settings.auto_rc and barcode.strand == "-") or settings.reverse_complement:
         modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
 
     # dry run and exit code
@@ -539,6 +539,7 @@ def run_cutseq(args):
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
     settings.reverse_complement = args.reverse_complement
+    settings.auto_rc = args.auto_rc
     settings.json_file = args.json_file
     if len(args.input_file) == 1:
         pipeline_single(
@@ -653,6 +654,11 @@ def main():
         action="store_true",
         help="Reverse complement the reads.",
     )
+    parser.add_argument(
+        "--auto-rc",
+        action="store_true",
+        help="Reverse complete (-) strand reads only automatically.",
+    )
 
     parser.add_argument(
         "-t",
@@ -690,6 +696,13 @@ def main():
     elif args.adapter_scheme is None:
         logging.error("Adapter scheme or name is required.")
         sys.exit(1)
+
+    if args.auto_rc is not None:
+        if args.reverse_complement:
+            logging.warn(
+                "Both --reverse-complement and --auto-rc are enabled, --reverse-complement will be ignored."
+            )
+            args.reverse_complement = False
 
     if len(args.input_file) > 2:
         logging.error("Input file can not be more than two.")
