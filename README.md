@@ -6,7 +6,7 @@
 CutSeq is a tool that provides an efficient wrapper for the cutadapt tool, which is powerful in handling various types of NGS libraries.
 Due to the complexities involved in NGS library preparation methods, mutiple operations are necessary to process sequencing reads correctly.
 
-Take TAKARA PICO V3 kit as an example, at least 9 operations are required.
+Take _SMARTer® Stranded Total RNA-Seq Kit v3_ as an example, at least 9 operations are required.
 
 ![](./docs/takaraV3.png)
 
