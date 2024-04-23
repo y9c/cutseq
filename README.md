@@ -52,4 +52,4 @@ cutseq -A TAKARAV3 test_R1.fq.gz test_R2.fq.gz
 
 Alternatively, you can specify a custom adapter sequence:
 
-`cutseq -a "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"`
+`cutseq -a "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
