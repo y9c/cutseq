@@ -177,7 +177,7 @@ class CutadaptConfig:
 
 
 BUILDIN_ADAPTERS = {
-    "INLINE": "CACGACGCTCTTCCGATCTNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
+    "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
     # Small RNA, double ligation method, without barcode
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
