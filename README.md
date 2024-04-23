@@ -8,7 +8,7 @@ Due to the complexities involved in NGS library preparation methods, mutiple ope
 
 Take _SMARTer® Stranded Total RNA-Seq Kit v3_ as an example, at least 9 operations are required.
 
-![](https://github.com/y9c/cutseq/blob/main/docs/takaraV3.png?raw=True)
+![](https://raw.githubusercontent.com/y9c/cutseq/latest/docs/takaraV3.png)
 
 For **Read 1**:
 
@@ -34,7 +34,7 @@ CutSeq overcomes these limitations by enabling multiple operations in a automati
 
 ---
 
-![](https://github.com/y9c/cutseq/blob/main/docs/explain_library.png?raw=True)
+![](https://raw.githubusercontent.com/y9c/cutseq/latest/docs/explain_library.png)
 
 ## How to install?
 
