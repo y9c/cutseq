@@ -8,7 +8,7 @@ Due to the complexities involved in NGS library preparation methods, mutiple ope
 
 Take TAKARA PICO V3 kit as an example, at least 9 operations are required.
 
-[](./docs/takaraV3.png)
+![](./docs/takaraV3.png)
 
 For **Read 1**:
 
@@ -34,7 +34,7 @@ CutSeq overcomes these limitations by enabling multiple operations in a automati
 
 ---
 
-[](./docs/explain_library.png)
+![](./docs/explain_library.png)
 
 # How to install?
 
