@@ -27,10 +27,10 @@ For **Read 2**:
 
 These operations must be performed in the correct order. The limitations of the cutadapt tool make it challenging to configure these operations in a single command, often leading to errors unnoticed in some publications.
 
-To solve this by using cutadapt, we can run multiple cutadpat insitent or pipe multiple commands togeter. But this waste lots of IO and computational resource. I am thinking there a more eligent API to make things easy. The comes this toy project.
-What you need is only one parameter which spcific what the library would looks like.
+To solve this by using cutadapt, we can run multiple cutadpat insitent or pipe multiple commands together. But this waste lots of IO and computational resource. I am thinking there a more eligent API to make things easy. Then comes this toy project.
+-- **What you need is only one parameter which spcific what the library would looks like.**
 
-CutSeq overcomes these limitations by enabling multiple operations in a automatical manner to ensure accuracy and efficiency. This "toy project" has evolved into a more elegant API that simplifies NGS library processing.
+CutSeq overcomes these limitations by enabling multiple operations in a automatical manner to ensure accuracy and efficiency.
 
 ---
 
