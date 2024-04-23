@@ -270,10 +270,13 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     )
 
     # step 9: reverse complement the read
-    if settings.reverse_complement and barcode.strand == "+":
-        logging.warn("Library is + strand, but reverse complement is enabled.")
-    if (settings.auto_rc and barcode.strand == "-") or settings.reverse_complement:
-        modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
+    if settings.auto_rc:
+        if barcode.strand == "-":
+            modifiers.append(ReverseComplementConverter())
+        else:
+            logging.warn(
+                "Library is not (-) strand, but --auto-rc is enabled. Ignored."
+            )
 
     # dry run and exit code
     if settings.dry_run:
@@ -474,10 +477,12 @@ def pipeline_paired(
     )
 
     # step 9: reverse complement the read
-    if settings.reverse_complement and barcode.strand == "+":
-        logging.warn("Library is + strand, but reverse complement is enabled.")
-    if (settings.auto_rc and barcode.strand == "-") or settings.reverse_complement:
-        modifiers.append((ReverseComplementConverter(), ReverseComplementConverter()))
+    # NOTE: Do not need to rc, switch R1 and R2 since it is paired-end data
+    if settings.auto_rc:
+        if barcode.strand != "-":
+            logging.warn(
+                "Library is not (-) strand, but --auto-rc is enabled. Ignored."
+            )
 
     # dry run and exit code
     if settings.dry_run:
@@ -521,7 +526,11 @@ def pipeline_paired(
             )
         steps.append(
             # -o ... -p ...
-            PairedEndSink(outfiles.open_record_writer(output1, output2))
+            PairedEndSink(
+                outfiles.open_record_writer(output1, output2)
+                if (settings.auto_rc and barcode.strand == "-")
+                else outfiles.open_record_writer(output2, output1)
+            )
         )
         pipeline = PairedEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
@@ -542,7 +551,6 @@ def run_cutseq(args):
     settings.threads = args.threads
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
-    settings.reverse_complement = args.reverse_complement
     settings.auto_rc = args.auto_rc
     settings.json_file = args.json_file
     if len(args.input_file) == 1:
@@ -660,14 +668,9 @@ def main():
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
 
     parser.add_argument(
-        "--reverse-complement",
-        action="store_true",
-        help="Reverse complement the reads.",
-    )
-    parser.add_argument(
         "--auto-rc",
         action="store_true",
-        help="Reverse complete (-) strand reads only automatically.",
+        help="Reverse complement (-) strand automatically if the library is reverse orientation.",
     )
 
     parser.add_argument(
@@ -707,13 +710,6 @@ def main():
         logging.error("Adapter scheme or name is required.")
         sys.exit(1)
     args.adapter_scheme = args.adapter_scheme.replace(" ", "").upper()
-
-    if args.auto_rc is not None:
-        if args.reverse_complement:
-            logging.warn(
-                "Both --reverse-complement and --auto-rc are enabled, --reverse-complement will be ignored."
-            )
-            args.reverse_complement = False
 
     if len(args.input_file) > 2:
         logging.error("Input file can not be more than two.")
