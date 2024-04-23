@@ -588,7 +588,13 @@ def main():
         type=str,
         help="Adapter sequence configuration.",
     )
-    parser.add_argument("-A", "--adapter-name", type=str, help="Built-in adapter name.")
+    parser.add_argument(
+        "-A",
+        "--adapter-name",
+        type=str.upper,
+        choices=BUILDIN_ADAPTERS.keys(),
+        help="Built-in adapter name.",
+    )
     parser.add_argument(
         "-O",
         "--output-prefix",

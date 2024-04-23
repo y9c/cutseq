@@ -36,7 +36,7 @@ CutSeq overcomes these limitations by enabling multiple operations in a automati
 
 ![](./docs/explain_library.png)
 
-# How to install?
+## How to install?
 
 ```bash
 pip install cutseq
@@ -53,3 +53,7 @@ cutseq -A TAKARAV3 test_R1.fq.gz test_R2.fq.gz
 Alternatively, you can specify a custom adapter sequence:
 
 `cutseq -a "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
+
+## TODO
+
+- support more library scheme
