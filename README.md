@@ -25,16 +25,14 @@ For **Read 2**:
 8.  Remove poly-A sequences at the end of the read.
 9.  Remove low-quality bases from right to left.
 
-These operations must be performed in the correct order. The limitations of the cutadapt tool make it challenging to configure these operations in a single command, often leading to errors unnoticed in some publications.
-
-To solve this by using cutadapt, we can run multiple cutadpat insitent or pipe multiple commands together. But this waste lots of IO and computational resource. I am thinking there a more eligent API to make things easy. Then comes this toy project.
--- **What you need is only one parameter which spcific what the library would looks like.**
-
-CutSeq overcomes these limitations by enabling multiple operations in a automatical manner to ensure accuracy and efficiency.
+These operations must be performed in the **correct order**. The limitations of the cutadapt tool make it challenging to configure these operations in a single command, often leading to errors unnoticed in some publications.
 
 ---
 
-![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
+To solve this by using cutadapt, we can run multiple cutadpat insitent sequentially or pipe multiple commands together. But this waste lots of IO and computational resource. I am thinking there a more eligent API to make things easy. Then comes this toy project.
+-- **What you need is only one parameter which spcific what the library would looks like.**
+
+CutSeq overcomes these limitations by enabling multiple operations in a automatical manner to ensure accuracy and efficiency.
 
 ## How to install?
 
@@ -54,6 +52,18 @@ Alternatively, you can specify a custom adapter sequence:
 
 `cutseq -a "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
 
+![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
+
+The customized scheme can be explained by diagram above.
+
+- The outmost parts on both ends are the Illumina adapters.
+- The first inner parts are inline barcode sequence or customized PCR primers in the library construction step. These are also fixed DNA sequence, and will be represented by by sequence within `(` and `)`.
+- The second inner parts are the UMI sequence, which is a random sequence and will be represented by `N`.
+- The innermost parts are sequnce to be masked, which will be represented by `X`. This can be random tail in the library construction step, caused by template switching or other reasons.
+- The center parts are the actual library sequence, which will be represented by `>` , `<` or `-`. `>` means that sequence is forward, `<` means that sequence is reverse, `-` means that sequence orientation is unknown.
+
+More details can be found in the [document](https://cutseq.yech.science)
+
 ## TODO
 
-- support more library scheme
+[ ] support more library scheme
