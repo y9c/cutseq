@@ -172,8 +172,10 @@ class CutadaptConfig:
         self.trim_polyA = False
         self.min_length = 20
         self.min_quality = 20
+        self.auto_rc = False
         self.dry_run = False
         self.threads = 1
+        self.json_file = None
 
 
 BUILDIN_ADAPTERS = {
