@@ -527,9 +527,9 @@ def pipeline_paired(
         steps.append(
             # -o ... -p ...
             PairedEndSink(
-                outfiles.open_record_writer(output1, output2)
+                outfiles.open_record_writer(output2, output1)
                 if (settings.auto_rc and barcode.strand == "-")
-                else outfiles.open_record_writer(output2, output1)
+                else outfiles.open_record_writer(output1, output2)
             )
         )
         pipeline = PairedEndPipeline(modifiers, steps)
