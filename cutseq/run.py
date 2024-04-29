@@ -180,7 +180,7 @@ class CutadaptConfig:
 
 BUILDIN_ADAPTERS = {
     # dsDNA ligation, A tailing method, do ot need to trim
-    "dsLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
+    "DSLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
     # Small RNA, double ligation method, without barcode
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
@@ -202,13 +202,13 @@ BUILDIN_ADAPTERS = {
     # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
     # no UMI, but try to use random polyC tail as UMI
     # legacy name: "SWIFT"
-    "xGenRNA": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    "XGENRNA": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
     # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
     # 10 bases from END of R1 10 bases from START of R2
-    "xGenMethy": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    "XGENMETHY": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # for snmC-seq, trim 15 bases
-    "xGenSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    "XGENSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # The general method for xGen / Swift kit, might be better than hard clip, TODO
     # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
     # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
