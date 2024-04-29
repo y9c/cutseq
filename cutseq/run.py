@@ -185,6 +185,9 @@ BUILDIN_ADAPTERS = {
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
     "SMALLRNA": "CACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
+    # inline barcode method
+    # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
+    "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
     "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
