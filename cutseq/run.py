@@ -179,7 +179,8 @@ class CutadaptConfig:
 
 
 BUILDIN_ADAPTERS = {
-    "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
+    # dsDNA ligation, A tailing method, do ot need to trim
+    "dsLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
     # Small RNA, double ligation method, without barcode
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
@@ -197,11 +198,25 @@ BUILDIN_ADAPTERS = {
     # 6nt of polyG in 5' of R1 might from random RT primer
     # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
     # no UMI, but try to use random polyC tail as UMI
-    "SWIFT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # legacy name: "SWIFT"
+    "xGenRNA": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
+    # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
+    # 10 bases from END of R1 10 bases from START of R2
+    "xGenMethy": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # for snmC-seq, trim 15 bases
+    "xGenSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # The general method for xGen / Swift kit, might be better than hard clip, TODO
+    # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
+    # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
+    # PBAT: method use random primer to add both p5 and p7,
+    # and there might be random tail at the 5' end of both reads
+    "PBAT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC",
 }
 
 
 def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
+    max_errors = 0.2
     modifiers = []
     # step 1: remove suffix in the read name
     modifiers.extend([SuffixRemover(".1"), SuffixRemover("/1")])
@@ -210,7 +225,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         AdapterCutter(
             [
                 RightmostFrontAdapter(
-                    sequence=barcode.p5.fw, max_errors=0.25, min_overlap=10
+                    sequence=barcode.p5.fw, max_errors=max_errors, min_overlap=10
                 )
             ],
             times=1,
@@ -219,18 +234,22 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     # step 3: remove adapter on the 3' end, read though in the sequencing
     modifiers.append(
         AdapterCutter(
-            [BackAdapter(sequence=barcode.p7.fw, max_errors=0.2, min_overlap=3)],
+            [BackAdapter(sequence=barcode.p7.fw, max_errors=max_errors, min_overlap=3)],
             times=2,
         ),
     )
     # step 4: trim inline barcode
     if barcode.inline5.len > 0:
-        adapter_inline5 = PrefixAdapter(sequence=barcode.inline5.fw, max_errors=0.2)
+        adapter_inline5 = PrefixAdapter(
+            sequence=barcode.inline5.fw, max_errors=max_errors
+        )
         modifiers.append(AdapterCutter([adapter_inline5], times=1))
     else:
         adapter_inline5 = None
     if barcode.inline3.len > 0:
-        adapter_inline3 = SuffixAdapter(sequence=barcode.inline3.fw, max_errors=0.2)
+        adapter_inline3 = SuffixAdapter(
+            sequence=barcode.inline3.fw, max_errors=max_errors
+        )
         modifiers.append(AdapterCutter([adapter_inline3], times=1))
     else:
         adapter_inline3 = None
@@ -252,16 +271,25 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         modifiers.append(UnconditionalCutter(-barcode.mask3.len))
     # step 7: trim polyA
     if settings.trim_polyA:
+        pA_max_errors = 0.15
         if barcode.strand == "+":
             modifiers.append(
                 AdapterCutter(
-                    [NonInternalBackAdapter(sequence="A" * 100, max_errors=0.15)]
+                    [
+                        NonInternalBackAdapter(
+                            sequence="A" * 100, max_errors=pA_max_errors
+                        )
+                    ]
                 )
             )
         elif barcode.strand == "-":
             modifiers.append(
                 AdapterCutter(
-                    [NonInternalFrontAdapter(sequence="T" * 100, max_errors=0.15)]
+                    [
+                        NonInternalFrontAdapter(
+                            sequence="T" * 100, max_errors=pA_max_errors
+                        )
+                    ]
                 )
             )
         else:
@@ -345,6 +373,7 @@ def pipeline_paired(
     barcode,
     settings,
 ):
+    max_errors = 0.2
     modifiers = []
     # step 1: remove suffix in the read name
     modifiers.extend(
@@ -359,7 +388,7 @@ def pipeline_paired(
             AdapterCutter(
                 [
                     RightmostFrontAdapter(
-                        sequence=barcode.p5.fw, max_errors=0.25, min_overlap=10
+                        sequence=barcode.p5.fw, max_errors=max_errors, min_overlap=10
                     )
                 ],
                 times=1,
@@ -367,7 +396,7 @@ def pipeline_paired(
             AdapterCutter(
                 [
                     RightmostFrontAdapter(
-                        sequence=barcode.p7.rc, max_errors=0.25, min_overlap=10
+                        sequence=barcode.p7.rc, max_errors=max_errors, min_overlap=10
                     )
                 ],
                 times=1,
@@ -378,18 +407,28 @@ def pipeline_paired(
     modifiers.append(
         (
             AdapterCutter(
-                [BackAdapter(sequence=barcode.p7.fw, max_errors=0.2, min_overlap=3)],
+                [
+                    BackAdapter(
+                        sequence=barcode.p7.fw, max_errors=max_errors, min_overlap=3
+                    )
+                ],
                 times=2,
             ),
             AdapterCutter(
-                [BackAdapter(sequence=barcode.p5.rc, max_errors=0.2, min_overlap=3)],
+                [
+                    BackAdapter(
+                        sequence=barcode.p5.rc, max_errors=max_errors, min_overlap=3
+                    )
+                ],
                 times=2,
             ),
         ),
     )
     # step 4: trim inline barcode
     if barcode.inline5.len > 0:
-        adapter_inline5 = PrefixAdapter(sequence=barcode.inline5.fw, max_errors=0.2)
+        adapter_inline5 = PrefixAdapter(
+            sequence=barcode.inline5.fw, max_errors=max_errors
+        )
         modifiers.append(
             (
                 AdapterCutter([adapter_inline5], times=1),
@@ -399,7 +438,9 @@ def pipeline_paired(
     else:
         adapter_inline5 = None
     if barcode.inline3.len > 0:
-        adapter_inline3 = PrefixAdapter(sequence=barcode.inline3.rc, max_errors=0.2)
+        adapter_inline3 = PrefixAdapter(
+            sequence=barcode.inline3.rc, max_errors=max_errors
+        )
         modifiers.append(
             (
                 UnconditionalCutter(-barcode.inline3.len),
@@ -446,14 +487,23 @@ def pipeline_paired(
         )
     # step 7: trim polyA
     if settings.trim_polyA:
+        pA_max_errors = 0.15
         if barcode.strand == "+":
             modifiers.append(
                 (
                     AdapterCutter(
-                        [NonInternalBackAdapter(sequence="A" * 100, max_errors=0.15)]
+                        [
+                            NonInternalBackAdapter(
+                                sequence="A" * 100, max_errors=pA_max_errors
+                            )
+                        ]
                     ),
                     AdapterCutter(
-                        [NonInternalFrontAdapter(sequence="T" * 100, max_errors=0.15)]
+                        [
+                            NonInternalFrontAdapter(
+                                sequence="T" * 100, max_errors=pA_max_errors
+                            )
+                        ]
                     ),
                 )
             )
@@ -461,10 +511,18 @@ def pipeline_paired(
             modifiers.append(
                 (
                     AdapterCutter(
-                        [NonInternalFrontAdapter(sequence="T" * 100, max_errors=0.15)]
+                        [
+                            NonInternalFrontAdapter(
+                                sequence="T" * 100, max_errors=pA_max_errors
+                            )
+                        ]
                     ),
                     AdapterCutter(
-                        [NonInternalBackAdapter(sequence="A" * 100, max_errors=0.15)]
+                        [
+                            NonInternalBackAdapter(
+                                sequence="A" * 100, max_errors=pA_max_errors
+                            )
+                        ]
                     ),
                 )
             )
