@@ -164,6 +164,19 @@ class BarcodeConfig:
         self.mask5 = BarcodeSeq(d["mask5"])
         self.mask3 = BarcodeSeq(d["mask3"])
 
+    def to_dict(self):
+        return {
+            "p5": self.p5.fw,
+            "p7": self.p7.fw,
+            "inline5": self.inline5.fw,
+            "inline3": self.inline3.fw,
+            "umi5": self.umi5.fw,
+            "umi3": self.umi3.fw,
+            "mask5": self.mask5.fw,
+            "mask3": self.mask3.fw,
+            "strand": self.strand,
+        }
+
 
 class CutadaptConfig:
     def __init__(self):
@@ -357,9 +370,24 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         )
         pipeline = SingleEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
+        d = {
+            "tag": "Cutadapt report",
+            "files": {
+                "input1": input1,
+                "input2": "",
+                "output1": output1,
+                "output2": "",
+                "short1": short1,
+                "short2": "",
+                "untrimmed1": untrimmed1,
+                "untrimmed2": "",
+            },
+            "barcode": barcode.to_dict(),
+        }
+        d.update(stats.as_json())
         if settings.json_file:
             with open(settings.json_file, "w") as json_file:
-                json_file.write(json.dumps(stats.as_json(), indent=2))
+                json_file.write(json.dumps(d, indent=2))
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
 
@@ -597,9 +625,24 @@ def pipeline_paired(
         )
         pipeline = PairedEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
+        d = {
+            "tag": "Cutadapt report",
+            "files": {
+                "input1": input1,
+                "input2": input2,
+                "output1": output1,
+                "output2": output2,
+                "short1": short1,
+                "short2": short2,
+                "untrimmed1": untrimmed1,
+                "untrimmed2": untrimmed2,
+            },
+            "barcode": barcode.to_dict(),
+        }
+        d.update(stats.as_json())
         if settings.json_file:
             with open(settings.json_file, "w") as json_file:
-                json_file.write(json.dumps(stats.as_json(), indent=2))
+                json_file.write(json.dumps(d, indent=2))
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
 
     outfiles.close()
