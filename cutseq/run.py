@@ -376,18 +376,22 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         stats = runner.run(pipeline, Progress(), outfiles)
         d = {
             "tag": "Cutadapt report",
-            "files": {
-                "input1": input1,
-                "input2": "",
+            "input": {
+                "path1": input1,
+                "path2": None,
+                "paired": True,
+            },
+            "output": {
                 "output1": output1,
-                "output2": "",
+                "output2": None,
                 "short1": short1,
-                "short2": "",
+                "short2": None,
                 "untrimmed1": untrimmed1,
-                "untrimmed2": "",
+                "untrimmed2": None,
             },
             "barcode": barcode.to_dict(),
         }
+
         d.update(stats.as_json())
         if settings.json_file:
             with open(settings.json_file, "w") as json_file:
@@ -631,9 +635,12 @@ def pipeline_paired(
         stats = runner.run(pipeline, Progress(), outfiles)
         d = {
             "tag": "Cutadapt report",
-            "files": {
-                "input1": input1,
-                "input2": input2,
+            "input": {
+                "path1": input1,
+                "path2": input2,
+                "paired": True,
+            },
+            "output": {
                 "output1": output1,
                 "output2": output2,
                 "short1": short1,
