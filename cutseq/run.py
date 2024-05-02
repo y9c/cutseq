@@ -210,6 +210,10 @@ BUILDIN_ADAPTERS = {
     # IMPORTANT: The UMI liker and UMI adapter can be different, even the 8nt UMI is the same. very weired.
     # NOTE: if insert is too short, also need to add -u -14 to trim readthrough in R1
     "TAKARAV3": "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
+    # eCLIP, SAC-seq, cDNA ligation method, with 6 nt UMI
+    "eCLIP6": "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC",
+    # eCLIP, SAC-seq, cDNA ligation method, with 10 nt UMI
+    "eCLIP10": "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC",
     # p5 - [might be 6bp of polyC] - reverse insert (cDNA) - adaptase tail (CCCCCC) - p7
     # 6nt of polyG in 5' of R1 might from random RT primer
     # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
