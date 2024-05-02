@@ -193,7 +193,7 @@ class CutadaptConfig:
 
 BUILDIN_ADAPTERS = {
     # dsDNA ligation, A tailing method, do ot need to trim
-    "DSLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
+    "dsLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
     # Small RNA, double ligation method, without barcode
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
@@ -202,14 +202,14 @@ BUILDIN_ADAPTERS = {
     # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
     "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
-    "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
+    "TAKARAv2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
     "STRANDED": "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - reverse insert - 14ntUMI - p7
     # 14nt UMI = (8 nt UMIs + 3 nt UMI linker + 3 nt from Pico v3 SMART UMI Adapter)
     # IMPORTANT: The UMI liker and UMI adapter can be different, even the 8nt UMI is the same. very weired.
     # NOTE: if insert is too short, also need to add -u -14 to trim readthrough in R1
-    "TAKARAV3": "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
+    "TAKARAv3": "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
     # eCLIP, SAC-seq, cDNA ligation method, with 6 nt UMI
     "eCLIP6": "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC",
     # eCLIP, SAC-seq, cDNA ligation method, with 10 nt UMI
@@ -223,9 +223,9 @@ BUILDIN_ADAPTERS = {
     # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
     # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
     # 10 bases from END of R1 10 bases from START of R2
-    "XGENMETHY": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    "xGENmethy": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # for snmC-seq, trim 15 bases
-    "XGENSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    "xGENsnmc": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # The general method for xGen / Swift kit, might be better than hard clip, TODO
     # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
     # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
@@ -808,11 +808,12 @@ def main():
 
     args = parser.parse_args()
 
+    _BUILDIN_ADAPTERS = {k.upper(): v for k, v in BUILDIN_ADAPTERS.items()}
     if args.adapter_name is not None:
         if args.adapter_scheme is not None:
             logging.info("Adapter scheme is provided, ignore adapter name.")
         else:
-            args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
+            args.adapter_scheme = _BUILDIN_ADAPTERS.get(args.adapter_name.upper())
             if args.adapter_scheme is None:
                 logging.error("Adapter name is not valid.")
                 sys.exit(1)
