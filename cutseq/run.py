@@ -797,7 +797,7 @@ def main():
     parser.add_argument(
         "--read-through",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="Read through in the sequencing.",
     )
 
