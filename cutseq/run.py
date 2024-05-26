@@ -183,6 +183,7 @@ class CutadaptConfig:
         self.rname_suffix = False
         self.ensure_inline_barcode = False
         self.trim_polyA = False
+        self.read_through = False
         self.min_length = 20
         self.min_quality = 20
         self.auto_rc = False
@@ -494,13 +495,17 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.umi5.len),
-                UnconditionalCutter(-barcode.umi5.len),
+                UnconditionalCutter(-barcode.umi5.len)
+                if settings.read_through
+                else None,
             ),
         )
     if barcode.umi3.len > 0:
         modifiers.append(
             (
-                UnconditionalCutter(-barcode.umi3.len),
+                UnconditionalCutter(-barcode.umi3.len)
+                if settings.read_through
+                else None,
                 UnconditionalCutter(barcode.umi3.len),
             )
         )
@@ -514,13 +519,17 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.mask5.len),
-                UnconditionalCutter(-barcode.mask5.len),
+                UnconditionalCutter(-barcode.mask5.len)
+                if settings.read_through
+                else None,
             )
         )
     if barcode.mask3.len > 0:
         modifiers.append(
             (
-                UnconditionalCutter(-barcode.mask3.len),
+                UnconditionalCutter(-barcode.mask3.len)
+                if settings.read_through
+                else None,
                 UnconditionalCutter(barcode.mask3.len),
             )
         )
@@ -665,6 +674,7 @@ def run_cutseq(args):
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
     settings.trim_polyA = args.trim_polyA
+    settings.read_through = args.read_through
     settings.threads = args.threads
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
@@ -783,6 +793,13 @@ def main():
     )
 
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
+
+    parser.add_argument(
+        "--read-through",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Read through in the sequencing.",
+    )
 
     parser.add_argument(
         "--auto-rc",
