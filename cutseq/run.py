@@ -13,6 +13,7 @@ import logging
 import re
 import sys
 
+import cutadapt
 from cutadapt.adapters import (
     BackAdapter,
     NonInternalBackAdapter,
@@ -236,6 +237,43 @@ BUILDIN_ADAPTERS = {
 }
 
 
+def json_report(
+    file,
+    stats,
+    barcode,
+    input1,
+    input2,
+    output1,
+    output2,
+    short1,
+    short2,
+    untrimmed1,
+    untrimmed2,
+):
+    d = {
+        "tag": "Cutadapt report",
+        "cutadapt_version": cutadapt.__version__,
+        "input": {
+            "path1": input1,
+            "path2": None,
+            "paired": True,
+        },
+        "output": {
+            "output1": output1,
+            "output2": None,
+            "short1": short1,
+            "short2": None,
+            "untrimmed1": untrimmed1,
+            "untrimmed2": None,
+        },
+        "barcode": barcode.to_dict(),
+    }
+
+    d.update(stats.as_json())
+    with open(file, "w") as json_file:
+        json_file.write(json.dumps(d, indent=2))
+
+
 def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     max_errors = 0.2
     modifiers = []
@@ -375,28 +413,20 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         )
         pipeline = SingleEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
-        d = {
-            "tag": "Cutadapt report",
-            "input": {
-                "path1": input1,
-                "path2": None,
-                "paired": True,
-            },
-            "output": {
-                "output1": output1,
-                "output2": None,
-                "short1": short1,
-                "short2": None,
-                "untrimmed1": untrimmed1,
-                "untrimmed2": None,
-            },
-            "barcode": barcode.to_dict(),
-        }
 
-        d.update(stats.as_json())
-        if settings.json_file:
-            with open(settings.json_file, "w") as json_file:
-                json_file.write(json.dumps(d, indent=2))
+        json_report(
+            settings.json_file,
+            stats,
+            barcode,
+            input1,
+            None,
+            output1,
+            None,
+            short1,
+            None,
+            untrimmed1,
+            None,
+        )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
 
@@ -642,27 +672,20 @@ def pipeline_paired(
         )
         pipeline = PairedEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
-        d = {
-            "tag": "Cutadapt report",
-            "input": {
-                "path1": input1,
-                "path2": input2,
-                "paired": True,
-            },
-            "output": {
-                "output1": output1,
-                "output2": output2,
-                "short1": short1,
-                "short2": short2,
-                "untrimmed1": untrimmed1,
-                "untrimmed2": untrimmed2,
-            },
-            "barcode": barcode.to_dict(),
-        }
-        d.update(stats.as_json())
-        if settings.json_file:
-            with open(settings.json_file, "w") as json_file:
-                json_file.write(json.dumps(d, indent=2))
+
+        json_report(
+            settings.json_file,
+            stats,
+            barcode,
+            input1,
+            input2,
+            output1,
+            output2,
+            short1,
+            short2,
+            untrimmed1,
+            untrimmed2,
+        )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
 
     outfiles.close()
