@@ -255,16 +255,16 @@ def json_report(
         "cutadapt_version": cutadapt.__version__,
         "input": {
             "path1": input1,
-            "path2": None,
+            "path2": input2,
             "paired": True,
         },
         "output": {
             "output1": output1,
-            "output2": None,
+            "output2": output2,
             "short1": short1,
-            "short2": None,
+            "short2": short2,
             "untrimmed1": untrimmed1,
-            "untrimmed2": None,
+            "untrimmed2": untrimmed2,
         },
         "barcode": barcode.to_dict(),
     }
