@@ -1,0 +1,118 @@
+{
+  "tag": "Cutadapt report",
+  "cutadapt_version": "4.8",
+  "input": {
+    "path1": "./test/input_R1.fq.gz",
+    "path2": null,
+    "paired": true
+  },
+  "output": {
+    "output1": "debug_trimmed_R1.fastq.gz",
+    "output2": null,
+    "short1": "debug_short_R1.fastq.gz",
+    "short2": null,
+    "untrimmed1": null,
+    "untrimmed2": null
+  },
+  "barcode": {
+    "p5": "ACACGACGCTCTTCCGATCTA",
+    "p7": "GAGATCGGAAGAGCACACGTC",
+    "inline5": "",
+    "inline3": "",
+    "umi5": "",
+    "umi3": "NNNNNNNN",
+    "mask5": "XXX",
+    "mask3": "XXXXXX",
+    "strand": "-"
+  },
+  "read_counts": {
+    "input": 10000,
+    "filtered": {
+      "too_short": 126,
+      "too_long": null,
+      "too_many_n": null,
+      "too_many_expected_errors": null,
+      "casava_filtered": null,
+      "discard_trimmed": null,
+      "discard_untrimmed": null
+    },
+    "output": 9874,
+    "reverse_complemented": null,
+    "read1_with_adapter": 6,
+    "read2_with_adapter": null
+  },
+  "basepair_counts": {
+    "input": 1580000,
+    "input_read1": 1580000,
+    "input_read2": null,
+    "quality_trimmed": 29686,
+    "quality_trimmed_read1": 29686,
+    "quality_trimmed_read2": null,
+    "poly_a_trimmed": null,
+    "poly_a_trimmed_read1": null,
+    "poly_a_trimmed_read2": null,
+    "output": 1200677,
+    "output_read1": 1200677,
+    "output_read2": null
+  },
+  "adapters_read1": [
+    {
+      "name": "1",
+      "total_matches": 6,
+      "on_reverse_complement": null,
+      "linked": false,
+      "five_prime_end": {
+        "type": "rightmost_five_prime",
+        "sequence": "ACACGACGCTCTTCCGATCTA",
+        "error_rate": 0.2,
+        "indels": true,
+        "error_lengths": [
+          4,
+          9,
+          14,
+          19,
+          21
+        ],
+        "matches": 6,
+        "adjacent_bases": null,
+        "dominant_adjacent_base": null,
+        "trimmed_lengths": [
+          [
+            "len",
+            "expect",
+            "counts"
+          ],
+          [
+            "len",
+            "expect",
+            "counts"
+          ],
+          [
+            "len",
+            "expect",
+            "counts"
+          ],
+          [
+            "len",
+            "expect",
+            "counts"
+          ],
+          [
+            "len",
+            "expect",
+            "counts"
+          ],
+          [
+            "len",
+            "expect",
+            "counts"
+          ]
+        ]
+      },
+      "three_prime_end": null
+    }
+  ],
+  "adapters_read2": null,
+  "poly_a_trimmed_read1": null,
+  "poly_a_trimmed_read2": null
+}
