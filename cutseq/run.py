@@ -271,10 +271,12 @@ def json_report(
 
     d.update(stats.as_json())
     # adapters_read1/2 -> trimmed_lengths to emppty list
-    if "adapters_read1" in d:
-        d["adapters_read1"]["trimmed_lengths"] = []
-    if "adapters_read2" in d:
-        d["adapters_read2"]["trimmed_lengths"] = []
+    if d.get("adapters_read1"):
+        for m in d["adapters_read1"]:
+            m["trimmed_lengths"] = []
+    if d.get("adapters_read2"):
+        for m in d["adapters_read2"]:
+            m["trimmed_lengths"] = []
     with open(file, "w") as json_file:
         json_file.write(json.dumps(d, indent=2))
 
