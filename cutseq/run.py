@@ -427,19 +427,20 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         pipeline = SingleEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
 
-        json_report(
-            settings.json_file,
-            stats,
-            barcode,
-            input1,
-            None,
-            output1,
-            None,
-            short1,
-            None,
-            untrimmed1,
-            None,
-        )
+        if settings.json_file is not None:
+            json_report(
+                settings.json_file,
+                stats,
+                barcode,
+                input1,
+                None,
+                output1,
+                None,
+                short1,
+                None,
+                untrimmed1,
+                None,
+            )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
 
@@ -686,19 +687,20 @@ def pipeline_paired(
         pipeline = PairedEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
 
-        json_report(
-            settings.json_file,
-            stats,
-            barcode,
-            input1,
-            input2,
-            output1,
-            output2,
-            short1,
-            short2,
-            untrimmed1,
-            untrimmed2,
-        )
+        if settings.json_file is not None:
+            json_report(
+                settings.json_file,
+                stats,
+                barcode,
+                input1,
+                input2,
+                output1,
+                output2,
+                short1,
+                short2,
+                untrimmed1,
+                untrimmed2,
+            )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
 
     outfiles.close()
