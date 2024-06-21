@@ -204,7 +204,7 @@ BUILDIN_ADAPTERS = {
     # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
     "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
-    "takarav2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
+    "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
     "STRANDED": "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - reverse insert - 14ntUMI - p7
