@@ -122,6 +122,9 @@ class BarcodeSeq:
         self.rc = reverse_complement(seq)
         self.len = len(seq)
 
+    def __repr__(self):
+        return f"{self.fw} ({self.rc})"
+
 
 class BarcodeConfig:
     """
@@ -640,8 +643,20 @@ def pipeline_paired(
 
     # dry run and exit code
     if settings.dry_run:
+        for b in [
+            "p5",
+            "p7",
+            "inline5",
+            "inline3",
+            "umi5",
+            "umi3",
+            "mask5",
+            "mask3",
+            "strand",
+        ]:
+            print(f"{b}: {getattr(barcode, b)}")
         for i, m in enumerate(modifiers, 1):
-            print(f"Step {i}: {m}")
+            logging.info(f"Step {i}: {m}")
         return
 
     inpaths = InputPaths(input1, input2)
