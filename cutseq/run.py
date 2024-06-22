@@ -344,12 +344,13 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     # step 7: trim polyA
     if settings.trim_polyA:
         pA_max_errors = 0.15
+        pA_max_length = 100
         if barcode.strand == "+":
             modifiers.append(
                 AdapterCutter(
                     [
                         NonInternalBackAdapter(
-                            sequence="A" * 100, max_errors=pA_max_errors
+                            sequence="A" * pA_max_length, max_errors=pA_max_errors
                         )
                     ]
                 )
@@ -359,7 +360,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
                 AdapterCutter(
                     [
                         NonInternalFrontAdapter(
-                            sequence="T" * 100, max_errors=pA_max_errors
+                            sequence="T" * pA_max_length, max_errors=pA_max_errors
                         )
                     ]
                 )
@@ -580,20 +581,21 @@ def pipeline_paired(
     # step 7: trim polyA
     if settings.trim_polyA:
         pA_max_errors = 0.15
+        pA_max_length = 100
         if barcode.strand == "+":
             modifiers.append(
                 (
                     AdapterCutter(
                         [
                             NonInternalBackAdapter(
-                                sequence="A" * 100, max_errors=pA_max_errors
+                                sequence="A" * pA_max_length, max_errors=pA_max_errors
                             )
                         ]
                     ),
                     AdapterCutter(
                         [
                             NonInternalFrontAdapter(
-                                sequence="T" * 100, max_errors=pA_max_errors
+                                sequence="T" * pA_max_length, max_errors=pA_max_errors
                             )
                         ]
                     ),
@@ -605,14 +607,14 @@ def pipeline_paired(
                     AdapterCutter(
                         [
                             NonInternalFrontAdapter(
-                                sequence="T" * 100, max_errors=pA_max_errors
+                                sequence="T" * pA_max_length, max_errors=pA_max_errors
                             )
                         ]
                     ),
                     AdapterCutter(
                         [
                             NonInternalBackAdapter(
-                                sequence="A" * 100, max_errors=pA_max_errors
+                                sequence="A" * pA_max_length, max_errors=pA_max_errors
                             )
                         ]
                     ),
