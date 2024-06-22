@@ -99,9 +99,8 @@ logging.basicConfig(
 
 
 def reverse_complement(b):
-    return "".join(
-        [dict(zip("ATGCNatgcn", "TACGNtacgn"))[x] for x in b[::-1] if x in "ATGCNatgcn"]
-    )
+    comp_map = dict(zip("ATGCatgc", "TACGtacg"))
+    return "".join([comp_map.get(x, x) for x in b[::-1]])
 
 
 def remove_fq_suffix(f):
@@ -123,6 +122,8 @@ class BarcodeSeq:
         self.len = len(seq)
 
     def __repr__(self):
+        if self.len == 0:
+            return ""
         return f"{self.fw} ({self.rc})"
 
 
