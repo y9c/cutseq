@@ -188,6 +188,7 @@ class CutadaptConfig:
         self.rname_suffix = False
         self.ensure_inline_barcode = False
         self.trim_polyA = False
+        self.trim_polyA_wo_direction = False
         self.read_through = False
         self.min_length = 20
         self.min_quality = 20
@@ -349,26 +350,27 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     if settings.trim_polyA:
         pA_max_errors = 0.15
         pA_max_length = 100
-        if barcode.strand == "+":
-            modifiers.append(
-                AdapterCutter(
-                    [
-                        NonInternalBackAdapter(
-                            sequence="A" * pA_max_length, max_errors=pA_max_errors
-                        )
-                    ]
+        m_fwd = AdapterCutter(
+            [
+                NonInternalBackAdapter(
+                    sequence="A" * pA_max_length, max_errors=pA_max_errors
                 )
-            )
+            ]
+        )
+        m_rev = AdapterCutter(
+            [
+                NonInternalFrontAdapter(
+                    sequence="T" * pA_max_length, max_errors=pA_max_errors
+                )
+            ]
+        )
+        if settings.trim_polyA_wo_direction:
+            modifiers.append(m_fwd)
+            modifiers.append(m_rev)
+        elif barcode.strand == "+":
+            modifiers.append(m_fwd)
         elif barcode.strand == "-":
-            modifiers.append(
-                AdapterCutter(
-                    [
-                        NonInternalFrontAdapter(
-                            sequence="T" * pA_max_length, max_errors=pA_max_errors
-                        )
-                    ]
-                )
-            )
+            modifiers.append(m_rev)
         else:
             logging.info("No strand information provided, skip polyA trimming.")
     # step 8: quality control, remove short reads
@@ -586,44 +588,45 @@ def pipeline_paired(
     if settings.trim_polyA:
         pA_max_errors = 0.15
         pA_max_length = 100
-        if barcode.strand == "+":
-            modifiers.append(
-                (
-                    AdapterCutter(
-                        [
-                            NonInternalBackAdapter(
-                                sequence="A" * pA_max_length, max_errors=pA_max_errors
-                            )
-                        ]
-                    ),
-                    AdapterCutter(
-                        [
-                            NonInternalFrontAdapter(
-                                sequence="T" * pA_max_length, max_errors=pA_max_errors
-                            )
-                        ]
-                    ),
-                )
-            )
+        m_fwd = (
+            AdapterCutter(
+                [
+                    NonInternalBackAdapter(
+                        sequence="A" * pA_max_length, max_errors=pA_max_errors
+                    )
+                ]
+            ),
+            AdapterCutter(
+                [
+                    NonInternalFrontAdapter(
+                        sequence="T" * pA_max_length, max_errors=pA_max_errors
+                    )
+                ]
+            ),
+        )
+        m_rev = (
+            AdapterCutter(
+                [
+                    NonInternalFrontAdapter(
+                        sequence="T" * pA_max_length, max_errors=pA_max_errors
+                    )
+                ]
+            ),
+            AdapterCutter(
+                [
+                    NonInternalBackAdapter(
+                        sequence="A" * pA_max_length, max_errors=pA_max_errors
+                    )
+                ]
+            ),
+        )
+        if settings.trim_polyA_wo_direction:
+            modifiers.append(m_fwd)
+            modifiers.append(m_rev)
+        elif barcode.strand == "+":
+            modifiers.append(m_fwd)
         elif barcode.strand == "-":
-            modifiers.append(
-                (
-                    AdapterCutter(
-                        [
-                            NonInternalFrontAdapter(
-                                sequence="T" * pA_max_length, max_errors=pA_max_errors
-                            )
-                        ]
-                    ),
-                    AdapterCutter(
-                        [
-                            NonInternalBackAdapter(
-                                sequence="A" * pA_max_length, max_errors=pA_max_errors
-                            )
-                        ]
-                    ),
-                )
-            )
+            modifiers.append(m_rev)
         else:
             logging.info("No strand information provided, skip polyA trimming.")
     # step 8: quality control, remove short reads
@@ -730,6 +733,7 @@ def run_cutseq(args):
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
     settings.trim_polyA = args.trim_polyA
+    settings.trim_polyA_wo_direction = args.trim_polyA_wo_direction
     settings.read_through = args.read_through
     settings.threads = args.threads
     settings.min_length = args.min_length
@@ -849,6 +853,11 @@ def main():
     )
 
     parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
+    parser.add_argument(
+        "--trim-polyA-wo-direction",
+        action="store_true",
+        help="Trim polyA tail by ignore direction of strand.",
+    )
 
     parser.add_argument(
         "--read-through",
