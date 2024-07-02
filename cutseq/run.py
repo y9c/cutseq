@@ -211,7 +211,7 @@ class CutadaptConfig:
         self.ensure_inline_barcode = False
         self.trim_polyA = False
         self.trim_polyA_wo_direction = False
-        self.read_through = False
+        self.conditional_cutter = False
         self.min_length = 20
         self.min_quality = 20
         self.auto_rc = False
@@ -568,17 +568,17 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.umi5.len),
-                UnconditionalCutter(-barcode.umi5.len)
-                if settings.read_through
-                else ConditionalCutter(-barcode.umi5.len),
+                ConditionalCutter(-barcode.umi5.len)
+                if settings.conditional_cutter
+                else UnconditionalCutter(-barcode.umi5.len),
             ),
         )
     if barcode.umi3.len > 0:
         modifiers.append(
             (
-                UnconditionalCutter(-barcode.umi3.len)
-                if settings.read_through
-                else ConditionalCutter(-barcode.umi3.len),
+                ConditionalCutter(-barcode.umi3.len)
+                if settings.conditional_cutter
+                else UnconditionalCutter(-barcode.umi3.len),
                 UnconditionalCutter(barcode.umi3.len),
             )
         )
@@ -592,17 +592,17 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.mask5.len),
-                UnconditionalCutter(-barcode.mask5.len)
-                if settings.read_through
-                else ConditionalCutter(-barcode.mask5.len),
+                ConditionalCutter(-barcode.mask5.len)
+                if settings.conditional_cutter
+                else UnonditionalCutter(-barcode.mask5.len),
             )
         )
     if barcode.mask3.len > 0:
         modifiers.append(
             (
-                UnconditionalCutter(-barcode.mask3.len)
-                if settings.read_through
-                else ConditionalCutter(-barcode.mask3.len),
+                ConditionalCutter(-barcode.mask3.len)
+                if settings.conditional_cutter
+                else UnconditionalCutter(-barcode.mask3.len),
                 UnconditionalCutter(barcode.mask3.len),
             )
         )
@@ -756,7 +756,7 @@ def run_cutseq(args):
     settings.ensure_inline_barcode = args.ensure_inline_barcode
     settings.trim_polyA = args.trim_polyA
     settings.trim_polyA_wo_direction = args.trim_polyA_wo_direction
-    settings.read_through = args.read_through
+    settings.conditional_cutter = args.conditional_cutter
     settings.threads = args.threads
     settings.min_length = args.min_length
     settings.dry_run = args.dry_run
@@ -882,10 +882,11 @@ def main():
     )
 
     parser.add_argument(
-        "--read-through",
+        "--conditional-cutter",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Read through in the sequencing.",
+        default=False,
+        help="If true, only trim the UMI if the adapter is found. "
+        "But enforce cutting if the read length is longer than 50.",
     )
 
     parser.add_argument(
