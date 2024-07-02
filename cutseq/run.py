@@ -23,6 +23,7 @@ from cutadapt.adapters import (
     SuffixAdapter,
 )
 from cutadapt.files import InputPaths, OutputFiles
+from cutadapt.info import ModificationInfo
 from cutadapt.modifiers import (
     AdapterCutter,
     PairedEndRenamer,
@@ -77,6 +78,24 @@ class IsUntrimmedAny(Predicate):
         if any([adapter not in match_adapters for adapter in self.ref_adapters]):
             return True
         return False
+
+
+class ConditionalCutter(SingleEndModifier):
+    def __init__(self, length: int):
+        self.length = length
+
+    def __repr__(self):
+        return f"ConditionalCutter(length={self.length})"
+
+    def __call__(self, read, info: ModificationInfo):
+        if not info.matches:
+            return read
+        if self.length > 0:
+            info.cut_prefix = read.sequence[: self.length]
+            return read[self.length :]
+        elif self.length < 0:
+            info.cut_suffix = read.sequence[self.length :]
+            return read[: self.length]
 
 
 class ReverseComplementConverter(SingleEndModifier):
@@ -548,7 +567,7 @@ def pipeline_paired(
                 UnconditionalCutter(barcode.umi5.len),
                 UnconditionalCutter(-barcode.umi5.len)
                 if settings.read_through
-                else None,
+                else ConditionalCutter(-barcode.umi5.len),
             ),
         )
     if barcode.umi3.len > 0:
@@ -556,7 +575,7 @@ def pipeline_paired(
             (
                 UnconditionalCutter(-barcode.umi3.len)
                 if settings.read_through
-                else None,
+                else ConditionalCutter(-barcode.umi3.len),
                 UnconditionalCutter(barcode.umi3.len),
             )
         )
@@ -572,7 +591,7 @@ def pipeline_paired(
                 UnconditionalCutter(barcode.mask5.len),
                 UnconditionalCutter(-barcode.mask5.len)
                 if settings.read_through
-                else None,
+                else ConditionalCutter(-barcode.mask5.len),
             )
         )
     if barcode.mask3.len > 0:
@@ -580,7 +599,7 @@ def pipeline_paired(
             (
                 UnconditionalCutter(-barcode.mask3.len)
                 if settings.read_through
-                else None,
+                else ConditionalCutter(-barcode.mask3.len),
                 UnconditionalCutter(barcode.mask3.len),
             )
         )
