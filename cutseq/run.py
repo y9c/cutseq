@@ -88,7 +88,10 @@ class ConditionalCutter(SingleEndModifier):
         return f"ConditionalCutter(length={self.length})"
 
     def __call__(self, read, info: ModificationInfo):
-        if not info.matches:
+        # hard coded of 50, if the read is longer than 50, also do the force trim,
+        # no maatter if any adapter is found or not
+        # TODO: add a parameter for this
+        if not info.matches and len(read.sequence) < 50:
             return read
         if self.length > 0:
             info.cut_prefix = read.sequence[: self.length]
