@@ -594,7 +594,7 @@ def pipeline_paired(
                 UnconditionalCutter(barcode.mask5.len),
                 ConditionalCutter(-barcode.mask5.len)
                 if settings.conditional_cutter
-                else UnonditionalCutter(-barcode.mask5.len),
+                else UnconditionalCutter(-barcode.mask5.len),
             )
         )
     if barcode.mask3.len > 0:
