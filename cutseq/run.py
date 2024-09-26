@@ -405,7 +405,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
         if barcode.strand == "-":
             modifiers.append(ReverseComplementConverter())
         else:
-            logging.warn(
+            logging.warning(
                 "Library is not (-) strand, but --auto-rc is enabled. Ignored."
             )
 
@@ -663,7 +663,7 @@ def pipeline_paired(
     # NOTE: Do not need to rc, switch R1 and R2 since it is paired-end data
     if settings.auto_rc:
         if barcode.strand != "-":
-            logging.warn(
+            logging.warning(
                 "Library is not (-) strand, but --auto-rc is enabled. Ignored."
             )
 
