@@ -261,6 +261,8 @@ BUILDIN_ADAPTERS = {
     # PBAT: method use random primer to add both p5 and p7,
     # and there might be random tail at the 5' end of both reads
     "PBAT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC",
+    # Nextera, for ATAC-seq, without UMI
+    "NEXTERA": "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT",
 }
 
 
@@ -808,9 +810,7 @@ def main():
     parser.add_argument(
         "-A",
         "--adapter-name",
-        type=str.upper,
-        choices=BUILDIN_ADAPTERS.keys(),
-        help="Built-in adapter name.",
+        help="Built-in adapter name. choices:\n" + ",".join(BUILDIN_ADAPTERS.keys()),
     )
     parser.add_argument(
         "-O",
@@ -926,8 +926,9 @@ def main():
         else:
             args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
             if args.adapter_scheme is None:
-                logging.error("Adapter name is not valid.")
-                sys.exit(1)
+                logging.error("Adapter name is not valid. Fallback to adatper scheme")
+                args.adapter_scheme = args.adapter_name
+                # sys.exit(1)
     elif args.adapter_scheme is None:
         logging.error("Adapter scheme or name is required.")
         sys.exit(1)
