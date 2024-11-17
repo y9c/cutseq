@@ -254,7 +254,8 @@ BUILDIN_ADAPTERS = {
     # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
     # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
     # 10 bases from END of R1 10 bases from START of R2
-    "XGENMETHY": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # remove 2 letter from the begin of R1, which might be random primer
+    "XGENMETHY": "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # for snmC-seq, trim 15 bases
     "XGENSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # The general method for xGen / Swift kit, might be better than hard clip, TODO
