@@ -4,24 +4,24 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 
 ## Components
 
-- **p5**: 5' Illumina sequencing adapter (shown in <span style="background-color: #90EE90; padding: 5px;">light green</span>)
-- **p7**: 3' Illumina sequencing adapter (shown in <span style="background-color: #98FB98; padding: 5px;">pale green</span>)
-- **inline5**: Fixed DNA barcode sequences in brackets () (shown in <span style="background-color: #ADD8E6; padding: 5px;">light blue</span>)
-- **inline3**: Fixed DNA barcode sequences in brackets () (shown in <span style="background-color: #ADD8E6; padding: 5px;">light blue</span>)
-- **umi5**: 5' Random UMI sequences marked as N (shown in <span style="background-color: #4169E1; padding: 5px;">royal blue</span>)
-- **umi3**: 3' Random UMI sequences marked as N (shown in <span style="background-color: #6495ED; padding: 5px;">cornflower blue</span>)
-- **mask5**: Sequences to be masked marked as X (shown in <span style="background-color: #D3D3D3; padding: 5px;">light gray</span>)
+- **p5**: 5' Illumina sequencing adapter (shown in <span style="background-color: #A8E6CF; padding: 5px;">light green</span>)
+- **p7**: 3' Illumina sequencing adapter (shown in <span style="background-color: #D1E8D1; padding: 5px;">pale green</span>)
+- **inline5**: Fixed DNA barcode sequences in brackets () (shown in <span style="background-color: #B2EBF2; padding: 5px;">light cyan</span>)
+- **inline3**: Fixed DNA barcode sequences in brackets () (shown in <span style="background-color: #81D4FA; padding: 5px;">light sky blue</span>)
+- **umi5**: 5' Random UMI sequences marked as N (shown in <span style="background-color: #1E90FF; padding: 5px;">dodger blue</span>)
+- **umi3**: 3' Random UMI sequences marked as N (shown in <span style="background-color: #4682B4; padding: 5px;">steel blue</span>)
+- **mask5**: Sequences to be masked marked as X (shown in <span style="background-color: #DCDCDC; padding: 5px;">gainsboro</span>)
 - **mask3**: Sequences to be masked marked as X (shown in <span style="background-color: #D3D3D3; padding: 5px;">light gray</span>)
-- **strand**: Direction indicator (shown with <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>, <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>, or <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">-</span>)
+- **strand**: Direction indicator (shown with <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>, <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>, or <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">-</span>)
 
 ## Built-in Schemes
 
 ### DSLIGATION (dsDNA Ligation)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -32,9 +32,9 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### SMALLRNA (Small RNA Libraries)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">CACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">CACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -46,12 +46,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### INLINE (Custom Barcoded Libraries)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
-  <span style="background-color: #ADD8E6; padding: 5px;">NNNNN</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #ADD8E6; padding: 5px;">NNNNN</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
+  <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
   <span style="background-color: #FFD700; padding: 5px;">(ATCACG)</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -63,11 +63,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### TAKARAV2 (SMARTer® Stranded Protocol V2)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -79,11 +79,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### STRANDED (Generic Stranded RNA-seq)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">X</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -95,12 +95,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### TAKARAV3 (SMARTer® Stranded Total RNA-Seq Kit v3)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #4169E1; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
+  <span style="background-color: #1E90FF; padding: 5px;">NNNNNNNN</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -112,12 +112,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### ECLIP6 (eCLIP Protocol)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">X</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
   <span style="background-color: #FF6B6B; padding: 5px;">NNNNNN</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -129,12 +129,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### ECLIP10 (Extended eCLIP Protocol)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">X</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
   <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNNNN</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -146,13 +146,13 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### SACSEQV3 (SAC-seq Protocol V3)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
   <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">X</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XX</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
   <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -164,11 +164,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### XGENRNA (xGen RNA Library Prep)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXXXXXXXXXXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXXXXXXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -180,11 +180,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### XGENMETHY (xGen Methyl-Seq)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXXXXXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -196,11 +196,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### XGENSNMC (snmC-seq Protocol)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXXXXXXXXXXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXXXXXXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -212,11 +212,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### PBAT (Post-Bisulfite Adapter Tagging)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #D3D3D3; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #90EE90; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -228,9 +228,9 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### NEXTERA (ATAC-seq)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">AGATGTGTATAAGAGACAG</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #90EE90; padding: 5px;">CTGTCTCTTATACACATCT</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
 
@@ -242,9 +242,9 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### ILLUMINARNA (Illumina Stranded RNA-Seq)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #90EE90; padding: 5px;">AGATGTGTATAAGAGACAG</span>
-  <span style="background-color: #FF0000; padding: 5px; width: 10ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #90EE90; padding: 5px;">CTGTCTCTTATACACATCT</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
+  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
 
