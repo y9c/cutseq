@@ -1,4 +1,4 @@
-# Adapter Schemes
+# 📚 Adapter Schemes 
 
 CutSeq supports various built-in adapter schemes for different NGS library preparation methods. Each scheme follows a general pattern:
 
@@ -21,10 +21,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
   </div>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -37,10 +37,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
   </div>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -55,12 +55,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
   <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
   <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
   </div>
   <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
   <span style="background-color: #FFD700; padding: 5px;">(ATCACG)</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -75,11 +75,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
   <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
   </div>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -94,11 +94,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
   <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
   </div>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
 
@@ -112,10 +112,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
   </div>
-  <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
 
@@ -129,10 +129,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
   <div style="position: relative; width: 30px; height: 30px;">
-    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);"></div>
     <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
   </div>
-  <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
+  <span style="background-color: #D1E8D1; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
 
@@ -150,4 +150,4 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   border: 1px solid #dee2e6;
 }
-</style> 
+</style>
