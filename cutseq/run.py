@@ -126,11 +126,12 @@ def reverse_complement(b):
 
 
 def remove_fq_suffix(f):
-    suffixes_base = ["_R1_001", "_R2_001", "_R1", "_R2", ""]
     suffixes = [
-        y + "." + x for x in ["fastq.gz", "fq.gz", "fastq", "fq"] for y in suffixes_base
+        f"{base}.{ext}"
+        for ext in ["fastq.gz", "fq.gz", "fastq", "fq"]
+        for base in ["_R1_001", "_R2_001", "_R1", "_R2", ""]
     ]
-    print(suffixes)
+    
     for suffix in suffixes:
         if f.endswith(suffix):
             return f.removesuffix(suffix)

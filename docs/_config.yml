@@ -15,3 +15,8 @@ callouts:
 
 plugins:
   - jekyll-spaceship
+  - jekyll-optional-front-matter
+
+nav:
+  - Home: index.md
+  - Adapter Schemes: adapters.md
