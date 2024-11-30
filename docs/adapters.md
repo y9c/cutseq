@@ -19,8 +19,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### DSLIGATION (dsDNA Ligation)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
+  </div>
   <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
@@ -32,8 +35,11 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 ### SMALLRNA (Small RNA Libraries)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">CACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
+  </div>
   <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
@@ -48,7 +54,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATC</span>
   <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
+  </div>
   <span style="background-color: #B2EBF2; padding: 5px;">NNNNN</span>
   <span style="background-color: #FFD700; padding: 5px;">(ATCACG)</span>
   <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
@@ -64,110 +73,12 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Earlier version of TAKARA stranded protocol
-- Includes masking for template switching artifacts
-- Reverse orientation to RNA
-- No UMI sequences
-
-### STRANDED (Generic Stranded RNA-seq)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Basic stranded RNA-seq protocol
-- Minimal masking for ligation artifacts
-- Reverse orientation
-- No UMI sequences
-
-### TAKARAV3 (SMARTer® Stranded Total RNA-Seq Kit v3)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #1E90FF; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Used for stranded RNA-seq
-- Contains 8nt UMI
-- Reverse orientation to RNA
-- Includes masking for template switching artifacts
-
-### ECLIP6 (eCLIP Protocol)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
-  <span style="background-color: #FF6B6B; padding: 5px;">NNNNNN</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Used for eCLIP and similar protocols
-- Contains 6nt UMI
-- Reverse orientation
-- Short masking regions
-
-### ECLIP10 (Extended eCLIP Protocol)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
-  <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNNNN</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Extended version of eCLIP protocol
-- Contains 10nt UMI for higher complexity
-- Reverse orientation
-- Short masking regions
-
-### SACSEQV3 (SAC-seq Protocol V3)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">AGTTCTACAGTCCGACGATCT</span>
-  <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">X</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
-  <span style="background-color: #FF6B6B; padding: 5px;">NNNNNNNN</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Dual UMI design (8nt each)
-- Forward orientation
-- Balanced masking on both sides
-- Used for high-complexity libraries
-
-### XGENRNA (xGen RNA Library Prep)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
+  </div>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXXXXXXX</span>
   <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
 </div>
@@ -177,44 +88,15 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 - Reverse orientation
 - Uses random polyC tail as pseudo-UMI
 
-### XGENMETHY (xGen Methyl-Seq)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Designed for methylation sequencing
-- Trims 10 bases from read ends
-- Forward orientation
-- Includes random primer artifact removal
-
-### XGENSNMC (snmC-seq Protocol)
-<div class="adapter-scheme">
-<div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
-  <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
-  <span style="background-color: #DCDCDC; padding: 5px;">XXXXXXXXXXXXXXX</span>
-  <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
-</div>
-</div>
-
-- Specialized for single-nucleus methylome sequencing
-- Extended 15-base trimming
-- Forward orientation
-- Heavy masking for protocol artifacts
-
 ### PBAT (Post-Bisulfite Adapter Tagging)
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">ACACGACGCTCTTCCGATCT</span>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
+  </div>
   <span style="background-color: #DCDCDC; padding: 5px;">XXXXXX</span>
   <span style="background-color: #A8E6CF; padding: 5px;">AGATCGGAAGAGCACACGTC</span>
 </div>
@@ -229,7 +111,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&gt;</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">></span>
+  </div>
   <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
@@ -243,7 +128,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <div class="adapter-scheme">
 <div style="display: flex; align-items: center; font-family: monospace; margin: 20px 0;">
   <span style="background-color: #A8E6CF; padding: 5px;">AGATGTGTATAAGAGACAG</span>
-  <span style="background-color: #FF6F61; padding: 5px; width: 9ch; display: inline-block;">&lt;</span>
+  <div style="position: relative; width: 30px; height: 30px;">
+    <div style="background-color: #FF6F61; width: 100%; height: 100%; position: absolute; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
+    <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">&lt;</span>
+  </div>
   <span style="background-color: #A8E6CF; padding: 5px;">CTGTCTCTTATACACATCT</span>
 </div>
 </div>
@@ -256,8 +144,10 @@ CutSeq supports various built-in adapter schemes for different NGS library prepa
 <style>
 .adapter-scheme {
   background: #f8f9fa;
-  border-radius: 4px;
-  padding: 10px;
-  margin: 10px 0;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #dee2e6;
 }
 </style> 

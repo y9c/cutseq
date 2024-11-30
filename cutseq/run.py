@@ -222,14 +222,15 @@ class CutadaptConfig:
 
 
 BUILDIN_ADAPTERS = {
-    # dsDNA ligation, A tailing method, do ot need to trim
-    "DSLIGATION": "AGTTCTACAGTCCGACGATCT>AGATCGGAAGAGCACACGTC",
+    ## RNA library
     # Small RNA, double ligation method, without barcode
     # p5 - insert - p7
     # (Optional) trim 2nt on both end to increase quality
-    "SMALLRNA": "CACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
+    # NOTE: i5 is small RNA adapter, which is different from truseq i5
+    "SMALLRNA": "AGTTCTACAGTCCGACGATC>AGATCGGAAGAGCACACGTC",
     # inline barcode method
     # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
+    # NOTE: i5 is small RNA adapter, which is different from truseq i5
     "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
     "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
@@ -245,13 +246,23 @@ BUILDIN_ADAPTERS = {
     # eCLIP, SAC-seq, cDNA ligation method, with 10 nt UMI
     "ECLIP10": "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC",
     # cDNA88, cDNA ligation method, with 8 nt UMI (left) and 8 nt UMI (right)
-    "SACSEQV3": "AGTTCTACAGTCCGACGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC",
+    "SACSEQV3": "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC",
     # p5 - [might be 6bp of polyC] - reverse insert (cDNA) - adaptase tail (CCCCCC) - p7
     # 6nt of polyG in 5' of R1 might from random RT primer
     # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
     # no UMI, but try to use random polyC tail as UMI
     # legacy name: "SWIFT"
     "XGENRNA": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
+    # Illumina Strand-Specific RNA-Seq Library Prep
+    # NOTE: Nextera adapters are used
+    "ILLUMINARNA": "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT",
+
+    ## DNA library
+    # dsDNA ligation, A tailing method, do ot need to trim
+    "DSLIGATION": "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
+    # The general method for xGen / Swift kit, might be better than hard clip, TODO
+    # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
+    # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
     # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
     # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
     # 10 bases from END of R1 10 bases from START of R2
@@ -259,16 +270,11 @@ BUILDIN_ADAPTERS = {
     "XGENMETHY": "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
     # for snmC-seq, trim 15 bases
     "XGENSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    # The general method for xGen / Swift kit, might be better than hard clip, TODO
-    # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
-    # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
     # PBAT: method use random primer to add both p5 and p7,
     # and there might be random tail at the 5' end of both reads
     "PBAT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC",
     # Nextera, for ATAC-seq, without UMI
     "NEXTERA": "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT",
-    # Illumina Strand-Specific RNA-Seq Library Prep
-    "ILLUMINARNA": "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT",
 }
 
 
