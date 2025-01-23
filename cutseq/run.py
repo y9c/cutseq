@@ -131,7 +131,7 @@ def remove_fq_suffix(f):
         for ext in ["fastq.gz", "fq.gz", "fastq", "fq"]
         for base in ["_R1_001", "_R2_001", "_R1", "_R2", ""]
     ]
-    
+
     for suffix in suffixes:
         if f.endswith(suffix):
             return f.removesuffix(suffix)
@@ -212,7 +212,7 @@ class CutadaptConfig:
         self.ensure_inline_barcode = False
         self.trim_polyA = False
         self.trim_polyA_wo_direction = False
-        self.conditional_cutter = False
+        self.conditional_cutter = True
         self.min_length = 20
         self.min_quality = 20
         self.auto_rc = False
@@ -256,7 +256,6 @@ BUILDIN_ADAPTERS = {
     # Illumina Strand-Specific RNA-Seq Library Prep
     # NOTE: Nextera adapters are used
     "ILLUMINARNA": "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT",
-
     ## DNA library
     # dsDNA ligation, A tailing method, do ot need to trim
     "DSLIGATION": "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
@@ -896,7 +895,7 @@ def main():
     parser.add_argument(
         "--conditional-cutter",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="If true, only trim the UMI if the adapter is found. "
         "But enforce cutting if the read length is longer than 50.",
     )
