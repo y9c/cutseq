@@ -236,6 +236,8 @@ BUILDIN_ADAPTERS = {
     "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
     # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
     "STRANDED": "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
+    # p5 - (random primer start?) - reverse insert - (random primer start?) - p7
+    "UNSTRANDED": "ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC",
     # p5 - reverse insert - 14ntUMI - p7
     # 14nt UMI = (8 nt UMIs + 3 nt UMI linker + 3 nt from Pico v3 SMART UMI Adapter)
     # IMPORTANT: The UMI liker and UMI adapter can be different, even the 8nt UMI is the same. very weired.
