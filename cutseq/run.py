@@ -228,6 +228,9 @@ BUILDIN_ADAPTERS = {
     # (Optional) trim 2nt on both end to increase quality
     # NOTE: i5 is small RNA adapter, which is different from truseq i5
     "SMALLRNA": "AGTTCTACAGTCCGACGATC>AGATCGGAAGAGCACACGTC",
+    # Small RNA-Seq Library Prep Kit (Lexogen, 052)
+    # legacy version of small RNA
+    "SMRNA": "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG",
     # inline barcode method
     # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
     # NOTE: i5 is small RNA adapter, which is different from truseq i5
