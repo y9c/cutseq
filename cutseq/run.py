@@ -250,6 +250,8 @@ BUILDIN_ADAPTERS = {
     "ECLIP6": "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC",
     # eCLIP, SAC-seq, cDNA ligation method, with 10 nt UMI
     "ECLIP10": "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC",
+    # cDNA88, cDNA ligation method, with 6 nt UMI (right) and 4 nt of random tail in cDNA
+    "SACSEQ": "ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC",
     # cDNA88, cDNA ligation method, with 8 nt UMI (left) and 8 nt UMI (right)
     "SACSEQV3": "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC",
     # p5 - [might be 6bp of polyC] - reverse insert (cDNA) - adaptase tail (CCCCCC) - p7
