@@ -993,7 +993,7 @@ def main():
             args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
             if args.adapter_scheme is None:
                 logging.error(
-                    f"Adapter name '{args.adapter_name}' is not valid. Check available --adapter-name choices or provide an --adapter-scheme."
+                    f"Adapter name '{args.adapter_name} not found in built-in adapters."
                 )
                 # sys.exit(1) # Consider exiting if a bad name is given and no scheme
                 # For now, allow fallback to adapter_scheme = adapter_name if not found
