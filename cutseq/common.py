@@ -13,18 +13,13 @@ except ImportError:
 def load_adapters():
     """Loads adapter definitions from the 'adapters.toml' file."""
     try:
-        # For Python 3.9+ using importlib.resources.files
+        # Python 3.9+ provides resources.files()
         return tomllib.loads(resources.files('cutseq').joinpath('adapters.toml').read_text(encoding='utf-8'))
-    except (AttributeError, TypeError): # Fallback for Python <3.9 or if resources.files() is not suitable
-        # The 'encoding' parameter for open_text was added in Python 3.10 for importlib.resources.
-        # For broader compatibility (e.g. 3.8), we might need to handle it differently if issues arise,
-        # but tomli.load itself handles file objects.
-        try:
-            with resources.open_text('cutseq', 'adapters.toml', encoding='utf-8') as f:
-                return tomllib.load(f)
-        except TypeError: # Fallback if encoding is not supported by open_text in older versions
-             with resources.open_text('cutseq', 'adapters.toml') as f:
-                return tomllib.load(f)
+    except Exception as e:
+        logging.error(f"Error loading or parsing 'adapters.toml': {e}")
+        # Depending on how critical this is, either raise e, sys.exit(), or return empty dict
+        # For now, let's re-raise to make the error visible
+        raise e
 
 
 BUILDIN_ADAPTERS = load_adapters()
