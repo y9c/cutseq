@@ -13,7 +13,6 @@ import logging
 import re
 import sys
 
-from .common import BarcodeConfig, BUILDIN_ADAPTERS, remove_fq_suffix
 import cutadapt
 from cutadapt.adapters import (
     BackAdapter,
@@ -45,6 +44,8 @@ from cutadapt.steps import (
     SingleEndSink,
 )
 from cutadapt.utils import Progress
+
+from .common import BUILDIN_ADAPTERS, BarcodeConfig, remove_fq_suffix
 
 #  monkey patching ....
 original_method = Statistics._collect_modifier
@@ -125,6 +126,7 @@ class ConditionalCutter(SingleEndModifier):
                                   if no adapter was found.
     :type force_trim_min_length: int
     """
+
     def __init__(self, length: int, force_trim_min_length: int = 50):
         self.length = length
         self.force_trim_min_length = force_trim_min_length
@@ -158,8 +160,9 @@ class ReverseComplementConverter(SingleEndModifier):
     This modifier is used to orient reads consistently, typically when the
     library preparation protocol results in reads from the '-' strand.
     """
+
     def __init__(self):
-        self.rcd = False # This attribute seems unused but kept for compatibility if needed later.
+        self.rcd = False  # This attribute seems unused but kept for compatibility if needed later.
 
     def __repr__(self):
         return "ReverseComplementConverter()"
@@ -191,6 +194,7 @@ class CutadaptConfig:
     This class centralizes various options that control the behavior of
     the adapter trimming and filtering process.
     """
+
     def __init__(self):
         self.rname_suffix = False
         self.ensure_inline_barcode = False
@@ -203,7 +207,7 @@ class CutadaptConfig:
         self.dry_run = False
         self.threads = 1
         self.json_file = None
-        self.force_trim_min_length = 50 # Default value
+        self.force_trim_min_length = 50  # Default value
 
 
 def json_report(
@@ -254,7 +258,9 @@ def json_report(
         "input": {
             "path1": input1,
             "path2": input2,
-            "paired": True if input2 else False, # Corrected based on presence of input2
+            "paired": True
+            if input2
+            else False,  # Corrected based on presence of input2
         },
         "output": {
             "output1": output1,
@@ -589,7 +595,10 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.umi5.len),
-                ConditionalCutter(-barcode.umi5.len, force_trim_min_length=settings.force_trim_min_length)
+                ConditionalCutter(
+                    -barcode.umi5.len,
+                    force_trim_min_length=settings.force_trim_min_length,
+                )
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.umi5.len),
             ),
@@ -597,7 +606,10 @@ def pipeline_paired(
     if barcode.umi3.len > 0:
         modifiers.append(
             (
-                ConditionalCutter(-barcode.umi3.len, force_trim_min_length=settings.force_trim_min_length)
+                ConditionalCutter(
+                    -barcode.umi3.len,
+                    force_trim_min_length=settings.force_trim_min_length,
+                )
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.umi3.len),
                 UnconditionalCutter(barcode.umi3.len),
@@ -613,7 +625,10 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.mask5.len),
-                ConditionalCutter(-barcode.mask5.len, force_trim_min_length=settings.force_trim_min_length)
+                ConditionalCutter(
+                    -barcode.mask5.len,
+                    force_trim_min_length=settings.force_trim_min_length,
+                )
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.mask5.len),
             )
@@ -621,7 +636,10 @@ def pipeline_paired(
     if barcode.mask3.len > 0:
         modifiers.append(
             (
-                ConditionalCutter(-barcode.mask3.len, force_trim_min_length=settings.force_trim_min_length)
+                ConditionalCutter(
+                    -barcode.mask3.len,
+                    force_trim_min_length=settings.force_trim_min_length,
+                )
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.mask3.len),
                 UnconditionalCutter(barcode.mask3.len),
@@ -794,7 +812,7 @@ def run_cutseq(args):
     settings.dry_run = args.dry_run
     settings.auto_rc = args.auto_rc
     settings.json_file = args.json_file
-    settings.force_trim_min_length = args.force_trim_min_length # Pass from args
+    settings.force_trim_min_length = args.force_trim_min_length  # Pass from args
     if len(args.input_file) == 1:
         pipeline_single(
             args.input_file[0],
@@ -844,8 +862,8 @@ def main():
         "--adapter-scheme",
         type=str,
         help="Adapter sequence configuration string. Example: P5(INLINE5)UMI5XXXS>P7(INLINE3)UMI3XXXS. "
-             "Where P5/P7 are adapter sequences, (INLINE5/3) are optional inline barcodes, "
-             "UMI5/3 are N's for UMI bases, XXX are mask sequences, S is strand (>/< or -).",
+        "Where P5/P7 are adapter sequences, (INLINE5/3) are optional inline barcodes, "
+        "UMI5/3 are N's for UMI bases, XXX are mask sequences, S is strand (>/< or -).",
     )
     parser.add_argument(
         "-A",
@@ -857,7 +875,7 @@ def main():
         "--output-prefix",
         type=str,
         help="Output file prefix for trimmed, short, and untrimmed data. "
-             "If not provided, output filenames are derived from input filenames.",
+        "If not provided, output filenames are derived from input filenames.",
     )
     parser.add_argument(
         "-o",
@@ -915,7 +933,9 @@ def main():
         help="If set, reads without the specified inline barcode(s) will be written to the untrimmed files. Requires adapter scheme to have inline barcodes.",
     )
 
-    parser.add_argument("--trim-polyA", action="store_true", help="Enable trimming of polyA/T tails.")
+    parser.add_argument(
+        "--trim-polyA", action="store_true", help="Enable trimming of polyA/T tails."
+    )
     parser.add_argument(
         "--trim-polyA-wo-direction",
         action="store_true",
@@ -972,10 +992,12 @@ def main():
         else:
             args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
             if args.adapter_scheme is None:
-                logging.error(f"Adapter name '{args.adapter_name}' is not valid. Check available --adapter-name choices or provide an --adapter-scheme.")
+                logging.error(
+                    f"Adapter name '{args.adapter_name}' is not valid. Check available --adapter-name choices or provide an --adapter-scheme."
+                )
                 # sys.exit(1) # Consider exiting if a bad name is given and no scheme
                 # For now, allow fallback to adapter_scheme = adapter_name if not found
-                args.adapter_scheme = args.adapter_name 
+                args.adapter_scheme = args.adapter_name
     elif args.adapter_scheme is None:
         logging.error("Adapter scheme or name is required. Use -a or -A.")
         sys.exit(1)
@@ -990,18 +1012,20 @@ def main():
         default_format = ".fastq.gz"
         r1_suffix = "_" + output_suffix + "_R1" + default_format
         r2_suffix = "_" + output_suffix + "_R2" + default_format
-        
-        if output_files: # User provided output files explicitly
+
+        if output_files:  # User provided output files explicitly
             if len(output_files) != len(input_files):
-                logging.error(f"Number of {output_suffix} output files ({len(output_files)}) must match number of input files ({len(input_files)}).")
+                logging.error(
+                    f"Number of {output_suffix} output files ({len(output_files)}) must match number of input files ({len(input_files)})."
+                )
                 sys.exit(1)
             return output_files
-        elif output_prefix is not None: # User provided a prefix
+        elif output_prefix is not None:  # User provided a prefix
             if len(input_files) == 1:
                 return [output_prefix + r1_suffix]
             else:
                 return [output_prefix + r1_suffix, output_prefix + r2_suffix]
-        else: # Derive from input file names
+        else:  # Derive from input file names
             if len(input_files) == 1:
                 return [remove_fq_suffix(input_files[0]) + r1_suffix]
             else:
@@ -1012,7 +1036,6 @@ def main():
         # This line should not be reached given the logic above.
         # However, to satisfy linters or for extreme edge cases:
         return [None] * len(input_files)
-
 
     args.output_file = validate_output_file(
         args.output_file, args.input_file, args.output_prefix, "trimmed"
@@ -1026,18 +1049,17 @@ def main():
         return re.match(r".*\([ATGCatgc]+\).*", s) is not None
 
     # Only generate untrimmed file paths if explicitly requested OR if ensure_inline_barcode is true AND the scheme has inline barcodes
-    if args.untrimmed_file or (args.ensure_inline_barcode and _check_with_inline_barcode(args.adapter_scheme)):
+    if args.untrimmed_file or (
+        args.ensure_inline_barcode and _check_with_inline_barcode(args.adapter_scheme)
+    ):
         args.untrimmed_file = validate_output_file(
             args.untrimmed_file, args.input_file, args.output_prefix, "untrimmed"
         )
-    else: # Ensure it's a list of Nones matching input file count if not used
+    else:  # Ensure it's a list of Nones matching input file count if not used
         args.untrimmed_file = [None] * len(args.input_file)
-
 
     run_cutseq(args)
 
 
 if __name__ == "__main__":
     main()
-
-[end of cutseq/run.py]

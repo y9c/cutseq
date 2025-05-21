@@ -1,20 +1,28 @@
-import re
 import logging
+import re
 import sys
 from importlib import resources
+
 try:
-    import tomllib # Python 3.11+
+    import tomllib  # Python 3.11+
 except ImportError:
-    import tomli as tomllib # Python < 3.11
+    import tomli as tomllib  # Python < 3.11
 
 # This is the common module for cutseq
 # It will contain shared classes and functions
 
-def load_adapters():
+
+def load_adapters() -> dict:
     """Loads adapter definitions from the 'adapters.toml' file."""
     try:
         # Python 3.9+ provides resources.files()
-        return tomllib.loads(resources.files('cutseq').joinpath('adapters.toml').read_text(encoding='utf-8'))
+        adapter_info = tomllib.loads(
+            resources.files("cutseq")
+            .joinpath("adapters.toml")
+            .read_text(encoding="utf-8")
+        )
+        # return only the name and scheme mapping
+        return {k: v["scheme"] for k, v in adapter_info.items() if "scheme" in v}
     except Exception as e:
         logging.error(f"Error loading or parsing 'adapters.toml': {e}")
         # Depending on how critical this is, either raise e, sys.exit(), or return empty dict
@@ -23,6 +31,7 @@ def load_adapters():
 
 
 BUILDIN_ADAPTERS = load_adapters()
+
 
 def reverse_complement(b):
     """
@@ -35,6 +44,7 @@ def reverse_complement(b):
     """
     comp_map = dict(zip("ATGCatgc", "TACGtacg"))
     return "".join([comp_map.get(x, x) for x in b[::-1]])
+
 
 def remove_fq_suffix(f):
     """
@@ -66,6 +76,7 @@ def remove_fq_suffix(f):
             return f.removesuffix(suffix)
     return f
 
+
 class BarcodeSeq:
     """
     Represents a DNA sequence and its reverse complement.
@@ -81,6 +92,7 @@ class BarcodeSeq:
     :ivar len: The length of the forward sequence.
     :vartype len: int
     """
+
     def __init__(self, seq):
         """
         Initializes a BarcodeSeq object.

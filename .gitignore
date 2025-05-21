@@ -1,3 +1,9 @@
+# ignore test files expect some
+!test
+test/*
+!test/input_R1.fq.gz
+!test/input_R2.fq.gz
+
 # remove macos system files
 .DS_Store
 
