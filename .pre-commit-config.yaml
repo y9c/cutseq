@@ -1,0 +1,12 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: update-adapter-docs
+        name: Update adapter documentation
+        entry: python scripts/update_adapter_docs.py
+        language: system # Assumes python on PATH is python3
+        files: ^cutseq/adapters\.toml$ # Regex to trigger on changes to adapters.toml
+        # `pre-commit` automatically stages changes made by hooks to files
+        # that are part of the commit or that are modified by the hook.
+        # If docs/adapters.md is tracked by git, changes made by the script
+        # will be automatically added to the staging area.

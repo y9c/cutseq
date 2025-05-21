@@ -13,6 +13,7 @@ import logging
 import re
 import sys
 
+from .common import BarcodeConfig, BUILDIN_ADAPTERS, remove_fq_suffix
 import cutadapt
 from cutadapt.adapters import (
     BackAdapter,
@@ -50,6 +51,10 @@ original_method = Statistics._collect_modifier
 
 
 def patched_problematic_method(self, *args, **kwargs):
+    """
+    Patches Statistics._collect_modifier to ignore AssertionError.
+    This is a workaround for a potential issue in cutadapt's statistics collection.
+    """
     try:
         return original_method(self, *args, **kwargs)
     except AssertionError:
@@ -63,16 +68,32 @@ Statistics._collect_modifier = patched_problematic_method
 
 class IsUntrimmedAny(Predicate):
     """
-    Select reads for which no adapter match was found
+    Cutadapt Predicate to select reads where at least one of the specified
+    reference adapters was *not* found among the read's matches.
+
+    This is useful for filtering reads that are expected to have certain inline
+    barcodes, allowing reads that missed one or more of these barcodes to be
+    written to a separate file.
+
+    :param ref_adapters: A list of cutadapt adapter objects that are expected to be found.
+    :type ref_adapters: list[cutadapt.adapters.Adapter]
     """
 
     def __init__(self, ref_adapters):
         self.ref_adapters = ref_adapters
 
     def __repr__(self):
-        return "IsUntrimmedAny()"
+        return f"IsUntrimmedAny(ref_adapters={self.ref_adapters!r})"
 
     def test(self, read, info):
+        """
+        Tests if any of the reference adapters are missing from the read's matches.
+
+        :param read: The read object.
+        :param info: The ModificationInfo object for the read.
+        :return: True if at least one reference adapter is not in info.matches, False otherwise.
+        :rtype: bool
+        """
         # check not all adapters with ref_adapters are exist in the matches
         match_adapters = [match.adapter for match in info.matches]
         if any([adapter not in match_adapters for adapter in self.ref_adapters]):
@@ -81,17 +102,46 @@ class IsUntrimmedAny(Predicate):
 
 
 class ConditionalCutter(SingleEndModifier):
-    def __init__(self, length: int):
+    """
+    Cutadapt SingleEndModifier that conditionally cuts a fixed length from
+    the start or end of a read.
+
+    The primary condition is based on whether adapters were matched (`info.matches`).
+    If no adapters were matched AND the read is shorter than `force_trim_min_length`,
+    the read is returned unmodified.
+    Otherwise (if adapters were matched OR the read is long enough), the specified
+    `length` is cut.
+    - If `length` is positive, it's cut from the 5' end.
+    - If `length` is negative, it's cut from the 3' end.
+
+    This modifier is typically used for UMI or mask trimming where trimming should
+    occur if an adapter was found, or if the read is long enough to suggest that
+    the UMI/mask is present even without an adapter match (e.g., due to sequencing
+    errors in the adapter region).
+
+    :param length: The length of the sequence to cut. Positive for 5' end, negative for 3' end.
+    :type length: int
+    :param force_trim_min_length: The minimum read length to enforce trimming even
+                                  if no adapter was found.
+    :type force_trim_min_length: int
+    """
+    def __init__(self, length: int, force_trim_min_length: int = 50):
         self.length = length
+        self.force_trim_min_length = force_trim_min_length
 
     def __repr__(self):
-        return f"ConditionalCutter(length={self.length})"
+        return f"ConditionalCutter(length={self.length}, force_trim_min_length={self.force_trim_min_length})"
 
     def __call__(self, read, info: ModificationInfo):
-        # hard coded of 50, if the read is longer than 50, also do the force trim,
-        # no maatter if any adapter is found or not
-        # TODO: add a parameter for this
-        if not info.matches and len(read.sequence) < 50:
+        """
+        Applies the conditional cut to the read.
+
+        :param read: The read object.
+        :param info: The ModificationInfo object for the read.
+        :return: The modified read.
+        :rtype: cutadapt.sequence.Sequence
+        """
+        if not info.matches and len(read.sequence) < self.force_trim_min_length:
             return read
         if self.length > 0:
             info.cut_prefix = read.sequence[: self.length]
@@ -102,13 +152,27 @@ class ConditionalCutter(SingleEndModifier):
 
 
 class ReverseComplementConverter(SingleEndModifier):
+    """
+    Cutadapt SingleEndModifier that reverse complements a read.
+
+    This modifier is used to orient reads consistently, typically when the
+    library preparation protocol results in reads from the '-' strand.
+    """
     def __init__(self):
-        self.rcd = False
+        self.rcd = False # This attribute seems unused but kept for compatibility if needed later.
 
     def __repr__(self):
         return "ReverseComplementConverter()"
 
     def __call__(self, read, info):
+        """
+        Reverse complements the input read.
+
+        :param read: The read object.
+        :param info: The ModificationInfo object for the read (unused by this modifier).
+        :return: The reverse complemented read.
+        :rtype: cutadapt.sequence.Sequence
+        """
         return read.reverse_complement()
 
 
@@ -120,93 +184,13 @@ logging.basicConfig(
 )
 
 
-def reverse_complement(b):
-    comp_map = dict(zip("ATGCatgc", "TACGtacg"))
-    return "".join([comp_map.get(x, x) for x in b[::-1]])
-
-
-def remove_fq_suffix(f):
-    suffixes = [
-        f"{base}.{ext}"
-        for ext in ["fastq.gz", "fq.gz", "fastq", "fq"]
-        for base in ["_R1_001", "_R2_001", "_R1", "_R2", ""]
-    ]
-
-    for suffix in suffixes:
-        if f.endswith(suffix):
-            return f.removesuffix(suffix)
-    return f
-
-
-class BarcodeSeq:
-    def __init__(self, seq):
-        self.fw = seq
-        self.rc = reverse_complement(seq)
-        self.len = len(seq)
-
-    def __repr__(self):
-        if self.len == 0:
-            return ""
-        return f"{self.fw} ({self.rc})"
-
-
-class BarcodeConfig:
-    """
-    Adapter scheme:
-    (p5)(inline5)(umi5)(mask5)(strand)(mask3)(umi3)(inline3)(p7)
-    """
-
-    def __init__(self, adapter=None):
-        self.strand = None
-        self.p5 = BarcodeSeq("")
-        self.p7 = BarcodeSeq("")
-        self.inline5 = BarcodeSeq("")
-        self.inline3 = BarcodeSeq("")
-        self.umi5 = BarcodeSeq("")
-        self.umi3 = BarcodeSeq("")
-        self.mask5 = BarcodeSeq("")
-        self.mask3 = BarcodeSeq("")
-        if adapter is not None:
-            self._parse_barcode(adapter)
-
-    def _parse_barcode(self, b):
-        m = re.match(
-            r"(?P<p5>[ATGCatgc]+)(\((?P<inline5>[ATGCatgc]+)\))?(?P<umi5>N*)(?P<mask5>X*)(?P<strand>-|>|<)(?P<mask3>X*)(?P<umi3>N*)(\((?P<inline3>[ATGCatgc]+)\))?(?P<p7>[ATGCatgc]+)",
-            b,
-        )
-        if m is None:
-            logging.error(f"barcode {b} is not valid")
-            sys.exit(1)
-        d = m.groupdict()
-        if d["inline5"] is None:
-            d["inline5"] = ""
-        if d["inline3"] is None:
-            d["inline3"] = ""
-        self.strand = "+" if d["strand"] == ">" else "-" if d["strand"] == "<" else None
-        self.p5 = BarcodeSeq(d["p5"])
-        self.p7 = BarcodeSeq(d["p7"])
-        self.inline5 = BarcodeSeq(d["inline5"])
-        self.inline3 = BarcodeSeq(d["inline3"])
-        self.umi5 = BarcodeSeq(d["umi5"])
-        self.umi3 = BarcodeSeq(d["umi3"])
-        self.mask5 = BarcodeSeq(d["mask5"])
-        self.mask3 = BarcodeSeq(d["mask3"])
-
-    def to_dict(self):
-        return {
-            "p5": self.p5.fw,
-            "p7": self.p7.fw,
-            "inline5": self.inline5.fw,
-            "inline3": self.inline3.fw,
-            "umi5": self.umi5.fw,
-            "umi3": self.umi3.fw,
-            "mask5": self.mask5.fw,
-            "mask3": self.mask3.fw,
-            "strand": self.strand,
-        }
-
-
 class CutadaptConfig:
+    """
+    Configuration class to store settings for the cutadapt pipeline.
+
+    This class centralizes various options that control the behavior of
+    the adapter trimming and filtering process.
+    """
     def __init__(self):
         self.rname_suffix = False
         self.ensure_inline_barcode = False
@@ -219,69 +203,7 @@ class CutadaptConfig:
         self.dry_run = False
         self.threads = 1
         self.json_file = None
-
-
-BUILDIN_ADAPTERS = {
-    ## RNA library
-    # Small RNA, double ligation method, without barcode
-    # p5 - insert - p7
-    # (Optional) trim 2nt on both end to increase quality
-    # NOTE: i5 is small RNA adapter, which is different from truseq i5
-    "SMALLRNA": "AGTTCTACAGTCCGACGATC>AGATCGGAAGAGCACACGTC",
-    # Small RNA-Seq Library Prep Kit (Lexogen, 052)
-    # legacy version of small RNA
-    "SMRNA": "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG",
-    # inline barcode method
-    # ref: https://www.nature.com/articles/nmeth0318-226c/figures/1
-    # NOTE: i5 is small RNA adapter, which is different from truseq i5
-    "INLINE": "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC",
-    # p5 - (random rt tail in TSO) - reverse insert - (random primer start?) - p7
-    "TAKARAV2": "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
-    # p5 - (random rt tail in ligation) - reverse insert - (random primer start?) - p7
-    "STRANDED": "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
-    # p5 - (random primer start?) - reverse insert - (random primer start?) - p7
-    "UNSTRANDED": "ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC",
-    # p5 - reverse insert - 14ntUMI - p7
-    # 14nt UMI = (8 nt UMIs + 3 nt UMI linker + 3 nt from Pico v3 SMART UMI Adapter)
-    # IMPORTANT: The UMI liker and UMI adapter can be different, even the 8nt UMI is the same. very weired.
-    # NOTE: if insert is too short, also need to add -u -14 to trim readthrough in R1
-    "TAKARAV3": "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
-    # eCLIP, SAC-seq, cDNA ligation method, with 6 nt UMI
-    "ECLIP6": "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC",
-    # eCLIP, SAC-seq, cDNA ligation method, with 10 nt UMI
-    "ECLIP10": "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC",
-    # cDNA88, cDNA ligation method, with 6 nt UMI (right) and 4 nt of random tail in cDNA
-    "SACSEQ": "ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC",
-    # cDNA88, cDNA ligation method, with 8 nt UMI (left) and 8 nt UMI (right)
-    "SACSEQV3": "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC",
-    # p5 - [might be 6bp of polyC] - reverse insert (cDNA) - adaptase tail (CCCCCC) - p7
-    # 6nt of polyG in 5' of R1 might from random RT primer
-    # adaptase tail can be as long as 15bp at the 5' of R2 of polyG)
-    # no UMI, but try to use random polyC tail as UMI
-    # legacy name: "SWIFT"
-    "XGENRNA": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    # Illumina Strand-Specific RNA-Seq Library Prep
-    # NOTE: Nextera adapters are used
-    "ILLUMINARNA": "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT",
-    ## DNA library
-    # dsDNA ligation, A tailing method, do ot need to trim
-    "DSLIGATION": "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC",
-    # The general method for xGen / Swift kit, might be better than hard clip, TODO
-    # '-a "C{20};e=0.5;o=1" -G "G{20};e=0.5;o=1"' might be better
-    # "xGenDNA": "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC",
-    # https://www.idtdna.com/pages/products/next-generation-sequencing/workflow/xgen-ngs-library-preparation/methyl-seq-dna-library-kit#product-details
-    # https://sfvideo.blob.core.windows.net/sitefinity/docs/default-source/technical-report/tail-trimming-for-better-data-technical-note.pdf?sfvrsn=135efe07_4
-    # 10 bases from END of R1 10 bases from START of R2
-    # remove 2 letter from the begin of R1, which might be random primer
-    "XGENMETHY": "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    # for snmC-seq, trim 15 bases
-    "XGENSNMC": "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    # PBAT: method use random primer to add both p5 and p7,
-    # and there might be random tail at the 5' end of both reads
-    "PBAT": "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC",
-    # Nextera, for ATAC-seq, without UMI
-    "NEXTERA": "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT",
-}
+        self.force_trim_min_length = 50 # Default value
 
 
 def json_report(
@@ -297,13 +219,42 @@ def json_report(
     untrimmed1,
     untrimmed2,
 ):
+    """
+    Generates a JSON report summarizing the trimming statistics.
+
+    The report includes cutadapt version, input/output file paths, barcode configuration,
+    and detailed trimming statistics from the cutadapt run.
+
+    :param file: Path to the output JSON file.
+    :type file: str
+    :param stats: Cutadapt Statistics object.
+    :type stats: cutadapt.report.Statistics
+    :param barcode: BarcodeConfig object used for the run.
+    :type barcode: cutseq.common.BarcodeConfig
+    :param input1: Path to the first input FASTQ file.
+    :type input1: str
+    :param input2: Path to the second input FASTQ file (None for single-end).
+    :type input2: str, optional
+    :param output1: Path to the first output trimmed FASTQ file.
+    :type output1: str
+    :param output2: Path to the second output trimmed FASTQ file (None for single-end).
+    :type output2: str, optional
+    :param short1: Path to the first output file for short reads (None if not used).
+    :type short1: str, optional
+    :param short2: Path to the second output file for short reads (None if not used).
+    :type short2: str, optional
+    :param untrimmed1: Path to the first output file for untrimmed reads (None if not used).
+    :type untrimmed1: str, optional
+    :param untrimmed2: Path to the second output file for untrimmed reads (None if not used).
+    :type untrimmed2: str, optional
+    """
     d = {
         "tag": "Cutadapt report",
         "cutadapt_version": cutadapt.__version__,
         "input": {
             "path1": input1,
             "path2": input2,
-            "paired": True,
+            "paired": True if input2 else False, # Corrected based on presence of input2
         },
         "output": {
             "output1": output1,
@@ -318,6 +269,8 @@ def json_report(
 
     d.update(stats.as_json())
     # adapters_read1/2 -> trimmed_lengths to emppty list
+    # This is done to reduce the size of the JSON report, as detailed trimmed_lengths
+    # can be very large and are often not needed for summary purposes.
     if d.get("adapters_read1"):
         for m in d["adapters_read1"]:
             if m.get("five_prime_end"):
@@ -335,6 +288,26 @@ def json_report(
 
 
 def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
+    """
+    Configures and runs the cutadapt pipeline for single-end reads.
+
+    This function defines a series of modification and filtering steps
+    based on the provided barcode configuration and settings.
+
+    :param input1: Path to the input FASTQ file.
+    :type input1: str
+    :param output1: Path to the output trimmed FASTQ file.
+    :type output1: str
+    :param short1: Path to the output file for reads that are too short.
+    :type short1: str, optional
+    :param untrimmed1: Path to the output file for reads that were not trimmed
+                       (e.g., missing inline barcodes).
+    :type untrimmed1: str, optional
+    :param barcode: BarcodeConfig object detailing the adapter scheme.
+    :type barcode: cutseq.common.BarcodeConfig
+    :param settings: CutadaptConfig object with pipeline settings.
+    :type settings: CutadaptConfig
+    """
     max_errors = 0.2
     modifiers = []
     # step 1: remove suffix in the read name
@@ -506,6 +479,34 @@ def pipeline_paired(
     barcode,
     settings,
 ):
+    """
+    Configures and runs the cutadapt pipeline for paired-end reads.
+
+    This function defines a series of modification and filtering steps
+    for paired-end data, considering R1 and R2 reads, based on the
+    provided barcode configuration and settings.
+
+    :param input1: Path to the R1 input FASTQ file.
+    :type input1: str
+    :param input2: Path to the R2 input FASTQ file.
+    :type input2: str
+    :param output1: Path to the R1 output trimmed FASTQ file.
+    :type output1: str
+    :param output2: Path to the R2 output trimmed FASTQ file.
+    :type output2: str
+    :param short1: Path to the R1 output file for reads that are too short.
+    :type short1: str, optional
+    :param short2: Path to the R2 output file for reads that are too short.
+    :type short2: str, optional
+    :param untrimmed1: Path to the R1 output file for untrimmed reads.
+    :type untrimmed1: str, optional
+    :param untrimmed2: Path to the R2 output file for untrimmed reads.
+    :type untrimmed2: str, optional
+    :param barcode: BarcodeConfig object detailing the adapter scheme.
+    :type barcode: cutseq.common.BarcodeConfig
+    :param settings: CutadaptConfig object with pipeline settings.
+    :type settings: CutadaptConfig
+    """
     max_errors = 0.2
     modifiers = []
     # step 1: remove suffix in the read name
@@ -588,7 +589,7 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.umi5.len),
-                ConditionalCutter(-barcode.umi5.len)
+                ConditionalCutter(-barcode.umi5.len, force_trim_min_length=settings.force_trim_min_length)
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.umi5.len),
             ),
@@ -596,7 +597,7 @@ def pipeline_paired(
     if barcode.umi3.len > 0:
         modifiers.append(
             (
-                ConditionalCutter(-barcode.umi3.len)
+                ConditionalCutter(-barcode.umi3.len, force_trim_min_length=settings.force_trim_min_length)
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.umi3.len),
                 UnconditionalCutter(barcode.umi3.len),
@@ -612,7 +613,7 @@ def pipeline_paired(
         modifiers.append(
             (
                 UnconditionalCutter(barcode.mask5.len),
-                ConditionalCutter(-barcode.mask5.len)
+                ConditionalCutter(-barcode.mask5.len, force_trim_min_length=settings.force_trim_min_length)
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.mask5.len),
             )
@@ -620,7 +621,7 @@ def pipeline_paired(
     if barcode.mask3.len > 0:
         modifiers.append(
             (
-                ConditionalCutter(-barcode.mask3.len)
+                ConditionalCutter(-barcode.mask3.len, force_trim_min_length=settings.force_trim_min_length)
                 if settings.conditional_cutter
                 else UnconditionalCutter(-barcode.mask3.len),
                 UnconditionalCutter(barcode.mask3.len),
@@ -770,6 +771,17 @@ def pipeline_paired(
 
 
 def run_cutseq(args):
+    """
+    Sets up configurations and executes the appropriate cutadapt pipeline.
+
+    This function initializes the BarcodeConfig and CutadaptConfig based on
+    the command-line arguments. It then determines whether to run the
+    single-end or paired-end pipeline based on the number of input files
+    provided.
+
+    :param args: Parsed command-line arguments from argparse.
+    :type args: argparse.Namespace
+    """
     barcode_config = BarcodeConfig(args.adapter_scheme)
     settings = CutadaptConfig()
     settings.rname_suffix = args.with_rname_suffix
@@ -782,6 +794,7 @@ def run_cutseq(args):
     settings.dry_run = args.dry_run
     settings.auto_rc = args.auto_rc
     settings.json_file = args.json_file
+    settings.force_trim_min_length = args.force_trim_min_length # Pass from args
     if len(args.input_file) == 1:
         pipeline_single(
             args.input_file[0],
@@ -807,15 +820,22 @@ def run_cutseq(args):
 
 
 def main():
+    """
+    Parses command-line arguments and initiates the adapter trimming process.
+
+    This is the main entry point for the `cutseq run` script. It sets up
+    the argument parser, validates arguments, prepares output file names,
+    and then calls `run_cutseq` to perform the trimming.
+    """
     parser = argparse.ArgumentParser(
-        description="Trim sequencing adapters from NGS data automatically."
+        description="Trim sequencing adapters from NGS data automatically using cutadapt's Python API."
     )
     # input file can be one or two for single or paired-end reads, but can not be more than two
     parser.add_argument(
         "input_file",
         type=str,
         nargs="+",
-        help="Input file path for NGS data, one or two files.",
+        help="Input file path for NGS data, one or two files (for single or paired-end reads).",
     )
     # output file can be number of files matching the input files, if not provided it will generate based on the output prefix,
     # if no output prefix provided it will generate based on the input file name
@@ -823,7 +843,9 @@ def main():
         "-a",
         "--adapter-scheme",
         type=str,
-        help="Adapter sequence configuration.",
+        help="Adapter sequence configuration string. Example: P5(INLINE5)UMI5XXXS>P7(INLINE3)UMI3XXXS. "
+             "Where P5/P7 are adapter sequences, (INLINE5/3) are optional inline barcodes, "
+             "UMI5/3 are N's for UMI bases, XXX are mask sequences, S is strand (>/< or -).",
     )
     parser.add_argument(
         "-A",
@@ -834,14 +856,15 @@ def main():
         "-O",
         "--output-prefix",
         type=str,
-        help="Output file prefix for keep trimmed data.",
+        help="Output file prefix for trimmed, short, and untrimmed data. "
+             "If not provided, output filenames are derived from input filenames.",
     )
     parser.add_argument(
         "-o",
         "--output-file",
         type=str,
         nargs="+",
-        help="Output file path for keep trimmed data.",
+        help="Output file path(s) for successfully trimmed reads. Must match number of input files.",
     )
     # discard short reads
     parser.add_argument(
@@ -849,7 +872,7 @@ def main():
         "--short-file",
         type=str,
         nargs="+",
-        help="Output file path for discarded too short data.",
+        help="Output file path(s) for reads discarded due to being too short after trimming. Must match number of input files.",
     )
     # discard inline barcode untrimmed reads
     parser.add_argument(
@@ -857,12 +880,12 @@ def main():
         "--untrimmed-file",
         type=str,
         nargs="+",
-        help="Output file path for discarded reads without inline barcode.",
+        help="Output file path(s) for reads discarded because expected inline barcodes were not found. Must match number of input files.",
     )
     parser.add_argument(
         "--json-file",
         type=str,
-        help="Output json file for statistics.",
+        help="Output JSON file for trimming statistics.",
     )
 
     parser.add_argument(
@@ -870,47 +893,52 @@ def main():
         "--min-quality",
         type=int,
         default=20,
-        help="Minimum quality of the read tails in the reads to keep.",
+        help="Minimum quality score for trimming read tails. (Default: 20)",
     )
     parser.add_argument(
         "-m",
         "--min-length",
         type=int,
         default=20,
-        help="Minimum length of the reads to keep.",
+        help="Minimum length of reads to keep after trimming. (Default: 20)",
     )
 
     parser.add_argument(
         "--with-rname-suffix",
         action="store_true",
-        help="R1 and R2 suffix cotains suffix. MGI platform.",
+        help="Indicate if read names have MGI-style suffixes like '/1', '/2', '.1', or '.2' to be stripped.",
     )
 
     parser.add_argument(
         "--ensure-inline-barcode",
         action="store_true",
-        help="Output discarded reads without inline barcode.",
+        help="If set, reads without the specified inline barcode(s) will be written to the untrimmed files. Requires adapter scheme to have inline barcodes.",
     )
 
-    parser.add_argument("--trim-polyA", action="store_true", help="Trim polyA tail.")
+    parser.add_argument("--trim-polyA", action="store_true", help="Enable trimming of polyA/T tails.")
     parser.add_argument(
         "--trim-polyA-wo-direction",
         action="store_true",
-        help="Trim polyA tail by ignore direction of strand.",
+        help="Trim polyA/T tails regardless of strand information. If not set, trimming depends on strand from adapter scheme.",
     )
 
     parser.add_argument(
         "--conditional-cutter",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="If true, only trim the UMI if the adapter is found. "
-        "But enforce cutting if the read length is longer than 50.",
+        help="Enable/disable conditional cutting for UMIs/masks. If true (default), trim UMI/mask if adapter is found or read is long. If false, UMI/mask trimming is unconditional.",
+    )
+    parser.add_argument(
+        "--force-trim-min-length",
+        type=int,
+        default=50,
+        help="Minimum read length to enforce UMI/mask trimming even if no adapter is found (when --conditional-cutter is true). (Default: 50)",
     )
 
     parser.add_argument(
         "--auto-rc",
         action="store_true",
-        help="Reverse complement (-) strand automatically if the library is reverse orientation.",
+        help="Automatically reverse complement reads if the library strand (from adapter scheme) is '-'. For paired-end, R1 and R2 will be swapped.",
     )
 
     parser.add_argument(
@@ -918,13 +946,13 @@ def main():
         "--threads",
         type=int,
         default=1,
-        help="Number of threads to use for trimming.",
+        help="Number of threads to use for trimming. (Default: 1)",
     )
     parser.add_argument(
         "-n",
         "--dry-run",
         action="store_true",
-        help="Print command instead of running it.",
+        help="Print the sequence of modifier steps instead of running the pipeline. Does not create output files.",
     )
 
     parser.add_argument(
@@ -940,15 +968,16 @@ def main():
 
     if args.adapter_name is not None:
         if args.adapter_scheme is not None:
-            logging.info("Adapter scheme is provided, ignore adapter name.")
+            logging.info("Adapter scheme is provided, ignoring adapter name.")
         else:
             args.adapter_scheme = BUILDIN_ADAPTERS.get(args.adapter_name.upper())
             if args.adapter_scheme is None:
-                logging.error("Adapter name is not valid. Fallback to adatper scheme")
-                args.adapter_scheme = args.adapter_name
-                # sys.exit(1)
+                logging.error(f"Adapter name '{args.adapter_name}' is not valid. Check available --adapter-name choices or provide an --adapter-scheme.")
+                # sys.exit(1) # Consider exiting if a bad name is given and no scheme
+                # For now, allow fallback to adapter_scheme = adapter_name if not found
+                args.adapter_scheme = args.adapter_name 
     elif args.adapter_scheme is None:
-        logging.error("Adapter scheme or name is required.")
+        logging.error("Adapter scheme or name is required. Use -a or -A.")
         sys.exit(1)
     args.adapter_scheme = args.adapter_scheme.replace(" ", "").upper()
 
@@ -957,28 +986,33 @@ def main():
         sys.exit(1)
 
     def validate_output_file(output_files, input_files, output_prefix, output_suffix):
+        """Helper function to determine output file names."""
         default_format = ".fastq.gz"
-        r1 = "_" + output_suffix + "_R1" + default_format
-        r2 = "_" + output_suffix + "_R2" + default_format
-        if output_files:
+        r1_suffix = "_" + output_suffix + "_R1" + default_format
+        r2_suffix = "_" + output_suffix + "_R2" + default_format
+        
+        if output_files: # User provided output files explicitly
             if len(output_files) != len(input_files):
-                logging.error("Output file should be same as input file.")
+                logging.error(f"Number of {output_suffix} output files ({len(output_files)}) must match number of input files ({len(input_files)}).")
                 sys.exit(1)
             return output_files
-        elif output_prefix is not None:
+        elif output_prefix is not None: # User provided a prefix
             if len(input_files) == 1:
-                return [output_prefix + r1]
+                return [output_prefix + r1_suffix]
             else:
-                return [output_prefix + r1, output_prefix + r2]
-        else:
+                return [output_prefix + r1_suffix, output_prefix + r2_suffix]
+        else: # Derive from input file names
             if len(input_files) == 1:
-                return [remove_fq_suffix(input_files[0]) + r1]
+                return [remove_fq_suffix(input_files[0]) + r1_suffix]
             else:
                 return [
-                    remove_fq_suffix(input_files[0]) + r1,
-                    remove_fq_suffix(input_files[1]) + r2,
+                    remove_fq_suffix(input_files[0]) + r1_suffix,
+                    remove_fq_suffix(input_files[1]) + r2_suffix,
                 ]
-        return output_files
+        # This line should not be reached given the logic above.
+        # However, to satisfy linters or for extreme edge cases:
+        return [None] * len(input_files)
+
 
     args.output_file = validate_output_file(
         args.output_file, args.input_file, args.output_prefix, "trimmed"
@@ -991,22 +1025,19 @@ def main():
         # inline barcode is in bracket () and length > 0
         return re.match(r".*\([ATGCatgc]+\).*", s) is not None
 
-    args.untrimmed_file = (
-        validate_output_file(
+    # Only generate untrimmed file paths if explicitly requested OR if ensure_inline_barcode is true AND the scheme has inline barcodes
+    if args.untrimmed_file or (args.ensure_inline_barcode and _check_with_inline_barcode(args.adapter_scheme)):
+        args.untrimmed_file = validate_output_file(
             args.untrimmed_file, args.input_file, args.output_prefix, "untrimmed"
         )
-        if (
-            args.untrimmed_file is not None
-            or (
-                _check_with_inline_barcode(args.adapter_scheme)
-                and args.ensure_inline_barcode
-            )
-        )
-        else [None, None]
-    )
+    else: # Ensure it's a list of Nones matching input file count if not used
+        args.untrimmed_file = [None] * len(args.input_file)
+
 
     run_cutseq(args)
 
 
 if __name__ == "__main__":
     main()
+
+[end of cutseq/run.py]

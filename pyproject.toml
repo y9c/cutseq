@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cutseq"
-version = "0.0.61"
+version = "0.0.62"
 description = "Automatically cut adapter / barcode / UMI from NGS data"
 authors = ["Ye Chang <yech1990@gmail.com>"]
 license = "MIT"
@@ -10,11 +10,15 @@ repository = "https://github.com/y9c/cutseq"
 
 
 [tool.poetry.dependencies]
-python = "^3.8"
-cutadapt = "^4.8"
+python = "^3.9"
+cutadapt = "^5.0"
+tomli = {version = "^2.0.1", python = "<3.11"}
 
 [tool.poetry.scripts]
 cutseq = 'cutseq.run:main'
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.0" # Using a recent stable version
 
 [build-system]
 requires = ["poetry-core"]
