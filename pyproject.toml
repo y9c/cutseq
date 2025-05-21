@@ -1,25 +1,32 @@
-[tool.poetry]
+[project]
 name = "cutseq"
 version = "0.0.62"
 description = "Automatically cut adapter / barcode / UMI from NGS data"
-authors = ["Ye Chang <yech1990@gmail.com>"]
-license = "MIT"
+authors = [{ name = "Ye Chang", email = "yech1990@gmail.com" }]
+requires-python = "~=3.9"
 readme = "README.md"
-keywords = ["bioinformatics", "NGS", "adapter", "barcode", "UMI"]
-repository = "https://github.com/y9c/cutseq"
+license = "MIT"
+keywords = [
+    "bioinformatics",
+    "NGS",
+    "adapter",
+    "barcode",
+    "UMI",
+]
+dependencies = [
+    "cutadapt~=5.0",
+    "tomli>=2.0.1,<3 ; python_version < '3.11'",
+]
 
+[project.urls]
+Repository = "https://github.com/y9c/cutseq"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-cutadapt = "^5.0"
-tomli = {version = "^2.0.1", python = "<3.11"}
+[project.scripts]
+cutseq = "cutseq.run:main"
 
-[tool.poetry.scripts]
-cutseq = 'cutseq.run:main'
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^3.7.0" # Using a recent stable version
+[dependency-groups]
+dev = ["pre-commit>=3.7.0,<4"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

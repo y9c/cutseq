@@ -1,7 +1,7 @@
 repos:
--   repo: local
+  - repo: local
     hooks:
-    -   id: update-adapter-docs
+      - id: update-adapter-docs
         name: Update adapter documentation
         entry: python scripts/update_adapter_docs.py
         language: system # Assumes python on PATH is python3
