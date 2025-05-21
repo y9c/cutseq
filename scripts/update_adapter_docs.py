@@ -77,9 +77,12 @@ def main():
 
         # HTML Visualization
         bc = BarcodeConfig(adapter_info['scheme'])
+        scheme_raw = adapter_info['scheme']
         
-        html_parts = ['<div class="adapter-scheme" style="margin-bottom: 15px;">']
-        html_parts.append('<div style="display: flex; flex-wrap: nowrap; align-items: center; font-family: monospace; font-size: 14px; border: 1px solid #ccc; padding: 5px; border-radius: 5px; overflow-x: auto;">')
+        html_parts = [
+            '<div class="adapter-scheme" style="margin-bottom: 15px; position: relative;">',
+            f'<div class="copy-scheme-raw" style="display: flex; flex-wrap: nowrap; align-items: center; font-family: monospace; font-size: 14px; border: 1px solid #ccc; padding: 5px; border-radius: 5px; overflow-x: auto; cursor: pointer; background: #f8f8f8; transition: box-shadow 0.2s;" title="Click to copy scheme: {scheme_raw}" data-scheme="{scheme_raw}">'  # clickable block
+        ]
 
         adapter_components_ordered = ["p5", "inline5", "umi5", "mask5", "strand", "mask3", "umi3", "inline3", "p7"]
         
@@ -95,22 +98,20 @@ def main():
                 barcode_seq_obj = getattr(bc, part_name)
                 if hasattr(barcode_seq_obj, 'fw'):
                     seq_val = barcode_seq_obj.fw
-                # else: might be an older structure or direct string, handle if necessary
 
-            if seq_val: # Only render if there's a sequence or it's the strand part
+            if seq_val:
                 if is_strand_part:
-                    # Strand indicator with polygon background
-                    html_parts.append(f'''
-<div style="position: relative; width: 30px; height: 30px; margin: 0 2px; text-align: center; line-height: 30px;">
-  <div style="background-color: {COLOR_PALETTE['strand_bg']}; width: 100%; height: 100%; position: absolute; top: 0; left: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div>
-  <span style="position: relative; z-index: 1; color: white; font-weight: bold;">{seq_val}</span>
-</div>''')
+                    html_parts.append(f'<div style="position: relative; width: 30px; height: 30px; margin: 0 2px; text-align: center; line-height: 30px;"><div style="background-color: {COLOR_PALETTE['strand_bg']}; width: 100%; height: 100%; position: absolute; top: 0; left: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div><span style="position: relative; z-index: 1; color: white; font-weight: bold;">{seq_val}</span></div>')
                 else:
                     part_type = get_part_type(part_name)
                     color = COLOR_PALETTE.get(part_type, COLOR_PALETTE["default_seq"])
                     html_parts.append(f'<span style="background-color: {color}; padding: 5px 8px; margin: 0 2px; border-radius: 3px; white-space: nowrap;">{seq_val}</span>')
 
-        html_parts.append('</div></div>\n') # Close flex container and adapter-scheme div
+        html_parts.append('</div>') # Close flex container
+        # Add a hidden raw scheme and a tooltip for copy feedback
+        html_parts.append('<div class="scheme-raw-tooltip" style="display:none; position:absolute; top:-30px; left:0; background:#222; color:#fff; padding:3px 8px; border-radius:4px; font-size:12px; z-index:10;">Copied!</div>')
+        html_parts.append('</div>\n') # Close adapter-scheme div
+
         all_markdown_parts.extend(html_parts)
 
         # Bullet Points
@@ -122,14 +123,44 @@ def main():
     markdown_content = "".join(all_markdown_parts)
     # --- End Generate Markdown Content ---
 
-    try:
-        adapters_md_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(adapters_md_path, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
-        print(f"Successfully updated {adapters_md_path}")
-    except Exception as e:
-        print(f"Error writing to {adapters_md_path}: {e}")
-        sys.exit(1)
+    # Add JS/CSS for copy-to-clipboard functionality at the end of the markdown
+    all_markdown_parts.append('''<script>
+(function() {
+  function showTooltip(el) {
+    var tooltip = el.parentElement.querySelector('.scheme-raw-tooltip');
+    if (tooltip) {
+      tooltip.style.display = 'block';
+      setTimeout(function() { tooltip.style.display = 'none'; }, 1200);
+    }
+  }
+  document.querySelectorAll('.copy-scheme-raw').forEach(function(block) {
+    block.addEventListener('mouseenter', function() {
+      block.style.boxShadow = '0 0 0 2px #FF6F61';
+    });
+    block.addEventListener('mouseleave', function() {
+      block.style.boxShadow = '';
+    });
+    block.addEventListener('click', function(e) {
+      var scheme = block.getAttribute('data-scheme');
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(scheme).then(function() {
+          showTooltip(block);
+        });
+      } else {
+        // fallback
+        var textarea = document.createElement('textarea');
+        textarea.value = scheme;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showTooltip(block);
+      }
+    });
+  });
+})();
+</script>
+''')
 
 if __name__ == "__main__":
     main()

@@ -17,8 +17,6 @@ scheme = "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG"
 description_name = "Small RNA (Legacy)"
 points = [
     "Legacy version for small RNA sequencing",
-    "Scheme: AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG",
-    "Forward orientation",
     "Refer to library preparation protocol for details."
 ]
 
@@ -29,16 +27,13 @@ points = [
     "Used for libraries with inline barcodes",
     "Dual UMI design (5nt each)",
     "Forward orientation",
-    "Contains fixed inline barcode (ATCACG)",
-    "Scheme: AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC"
+    "Contains fixed inline barcode (ATCACG)"
 ]
 
 [TAKARAV2]
 scheme = "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC"
 description_name = "Takara V2"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XXX)",
     "Refer to Takara V2 library preparation protocol for details."
 ]
@@ -47,8 +42,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
 description_name = "Stranded RNA"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (X, XXX)",
     "Refer to stranded RNA library preparation protocol for details."
 ]
@@ -57,8 +50,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC"
 description_name = "Unstranded RNA/DNA"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC",
-    "Unstranded ('-')",
     "Contains masked regions (XX)",
     "Refer to library preparation protocol for details."
 ]
@@ -67,8 +58,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "Takara V3"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XXX, XXXXXX)",
     "Contains UMI sequences (NNNNNNNN)",
     "Refer to Takara V3 library preparation protocol for details."
@@ -78,8 +67,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "eCLIP (6nt UMI)"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XX, X)",
     "Contains UMI sequences (NNNNNN)",
     "Used for eCLIP experiments with a 6-nucleotide UMI."
@@ -89,8 +76,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "eCLIP (10nt UMI)"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XX, X)",
     "Contains UMI sequences (NNNNNNNNNN)",
     "Used for eCLIP experiments with a 10-nucleotide UMI."
@@ -100,8 +85,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "SAC-Seq"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XXXX)",
     "Contains UMI sequences (NNNNNN)",
     "Used for SAC-Seq (Single-cell RNA-Seq) or similar protocols."
@@ -111,8 +94,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "SAC-Seq V3"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC",
-    "Forward orientation ('>')",
     "Contains masked regions (X, XX)",
     "Contains dual UMI sequences (NNNNNNNN on both sides)",
     "Refer to SAC-Seq V3 library preparation protocol for details."
@@ -122,8 +103,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen RNA"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
     "Likely for specific xGen RNA library preps, check protocol."
 ]
@@ -132,8 +111,6 @@ points = [
 scheme = "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT"
 description_name = "Illumina Stranded RNA (Nextera-based)"
 points = [
-    "Scheme: AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT",
-    "Reverse orientation ('<')",
     "Uses Nextera-style adapter sequences."
 ]
 
@@ -144,7 +121,6 @@ scheme = "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC"
 description_name = "dsDNA Ligation"
 points = [
     "Basic dsDNA ligation with A-tailing",
-    "Forward orientation",
     "No UMIs or special trimming needed"
 ]
 
@@ -154,8 +130,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen Methyl-Seq"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    "Forward orientation ('>')",
     "Contains masked regions (XX, XXXXXXXXXX)",
     "Designed for xGen Methyl-Seq library kits."
 ]
@@ -164,8 +138,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen snmC-Seq"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC",
-    "Forward orientation ('>')",
     "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
     "Designed for xGen single-nucleus methylC-Seq (snmC-Seq) library kits."
 ]
@@ -174,8 +146,6 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "PBAT (Post-Bisulfite Adapter Tagging)"
 points = [
-    "Scheme: ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC",
-    "Reverse orientation ('<')",
     "Contains masked regions (XXXXXX on both sides)",
     "Used for PBAT-style bisulfite sequencing libraries."
 ]
@@ -184,8 +154,6 @@ points = [
 scheme = "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT"
 description_name = "Nextera (General)"
 points = [
-    "Scheme: AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT",
-    "Forward orientation ('>')",
     "Standard Nextera transposase-based library preparation.",
     "No UMIs by default in this basic scheme."
 ]
