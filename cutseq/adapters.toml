@@ -14,7 +14,7 @@ points = [
 
 [SMRNA]
 scheme = "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG"
-description_name = "Small RNA (Legacy)"
+description_name = "Small RNA, Legacy version"
 points = [
   "Legacy version for small RNA sequencing",
   "Refer to library preparation protocol for details.",
@@ -104,7 +104,7 @@ scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen RNA"
 points = [
   "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
-  "Likely for specific xGen RNA library preps, check protocol.",
+  "Refer to xGen™ RNA Library Preparation Kit protocol for details.",
 ]
 
 [ILLUMINARNA]
