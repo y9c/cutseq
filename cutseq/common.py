@@ -211,3 +211,25 @@ class BarcodeConfig:
             "mask3": self.mask3.fw,
             "strand": self.strand,
         }
+
+
+def print_builtin_adapters():
+    """
+    Print all built-in adapter names and their schemes in a well-organized, pretty table.
+    """
+    from textwrap import wrap
+
+    print("\nBuilt-in adapter schemes:\n")
+    # Find the max width for name and scheme for alignment
+    max_name_len = max(len(name) for name in BUILDIN_ADAPTERS)
+    max_scheme_len = max(len(scheme) for scheme in BUILDIN_ADAPTERS.values())
+    # Header
+    print(f"{'Name'.ljust(max_name_len)}   {'Scheme'}")
+    print(f"{'-'*max_name_len}   {'-'*max(30, min(max_scheme_len, 60))}")
+    # Print each adapter, wrapping long schemes
+    for name, scheme in BUILDIN_ADAPTERS.items():
+        wrapped_scheme = wrap(scheme, width=60)
+        print(f"{name.ljust(max_name_len)}   {wrapped_scheme[0]}")
+        for cont in wrapped_scheme[1:]:
+            print(f"{' '*max_name_len}   {cont}")
+    print("\nUse the adapter name with -A/--adapter-name, or the scheme string with -a/--adapter-scheme.\n")

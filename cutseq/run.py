@@ -45,7 +45,10 @@ from cutadapt.steps import (
 )
 from cutadapt.utils import Progress
 
-from .common import BUILDIN_ADAPTERS, BarcodeConfig, remove_fq_suffix
+from .common import load_adapters, BarcodeConfig, remove_fq_suffix, print_builtin_adapters
+
+# Initialize built-in adapters at the top so it's available for argument parsing
+BUILDIN_ADAPTERS = load_adapters()
 
 #  monkey patching ....
 original_method = Statistics._collect_modifier
@@ -979,10 +982,23 @@ def main():
         "-V", "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
+    parser.add_argument(
+        "--list-adapters",
+        action="store_true",
+        help="List all built-in adapter names and their schemes, then exit."
+    )
+
     # Check if no arguments were provided
     if len(sys.argv) == 1:
         parser.print_help(sys.stdout)
         sys.exit(0)
+
+    # Parse known args early to handle --list-adapters before required input_file
+    if "--list-adapters" in sys.argv:
+        args, _ = parser.parse_known_args()
+        if args.list_adapters:
+            print_builtin_adapters()
+            sys.exit(0)
 
     args = parser.parse_args()
 
