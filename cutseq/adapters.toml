@@ -6,113 +6,111 @@
 scheme = "AGTTCTACAGTCCGACGATC>AGATCGGAAGAGCACACGTC"
 description_name = "Small RNA Libraries"
 points = [
-    "Used for small RNA sequencing",
-    "Double ligation method",
-    "Forward orientation",
-    "Optional 2nt trimming on both ends for quality"
+  "Used for small RNA sequencing",
+  "Double ligation method",
+  "Forward orientation",
+  "Optional 2nt trimming on both ends for quality",
 ]
 
 [SMRNA]
 scheme = "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG"
 description_name = "Small RNA (Legacy)"
 points = [
-    "Legacy version for small RNA sequencing",
-    "Refer to library preparation protocol for details."
+  "Legacy version for small RNA sequencing",
+  "Refer to library preparation protocol for details.",
 ]
 
 [INLINE]
 scheme = "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC"
 description_name = "Custom Barcoded Libraries"
 points = [
-    "Used for libraries with inline barcodes",
-    "Dual UMI design (5nt each)",
-    "Forward orientation",
-    "Contains fixed inline barcode (ATCACG)"
+  "Used for libraries with inline barcodes",
+  "Dual UMI design (5nt each)",
+  "Forward orientation",
+  "Contains fixed inline barcode (ATCACG)",
 ]
 
 [TAKARAV2]
 scheme = "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC"
 description_name = "Takara V2"
 points = [
-    "Contains masked regions (XXX)",
-    "Refer to Takara V2 library preparation protocol for details."
+  "Contains masked regions (XXX)",
+  "Refer to Takara V2 library preparation protocol for details.",
 ]
 
 [STRANDED]
 scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
 description_name = "Stranded RNA"
 points = [
-    "Contains masked regions (X, XXX)",
-    "Refer to stranded RNA library preparation protocol for details."
+  "Contains masked regions (X, XXX)",
+  "Refer to stranded RNA library preparation protocol for details.",
 ]
 
 [UNSTRANDED]
 scheme = "ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC"
 description_name = "Unstranded RNA/DNA"
 points = [
-    "Contains masked regions (XX)",
-    "Refer to library preparation protocol for details."
+  "Contains masked regions (XX)",
+  "Refer to library preparation protocol for details.",
 ]
 
 [TAKARAV3]
 scheme = "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "Takara V3"
 points = [
-    "Contains masked regions (XXX, XXXXXX)",
-    "Contains UMI sequences (NNNNNNNN)",
-    "Refer to Takara V3 library preparation protocol for details."
+  "Contains masked regions (XXX, XXXXXX)",
+  "Contains UMI sequences (NNNNNNNN)",
+  "Refer to Takara V3 library preparation protocol for details.",
 ]
 
 [ECLIP6]
 scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "eCLIP (6nt UMI)"
 points = [
-    "Contains masked regions (XX, X)",
-    "Contains UMI sequences (NNNNNN)",
-    "Used for eCLIP experiments with a 6-nucleotide UMI."
+  "Contains masked regions (XX, X)",
+  "Contains UMI sequences (NNNNNN)",
+  "Used for eCLIP experiments with a 6-nucleotide UMI.",
 ]
 
 [ECLIP10]
 scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "eCLIP (10nt UMI)"
 points = [
-    "Contains masked regions (XX, X)",
-    "Contains UMI sequences (NNNNNNNNNN)",
-    "Used for eCLIP experiments with a 10-nucleotide UMI."
+  "Contains masked regions (XX, X)",
+  "Contains UMI sequences (NNNNNNNNNN)",
+  "Used for eCLIP experiments with a 10-nucleotide UMI.",
 ]
 
 [SACSEQ]
 scheme = "ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "SAC-Seq"
 points = [
-    "Contains masked regions (XXXX)",
-    "Contains UMI sequences (NNNNNN)",
-    "Used for SAC-Seq (Single-cell RNA-Seq) or similar protocols."
+  "Contains masked regions (XXXX)",
+  "Contains UMI sequences (NNNNNN)",
+  "Used for SAC-Seq (Single-cell RNA-Seq) or similar protocols.",
 ]
 
 [SACSEQV3]
 scheme = "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC"
 description_name = "SAC-Seq V3"
 points = [
-    "Contains masked regions (X, XX)",
-    "Contains dual UMI sequences (NNNNNNNN on both sides)",
-    "Refer to SAC-Seq V3 library preparation protocol for details."
+  "Contains masked regions (X, XX)",
+  "Contains dual UMI sequences (NNNNNNNN on both sides)",
+  "Refer to SAC-Seq V3 library preparation protocol for details.",
 ]
 
 [XGENRNA]
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen RNA"
 points = [
-    "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
-    "Likely for specific xGen RNA library preps, check protocol."
+  "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
+  "Likely for specific xGen RNA library preps, check protocol.",
 ]
 
 [ILLUMINARNA]
 scheme = "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT"
 description_name = "Illumina Stranded RNA (Nextera-based)"
-points = [
-    "Uses Nextera-style adapter sequences."
-]
+points = ["Uses Nextera-style adapter sequences."]
 
 # DNA library
 
@@ -120,8 +118,8 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC"
 description_name = "dsDNA Ligation"
 points = [
-    "Basic dsDNA ligation with A-tailing",
-    "No UMIs or special trimming needed"
+  "Basic dsDNA ligation with A-tailing",
+  "No UMIs or special trimming needed",
 ]
 
 # xGenDNA = "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC" # Commented out
@@ -130,30 +128,30 @@ points = [
 scheme = "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen Methyl-Seq"
 points = [
-    "Contains masked regions (XX, XXXXXXXXXX)",
-    "Designed for xGen Methyl-Seq library kits."
+  "Contains masked regions (XX, XXXXXXXXXX)",
+  "Designed for xGen Methyl-Seq library kits.",
 ]
 
 [XGENSNMC]
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "xGen snmC-Seq"
 points = [
-    "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
-    "Designed for xGen single-nucleus methylC-Seq (snmC-Seq) library kits."
+  "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
+  "Designed for xGen single-nucleus methylC-Seq (snmC-Seq) library kits.",
 ]
 
 [PBAT]
 scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC"
 description_name = "PBAT (Post-Bisulfite Adapter Tagging)"
 points = [
-    "Contains masked regions (XXXXXX on both sides)",
-    "Used for PBAT-style bisulfite sequencing libraries."
+  "Contains masked regions (XXXXXX on both sides)",
+  "Used for PBAT-style bisulfite sequencing libraries.",
 ]
 
 [NEXTERA]
 scheme = "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT"
 description_name = "Nextera (General)"
 points = [
-    "Standard Nextera transposase-based library preparation.",
-    "No UMIs by default in this basic scheme."
+  "Standard Nextera transposase-based library preparation.",
+  "No UMIs by default in this basic scheme.",
 ]
