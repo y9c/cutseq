@@ -154,4 +154,5 @@ description_name = "Nextera (General)"
 points = [
   "Standard Nextera transposase-based library preparation.",
   "No UMIs by default in this basic scheme.",
+  "Usually used for ATAC-seq libraries.",
 ]

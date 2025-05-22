@@ -10,3 +10,8 @@ repos:
         # that are part of the commit or that are modified by the hook.
         # If docs/adapters.md is tracked by git, changes made by the script
         # will be automatically added to the staging area.
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.7.6
+    hooks:
+      - id: uv-lock
