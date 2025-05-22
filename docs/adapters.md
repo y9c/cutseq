@@ -1,6 +1,29 @@
+<!-- filepath: /Users/yec/Coding/cutseq/docs/adapters.md -->
+---
+title: Adapter Schemes
+nav_order: 2
+---
+
 # Adapter Schemes
-This document lists the built-in adapter schemes available in `cutseq`.You can also list them in console with `--liast-adapters` option.
-These can be used with the `-A` or `--adapter-name` option in the `cutseq run` command.
+
+CutSeq supports a variety of built-in adapter schemes for common NGS library types. You can list all available schemes in your terminal with:
+
+```bash
+cutseq --list-adapters
+```
+
+Use the adapter name with `-A/--adapter-name`, or specify a custom scheme string with `-a/--adapter-scheme`.
+
+## Example: Built-in Schemes
+
+- **SMALLRNA**: Small RNA libraries, double ligation, forward orientation
+- **INLINE**: Custom barcoded libraries, dual UMI, inline barcode
+- **TAKARAV3**: SMARTer Stranded Total RNA-Seq Kit v3
+- **STRANDED**: Stranded RNA libraries
+
+See below for a comprehensive guide to each supported adapter pattern, including copyable scheme blocks and usage notes.
+
+---
 
 ### SMALLRNA (Small RNA Libraries)
 

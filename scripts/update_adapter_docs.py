@@ -73,15 +73,28 @@ def main():
 
     # --- Generate Markdown Content ---
     all_markdown_parts = []
-    all_markdown_parts.append("# Adapter Schemes\n")
+    all_markdown_parts.append("---\ntitle: Adapter Schemes\nnav_order: 2\n---\n\n")
+    all_markdown_parts.append("# Adapter Schemes\n\n")
     all_markdown_parts.append(
-        "This document lists the built-in adapter schemes available in `cutseq`."
+        "CutSeq supports a variety of built-in adapter schemes for common NGS library types. You can list all available schemes in your terminal with:\n\n"
     )
     all_markdown_parts.append(
-            "You can also list them in console with `--liast-adapters` option.\n"
+        "```bash\ncutseq --list-adapters\n```\n\n"
     )
     all_markdown_parts.append(
-        "These can be used with the `-A` or `--adapter-name` option in the `cutseq run` command.\n\n"
+        "Use the adapter name with `-A/--adapter-name`, or specify a custom scheme string with `-a/--adapter-scheme`.\n\n"
+    )
+    all_markdown_parts.append(
+        "## Example: Built-in Schemes\n\n"
+    )
+    all_markdown_parts.append(
+        "- **SMALLRNA**: Small RNA libraries, double ligation, forward orientation\n"
+        "- **INLINE**: Custom barcoded libraries, dual UMI, inline barcode\n"
+        "- **TAKARAV3**: SMARTer Stranded Total RNA-Seq Kit v3\n"
+        "- **STRANDED**: Stranded RNA libraries\n\n"
+    )
+    all_markdown_parts.append(
+        "See below for a comprehensive guide to each supported adapter pattern, including copyable scheme blocks and usage notes.\n\n---\n\n"
     )
 
     for adapter_key, adapter_info in adapters_data.items():
