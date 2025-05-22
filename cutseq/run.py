@@ -45,7 +45,12 @@ from cutadapt.steps import (
 )
 from cutadapt.utils import Progress
 
-from .common import load_adapters, BarcodeConfig, remove_fq_suffix, print_builtin_adapters
+from .common import (
+    BarcodeConfig,
+    load_adapters,
+    print_builtin_adapters,
+    remove_fq_suffix,
+)
 
 # Initialize built-in adapters at the top so it's available for argument parsing
 BUILDIN_ADAPTERS = load_adapters()
@@ -855,7 +860,7 @@ def main():
     parser.add_argument(
         "input_file",
         type=str,
-        nargs="?",
+        nargs="*",
         help="Input file path for NGS data, one or two files (for single or paired-end reads).",
     )
     # output file can be number of files matching the input files, if not provided it will generate based on the output prefix,
@@ -985,7 +990,7 @@ def main():
     parser.add_argument(
         "--list-adapters",
         action="store_true",
-        help="List all built-in adapter names and their schemes, then exit."
+        help="List all built-in adapter names and their schemes, then exit.",
     )
 
     # Check if no arguments were provided
@@ -1001,7 +1006,10 @@ def main():
 
     # Check if input file is provided
     if args.input_file is None:
-        logging.error("Input file is required.") 
+        logging.error("Input file is required.")
+        sys.exit(1)
+    elif len(args.input_file) > 2:
+        logging.error("Input file can not be more than two.")
         sys.exit(1)
 
     if args.adapter_name is not None:
@@ -1020,10 +1028,6 @@ def main():
         logging.error("Adapter scheme or name is required. Use -a or -A.")
         sys.exit(1)
     args.adapter_scheme = args.adapter_scheme.replace(" ", "").upper()
-
-    if len(args.input_file) > 2:
-        logging.error("Input file can not be more than two.")
-        sys.exit(1)
 
     def validate_output_file(output_files, input_files, output_prefix, output_suffix):
         """Helper function to determine output file names."""
