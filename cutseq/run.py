@@ -855,7 +855,7 @@ def main():
     parser.add_argument(
         "input_file",
         type=str,
-        nargs="+",
+        nargs="?",
         help="Input file path for NGS data, one or two files (for single or paired-end reads).",
     )
     # output file can be number of files matching the input files, if not provided it will generate based on the output prefix,
@@ -993,14 +993,16 @@ def main():
         parser.print_help(sys.stdout)
         sys.exit(0)
 
-    # Parse known args early to handle --list-adapters before required input_file
-    if "--list-adapters" in sys.argv:
-        args, _ = parser.parse_known_args()
-        if args.list_adapters:
-            print_builtin_adapters()
-            sys.exit(0)
-
     args = parser.parse_args()
+
+    if args.list_adapters:
+        print_builtin_adapters()
+        sys.exit(0)
+
+    # Check if input file is provided
+    if args.input_file is None:
+        logging.error("Input file is required.") 
+        sys.exit(1)
 
     if args.adapter_name is not None:
         if args.adapter_scheme is not None:

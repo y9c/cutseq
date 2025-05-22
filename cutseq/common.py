@@ -225,10 +225,10 @@ def print_builtin_adapters():
     max_scheme_len = max(len(scheme) for scheme in BUILDIN_ADAPTERS.values())
     # Header
     print(f"{'Name'.ljust(max_name_len)}   {'Scheme'}")
-    print(f"{'-'*max_name_len}   {'-'*max(30, min(max_scheme_len, 60))}")
+    print(f"{'-'*max_name_len}   {'-'*max(30, min(max_scheme_len, 100))}")
     # Print each adapter, wrapping long schemes
     for name, scheme in BUILDIN_ADAPTERS.items():
-        wrapped_scheme = wrap(scheme, width=60)
+        wrapped_scheme = wrap(scheme, width=100)
         print(f"{name.ljust(max_name_len)}   {wrapped_scheme[0]}")
         for cont in wrapped_scheme[1:]:
             print(f"{' '*max_name_len}   {cont}")
