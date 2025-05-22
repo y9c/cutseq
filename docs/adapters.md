@@ -1,4 +1,3 @@
-<!-- filepath: /Users/yec/Coding/cutseq/docs/adapters.md -->
 ---
 title: Adapter Schemes
 nav_order: 2
