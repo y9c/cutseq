@@ -216,6 +216,7 @@ class CutadaptConfig:
         self.threads = 1
         self.json_file = None
         self.force_trim_min_length = 50  # Default value
+        self.force_anywhere = False
 
 
 def json_report(
@@ -340,7 +341,14 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     # step 3: remove adapter on the 3' end, read though in the sequencing
     modifiers.append(
         AdapterCutter(
-            [BackAdapter(sequence=barcode.p7.fw, max_errors=max_errors, min_overlap=3)],
+            [
+                BackAdapter(
+                    sequence=barcode.p7.fw,
+                    max_errors=max_errors,
+                    min_overlap=3,
+                    force_anywhere=settings.force_anywhere,
+                )
+            ],
             times=2,
         ),
     )
@@ -557,7 +565,10 @@ def pipeline_paired(
             AdapterCutter(
                 [
                     BackAdapter(
-                        sequence=barcode.p7.fw, max_errors=max_errors, min_overlap=3
+                        sequence=barcode.p7.fw,
+                        max_errors=max_errors,
+                        min_overlap=3,
+                        force_anywhere=settings.force_anywhere,
                     )
                 ],
                 times=2,
@@ -565,7 +576,10 @@ def pipeline_paired(
             AdapterCutter(
                 [
                     BackAdapter(
-                        sequence=barcode.p5.rc, max_errors=max_errors, min_overlap=3
+                        sequence=barcode.p5.rc,
+                        max_errors=max_errors,
+                        min_overlap=3,
+                        force_anywhere=settings.force_anywhere,
                     )
                 ],
                 times=2,
@@ -817,10 +831,12 @@ def run_cutseq(args):
     settings.conditional_cutter = args.conditional_cutter
     settings.threads = args.threads
     settings.min_length = args.min_length
+    settings.min_quality = args.min_quality
     settings.dry_run = args.dry_run
     settings.auto_rc = args.auto_rc
     settings.json_file = args.json_file
     settings.force_trim_min_length = args.force_trim_min_length  # Pass from args
+    settings.force_anywhere = args.force_anywhere
     if len(args.input_file) == 1:
         pipeline_single(
             args.input_file[0],
@@ -956,11 +972,18 @@ def main():
         default=True,
         help="Enable/disable conditional cutting for UMIs/masks. If true (default), trim UMI/mask if adapter is found or read is long. If false, UMI/mask trimming is unconditional.",
     )
+
     parser.add_argument(
         "--force-trim-min-length",
         type=int,
         default=50,
         help="Minimum read length to enforce UMI/mask trimming even if no adapter is found (when --conditional-cutter is true). (Default: 50)",
+    )
+
+    parser.add_argument(
+        "--force-anywhere",
+        action="store_true",
+        help="Force adapter trimming to match anywhere in the read, not just at the ends.",
     )
 
     parser.add_argument(
@@ -976,6 +999,7 @@ def main():
         default=1,
         help="Number of threads to use for trimming. (Default: 1)",
     )
+
     parser.add_argument(
         "-n",
         "--dry-run",
