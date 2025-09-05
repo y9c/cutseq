@@ -324,6 +324,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
     :type settings: CutadaptConfig
     """
     max_errors = 0.2
+    repeat_trim_times = 1
     modifiers = []
     # step 1: remove suffix in the read name
     modifiers.extend([SuffixRemover(".1"), SuffixRemover("/1")])
@@ -335,7 +336,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
                     sequence=barcode.p5.fw, max_errors=max_errors, min_overlap=10
                 )
             ],
-            times=1,
+            times=repeat_trim_times,
         )
     )
     # step 3: remove adapter on the 3' end, read though in the sequencing
@@ -349,7 +350,7 @@ def pipeline_single(input1, output1, short1, untrimmed1, barcode, settings):
                     force_anywhere=settings.force_anywhere,
                 )
             ],
-            times=2,
+            times=repeat_trim_times,
         ),
     )
     # step 4: trim inline barcode
@@ -530,6 +531,7 @@ def pipeline_paired(
     :type settings: CutadaptConfig
     """
     max_errors = 0.2
+    repeat_trim_times = 1
     modifiers = []
     # step 1: remove suffix in the read name
     modifiers.extend(
@@ -571,7 +573,7 @@ def pipeline_paired(
                         force_anywhere=settings.force_anywhere,
                     )
                 ],
-                times=2,
+                times=repeat_trim_times,
             ),
             AdapterCutter(
                 [
@@ -582,7 +584,7 @@ def pipeline_paired(
                         force_anywhere=settings.force_anywhere,
                     )
                 ],
-                times=2,
+                times=repeat_trim_times,
             ),
         ),
     )
