@@ -11,6 +11,8 @@ import importlib.metadata
 import json
 import logging
 import sys
+from dataclasses import dataclass
+from typing import Optional
 
 import cutadapt
 from cutadapt.files import InputPaths, OutputFiles
@@ -126,56 +128,58 @@ class _TaggedPairedEndFilter(PairedEndFilter):
             return None
         return read1, read2
 
-#  monkey patching ....
-original_method = Statistics._collect_modifier
+#  statistics workaround ....
+# cutadapt's Statistics._collect_modifier contains an assert that can be
+# violated by exotic modifier orderings. Guard it at run time (in main()),
+# never at import time, and log instead of silently swallowing.
+_original_collect_modifier = Statistics._collect_modifier
 
 
-def patched_problematic_method(self, *args, **kwargs):
-    """
-    Patches Statistics._collect_modifier to ignore AssertionError.
-    This is a workaround for a potential issue in cutadapt's statistics collection.
-    """
+def _guarded_collect_modifier(self, *args, **kwargs):
     try:
-        return original_method(self, *args, **kwargs)
+        return _original_collect_modifier(self, *args, **kwargs)
     except AssertionError:
-        pass
+        logging.warning(
+            "cutadapt Statistics._collect_modifier raised AssertionError; "
+            "statistics may be incomplete. This is a cutadapt quirk, not a "
+            "cutseq bug."
+        )
+        return None
 
 
-Statistics._collect_modifier = patched_problematic_method
+def _apply_statistics_guard():
+    """Scope the Statistics guard to run time (see module docstring)."""
+    if Statistics._collect_modifier is _original_collect_modifier:
+        Statistics._collect_modifier = _guarded_collect_modifier
+
 
 __version__ = importlib.metadata.version(__package__ or __name__)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s -  %(levelname)s - %(message)s",
-)
 
-
+@dataclass
 class CutadaptConfig:
-    """
-    Configuration class to store settings for the cutadapt pipeline.
+    """Centralized settings for the cutadapt pipeline.
 
-    This class centralizes various options that control the behavior of
-    the adapter trimming and filtering process.
+    Values mirror the CLI defaults so the pipelines can be driven directly
+    (tests, library use) without argparse.
     """
 
-    def __init__(self):
-        self.rname_suffix = False
-        self.ensure_inline_barcode = False
-        self.conditional_cutter = True
-        self.min_length = 20
-        self.min_quality = 20
-        self.min_avg_quality = None
-        self.max_n = None
-        self.auto_rc = False
-        self.dry_run = False
-        self.threads = 1
-        self.json_file = None
-        self.force_trim_min_length = 50  # Default value
-        self.force_anywhere = False
-        self.name_format = None
-        self.capture_separator = None
-        self.auto_inline = True
+    rname_suffix: bool = False
+    ensure_inline_barcode: bool = False
+    conditional_cutter: bool = True
+    min_length: int = 20
+    min_quality: int = 20
+    min_avg_quality: Optional[float] = None
+    max_n: Optional[float] = None
+    auto_rc: bool = False
+    dry_run: bool = False
+    threads: int = 1
+    json_file: Optional[str] = None
+    force_trim_min_length: int = 50
+    force_anywhere: bool = False
+    name_format: Optional[str] = None
+    capture_separator: Optional[str] = None
+    auto_inline: bool = True
 
 
 def json_report(
@@ -515,6 +519,11 @@ def main():
     the argument parser, validates arguments, prepares output file names,
     and then calls `run_cutseq` to perform the trimming.
     """
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s -  %(levelname)s - %(message)s",
+    )
+    _apply_statistics_guard()
     parser = argparse.ArgumentParser(
         description="Trim sequencing adapters from NGS data automatically using cutadapt's Python API."
     )
