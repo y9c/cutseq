@@ -1,6 +1,7 @@
 # ignore test files expect some
 !test
 test/*
+!test/*.py
 !test/input_R1.fq.gz
 !test/input_R2.fq.gz
 

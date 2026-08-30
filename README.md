@@ -48,19 +48,90 @@ Execute adapter trimming by providing a single parameter and your input files:
 cutseq -A TAKARAV3 test_R1.fq.gz test_R2.fq.gz
 ```
 
-Alternatively, you can specify a custom adapter sequence:
+Alternatively, you can specify a custom adapter scheme in the grammar format:
 
-`cutseq -a "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
+`cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
 
 ![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
 
-The customized scheme can be explained by diagram above.
+The customized scheme can be explained by the diagram above. The scheme is
+written 5' to 3' (R1 direction) with no spaces required:
 
-- The outmost parts on both ends are the Illumina adapters.
-- The first inner parts are inline barcode sequence or customized PCR primers in the library construction step. These are also fixed DNA sequence, and will be represented by by sequence within `(` and `)`.
-- The second inner parts are the UMI sequence, which is a random sequence and will be represented by `N`.
-- The innermost parts are sequnce to be masked, which will be represented by `X`. This can be random tail in the library construction step, caused by template switching or other reasons.
-- The center parts are the actual library sequence, which will be represented by `>` , `<` or `-`. `>` means that sequence is forward, `<` means that sequence is reverse, `-` means that sequence orientation is unknown.
+- The outermost parts on both ends are the Illumina adapters (uppercase `ACGT...`).
+- The UMI sequence is the random sequence represented by `N` (e.g. `NNNNNNNN` / `N8`), captured into the read name.
+- The masked sequences are represented by `X` (e.g. `XXXXXX` / `X6`), trimmed but not captured. These can be random tails from template switching or other artifacts.
+- Inline barcodes are written in lowercase (`acgt...`) and are matched and captured.
+- The center parts are the actual library sequence, split by `+`, `-`, or `:`:
+  - `+` means the library is in the forward (sense) orientation,
+  - `-` means reverse (antisense) orientation,
+  - `:` means the library orientation is unknown (unstranded).
+- A 3' read-through adapter (the adapter that appears on the opposite read)
+  is trimmed automatically from the other end of each read.
+
+Numeric shorthand (`N8`, `X6`) is equivalent to the expanded run form
+(`NNNNNNNN`, `XXXXXX`).
+
+## Customizing read names
+
+By default, captured UMIs/barcodes are appended to the read name with `_`
+(e.g. `@READID_CTATTAAAAA`), exactly as the legacy engine named reads. You can
+customize this:
+
+```bash
+# Custom template using cutadapt's brace syntax
+cutseq -A ECLIP10 --name-format '{id}|{cut_prefix}{cut_suffix}' in_R1.fq.gz
+
+# Insert a separator between multiple captured UMIs/barcodes
+cutseq -A INLINE --capture-separator ':' in_R1.fq.gz in_R2.fq.gz
+```
+
+The default `--name-format` and `--capture-separator` values reproduce legacy
+output byte-for-byte, so existing pipelines do not need to change.
+
+## Inline barcodes and auto-detection
+
+Inline barcodes are written in lowercase (`acgt...`) and are matched and
+trimmed. If you write a barcode in uppercase by mistake, it would merge with
+the adjacent sequencing primer into one adapter run. CutSeq detects this:
+
+- The two outermost adapters of a scheme are checked against a curated
+  database of Illumina / BGI (MGI) sequencing primers (see `cutseq --list-primers`).
+- Any fixed uppercase sequence adjacent to (or between) recognized primers is
+  reclassified as an inline barcode, with a warning.
+- Genuinely custom schemes (no known primers at the ends) are never altered.
+
+Disable with `--no-auto-inline`.
+
+## Discarding reads with a reason tag
+
+A single discard output captures all reads that fail QC, with the reason
+stored in the read name:
+
+```bash
+cutseq -A SMALLRNA -d discarded_R1.fq.gz discarded_R2.fq.gz in_R1.fq.gz in_R2.fq.gz
+```
+
+Discarded reads carry a `reason=...` tag in their name:
+
+- `reason=too_short` — shorter than `--min-length` after trimming,
+- `reason=too_many_n` — exceeds `--max-n`,
+- `reason=low_quality` — mean Phred quality below `--min-avg-quality`,
+- `reason=no_barcode` — missing an expected inline barcode (only with
+  `--ensure-inline-barcode`).
+
+`--ensure-inline-barcode` routes reads that lack the scheme's inline barcodes
+to the discard output; it requires the scheme to declare inline barcodes.
+When no `-d`/`-O` is given, discard files are auto-named from the input files.
+
+## How it works
+
+CutSeq compiles a library scheme once into a lazy graph of native cutadapt
+modifiers (adapter cutters, renamers, quality trimmers) and runs them in a
+single cutadapt pass — no intermediate I/O. The modifier chain is data-driven:
+each grammar token kind maps to a 5' / 3' / single-end emitter, so new token
+kinds are added with one registry entry. Output from the grammar engine is
+verified to match the legacy engine exactly across all built-in schemes in
+both paired- and single-end mode.
 
 More details can be found in the [document](https://cutseq.yech.science)
 

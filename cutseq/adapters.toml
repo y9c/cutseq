@@ -1,9 +1,21 @@
-# Built-in adapter schemes for cutseq
+# Built-in adapter schemes for cutseq (new grammar format)
+#
+# Every scheme below is written in the space-free grammar:
+#   ACGT..  adapter (uppercase)     -> match & trim
+#   acgt..  inline barcode (lower)  -> match & capture
+#   NNNNN   UMI capture -> into read name
+#   XXXXXX  mask -> trim only
+#   : + -   insert marker (unstranded / sense / antisense), splits R1 | R2
+# Numeric shorthand (N5, X6) is accepted by the grammar but the built-ins use
+# the full repeated-run form below for readability.
+# A "legacy = true" flag marks a scheme carried over from the old fixed-slot
+# format; it is stored here in the new grammar for reference.
 
 # RNA library
 
 [SMALLRNA]
-scheme = "AGTTCTACAGTCCGACGATC>AGATCGGAAGAGCACACGTC"
+scheme = "AGTTCTACAGTCCGACGATC+AGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Small RNA Libraries"
 points = [
   "Used for small RNA sequencing",
@@ -13,7 +25,8 @@ points = [
 ]
 
 [SMRNA]
-scheme = "AGTTCTACAGTCCGACGATC>TGGAATTCTCGGGTGCCAAG"
+scheme = "AGTTCTACAGTCCGACGATC+TGGAATTCTCGGGTGCCAAG"
+legacy = true
 description_name = "Small RNA, Legacy version"
 points = [
   "Legacy version for small RNA sequencing",
@@ -21,7 +34,8 @@ points = [
 ]
 
 [INLINE]
-scheme = "AGTTCTACAGTCCGACGATCNNNNN>NNNNN(ATCACG)AGATCGGAAGAGCACACGTC"
+scheme = "AGTTCTACAGTCCGACGATCNNNNN+NNNNNatcacgAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Custom Barcoded Libraries"
 points = [
   "Used for libraries with inline barcodes",
@@ -31,7 +45,8 @@ points = [
 ]
 
 [TAKARAV2]
-scheme = "ACACGACGCTCTTCCGATCTXXX<XXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXXX-XXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Takara V2"
 points = [
   "Contains masked regions (XXX)",
@@ -39,7 +54,8 @@ points = [
 ]
 
 [STRANDED]
-scheme = "ACACGACGCTCTTCCGATCTX<XXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTX-XXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Stranded RNA"
 points = [
   "Contains masked regions (X, XXX)",
@@ -47,7 +63,8 @@ points = [
 ]
 
 [UNSTRANDED]
-scheme = "ACACGACGCTCTTCCGATCTXX-XXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXX:XXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Unstranded RNA/DNA"
 points = [
   "Contains masked regions (XX)",
@@ -55,7 +72,8 @@ points = [
 ]
 
 [TAKARAV3]
-scheme = "ACACGACGCTCTTCCGATCTXXX<XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "Takara V3"
 points = [
   "Contains masked regions (XXX, XXXXXX)",
@@ -64,7 +82,8 @@ points = [
 ]
 
 [ECLIP6]
-scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXX-XNNNNNNAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "eCLIP (6nt UMI)"
 points = [
   "Contains masked regions (XX, X)",
@@ -73,7 +92,8 @@ points = [
 ]
 
 [ECLIP10]
-scheme = "ACACGACGCTCTTCCGATCTXX<XNNNNNNNNNNAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXX-XNNNNNNNNNNAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "eCLIP (10nt UMI)"
 points = [
   "Contains masked regions (XX, X)",
@@ -82,7 +102,8 @@ points = [
 ]
 
 [SACSEQ]
-scheme = "ACACGACGCTCTTCCGATCT<XXXXNNNNNNAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCT-XXXXNNNNNNAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "SAC-Seq"
 points = [
   "Contains masked regions (XXXX)",
@@ -91,7 +112,8 @@ points = [
 ]
 
 [SACSEQV3]
-scheme = "ACACGACGCTCTTCCGATCTNNNNNNNNX>XXNNNNNNNNAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTNNNNNNNNX+XXNNNNNNNNAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "SAC-Seq V3"
 points = [
   "Contains masked regions (X, XX)",
@@ -100,32 +122,34 @@ points = [
 ]
 
 [XGENRNA]
-scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXXXXXX-XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "xGen RNA"
 points = [
   "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
-  "Refer to xGen™ RNA Library Preparation Kit protocol for details.",
+  "Refer to xGen RNA Library Preparation Kit protocol for details.",
 ]
 
 [ILLUMINARNA]
-scheme = "AGATGTGTATAAGAGACAG<CTGTCTCTTATACACATCT"
+scheme = "AGATGTGTATAAGAGACAG-CTGTCTCTTATACACATCT"
+legacy = true
 description_name = "Illumina Stranded RNA (Nextera-based)"
 points = ["Uses Nextera-style adapter sequences."]
 
 # DNA library
 
 [DSLIGATION]
-scheme = "ACACGACGCTCTTCCGATCT>AGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCT+AGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "dsDNA Ligation"
 points = [
   "Basic dsDNA ligation with A-tailing",
   "No UMIs or special trimming needed",
 ]
 
-# xGenDNA = "ACACGACGCTCTTCCGATCTXXX>(CCCCCCCCCCCCCCCCCCCC;noninternal;e=0.5;o=1)AGATCGGAAGAGCACACGTC" # Commented out
-
 [XGENMETHY]
-scheme = "ACACGACGCTCTTCCGATCTXX>XXXXXXXXXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXX+XXXXXXXXXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "xGen Methyl-Seq"
 points = [
   "Contains masked regions (XX, XXXXXXXXXX)",
@@ -133,7 +157,8 @@ points = [
 ]
 
 [XGENSNMC]
-scheme = "ACACGACGCTCTTCCGATCTXXXXXX>XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXXXXXX+XXXXXXXXXXXXXXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "xGen snmC-Seq"
 points = [
   "Contains extensive masked regions (XXXXXX, XXXXXXXXXXXXXXX)",
@@ -141,7 +166,8 @@ points = [
 ]
 
 [PBAT]
-scheme = "ACACGACGCTCTTCCGATCTXXXXXX<XXXXXXAGATCGGAAGAGCACACGTC"
+scheme = "ACACGACGCTCTTCCGATCTXXXXXX-XXXXXXAGATCGGAAGAGCACACGTC"
+legacy = true
 description_name = "PBAT (Post-Bisulfite Adapter Tagging)"
 points = [
   "Contains masked regions (XXXXXX on both sides)",
@@ -149,7 +175,8 @@ points = [
 ]
 
 [NEXTERA]
-scheme = "AGATGTGTATAAGAGACAG>CTGTCTCTTATACACATCT"
+scheme = "AGATGTGTATAAGAGACAG+CTGTCTCTTATACACATCT"
+legacy = true
 description_name = "Nextera (General)"
 points = [
   "Standard Nextera transposase-based library preparation.",

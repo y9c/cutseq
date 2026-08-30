@@ -2,14 +2,14 @@
 import sys
 from pathlib import Path
 
-# Add project root to sys.path to allow importing cutseq.common
+# Add project root to sys.path to allow importing cutseq.grammar
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from cutseq.common import BarcodeConfig
+    from cutseq.grammar import tokenize
 except ImportError as e:
-    print(f"Error importing BarcodeConfig from cutseq.common: {e}")
+    print(f"Error importing tokenize from cutseq.grammar: {e}")
     print(f"Current sys.path: {sys.path}")
     print(f"Project root: {project_root}")
     sys.exit(1)
@@ -26,29 +26,62 @@ except ImportError:
         sys.exit(1)
 
 COLOR_PALETTE = {
-    "p5": "#A8E6CF",
-    "p7": "#D1E8D1",
-    "umi": "#B2EBF2",
+    "adp": "#A8E6CF",
     "inline": "#FFD700",
+    "capture": "#B2EBF2",
     "mask": "#DCDCDC",
-    "strand_bg": "#FF6F61",  # A distinct background for the strand indicator
+    "polytail": "#FFB3BA",
+    "insert_bg": "#FF6F61",  # A distinct background for the insert indicator
     "default_seq": "#E0E0E0",
 }
 
+# Token kinds that are rendered as the highlighted strand/insert hexagon.
+_INSERT_KINDS = {"insert"}
 
-def get_part_type(part_name):
-    """Determines the 'type' of adapter part for color selection."""
-    if "p5" in part_name:
-        return "p5"
-    if "p7" in part_name:
-        return "p7"
-    if "umi" in part_name:
-        return "umi"
-    if "inline" in part_name:
-        return "inline"
-    if "mask" in part_name:
-        return "mask"
-    return "default_seq"  # Fallback
+
+def _token_color(kind):
+    return COLOR_PALETTE.get(kind, COLOR_PALETTE["default_seq"])
+
+
+def render_scheme_html(scheme_raw):
+    """Render a grammar scheme as a color-coded, copyable HTML block."""
+    tokens = tokenize(scheme_raw)
+    raw_value = scheme_raw
+
+    parts = [
+        '<div class="adapter-scheme" style="margin-bottom: 15px; position: relative;">',
+        f'<div class="copy-scheme-raw" style="display: flex; flex-wrap: nowrap; align-items: center; font-family: monospace; font-size: 14px; border: 1px solid #ccc; padding: 5px; border-radius: 5px; overflow-x: auto; cursor: pointer; background: #f8f8f8; transition: box-shadow 0.2s;" title="Click to copy scheme: {raw_value}" data-scheme="{raw_value}">',
+    ]
+
+    for tok in tokens:
+        if tok.kind in _INSERT_KINDS:
+            # Render the R1|R2 split marker as a hexagon like the strand glyph.
+            ch = tok.value
+            parts.append(
+                f'<div style="position: relative; width: 30px; height: 30px; margin: 0 2px; text-align: center; line-height: 30px;"><div style="background-color: {COLOR_PALETTE["insert_bg"]}; width: 100%; height: 100%; position: absolute; top: 0; left: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div><span style="position: relative; z-index: 1; color: white; font-weight: bold;">{ch}</span></div>'
+            )
+        else:
+            seq_val = _token_value(tok)
+            color = _token_color(tok.kind)
+            parts.append(
+                f'<span style="background-color: {color}; padding: 5px 8px; margin: 0 2px; border-radius: 3px; white-space: nowrap;">{seq_val}</span>'
+            )
+
+    parts.append("</div>")  # Close flex container
+    parts.append(
+        '<div class="scheme-raw-tooltip" style="display:none; position:absolute; top:-30px; left:0; background:#222; color:#fff; padding:3px 8px; border-radius:4px; font-size:12px; z-index:10;">Copied!</div>'
+    )
+    parts.append("</div>\n")  # Close adapter-scheme div
+    return "".join(parts)
+
+
+def _token_value(tok):
+    """Render a token's value for display (expanding N/X lengths to runs)."""
+    kind = tok.kind
+    v = tok.value
+    if kind in ("capture", "mask"):
+        return {"capture": "N", "mask": "X"}[kind] * v
+    return str(v)
 
 
 def main():
@@ -78,15 +111,11 @@ def main():
     all_markdown_parts.append(
         "CutSeq supports a variety of built-in adapter schemes for common NGS library types. You can list all available schemes in your terminal with:\n\n"
     )
+    all_markdown_parts.append("```bash\ncutseq --list-adapters\n```\n\n")
     all_markdown_parts.append(
-        "```bash\ncutseq --list-adapters\n```\n\n"
+        "Use the adapter name (or a custom grammar scheme string) with `-A/--adapter-scheme`. Note `-a` is accepted as an alias of `-A`.\n\n"
     )
-    all_markdown_parts.append(
-        "Use the adapter name with `-A/--adapter-name`, or specify a custom scheme string with `-a/--adapter-scheme`.\n\n"
-    )
-    all_markdown_parts.append(
-        "## Example: Built-in Schemes\n\n"
-    )
+    all_markdown_parts.append("## Example: Built-in Schemes\n\n")
     all_markdown_parts.append(
         "- **SMALLRNA**: Small RNA libraries, double ligation, forward orientation\n"
         "- **INLINE**: Custom barcoded libraries, dual UMI, inline barcode\n"
@@ -95,6 +124,35 @@ def main():
     )
     all_markdown_parts.append(
         "See below for a comprehensive guide to each supported adapter pattern, including copyable scheme blocks and usage notes.\n\n---\n\n"
+    )
+    all_markdown_parts.append(
+        "## Inline barcode auto-detection\n\n"
+        "Inline barcodes are written in lowercase (`acgt...`). If you write one "
+        "in uppercase, it merges with the adjacent sequencing primer into one "
+        "adapter run. CutSeq checks the two outermost adapters of a scheme "
+        "against a curated database of Illumina / BGI (MGI) sequencing primers "
+        "(`cutseq --list-primers`) and reclassifies any fixed uppercase sequence "
+        "adjacent to (or between) recognized primers as an inline barcode, with "
+        "a warning. Custom schemes without known primers are never altered. "
+        "Disable with `--no-auto-inline`.\n\n"
+    )
+    all_markdown_parts.append(
+        "## Discarding reads with a reason tag\n\n"
+        "A single discard output captures all reads that fail QC, with the reason "
+        "stored in the read name (`reason=too_short`, `reason=too_many_n`, "
+        "`reason=low_quality` or `reason=no_barcode`):\n\n"
+        "```bash\n"
+        "cutseq -A SMALLRNA -d discard_R1.fq.gz discard_R2.fq.gz \\\n"
+        "    --min-length 20 --max-n 5 --min-avg-quality 20 \\\n"
+        "    test_R1.fq.gz test_R2.fq.gz\n"
+        "```\n\n"
+        "- `reason=too_short` — shorter than `--min-length` after trimming\n"
+        "- `reason=too_many_n` — exceeds `--max-n`\n"
+        "- `reason=low_quality` — mean Phred quality below `--min-avg-quality`\n"
+        "- `reason=no_barcode` — missing an expected inline barcode (only with "
+        "`--ensure-inline-barcode`, which requires inline barcodes in the scheme)\n\n"
+        "When no `-d`/`-O` is given, discard files are auto-named from the input "
+        "files.\n\n---\n\n"
     )
 
     for adapter_key, adapter_info in adapters_data.items():
@@ -110,60 +168,8 @@ def main():
             f"### {adapter_key} ({adapter_info['description_name']})\n\n"
         )
 
-        # HTML Visualization
-        bc = BarcodeConfig(adapter_info["scheme"])
         scheme_raw = adapter_info["scheme"]
-
-        html_parts = [
-            '<div class="adapter-scheme" style="margin-bottom: 15px; position: relative;">',
-            f'<div class="copy-scheme-raw" style="display: flex; flex-wrap: nowrap; align-items: center; font-family: monospace; font-size: 14px; border: 1px solid #ccc; padding: 5px; border-radius: 5px; overflow-x: auto; cursor: pointer; background: #f8f8f8; transition: box-shadow 0.2s;" title="Click to copy scheme: {scheme_raw}" data-scheme="{scheme_raw}">'  # clickable block
-        ]
-
-        adapter_components_ordered = [
-            "p5",
-            "inline5",
-            "umi5",
-            "mask5",
-            "strand",
-            "mask3",
-            "umi3",
-            "inline3",
-            "p7",
-        ]
-
-        for part_name in adapter_components_ordered:
-            seq_val = ""
-            is_strand_part = False
-
-            if part_name == "strand":
-                strand_char_map = {"+": ">", "-": "<", None: "-"}
-                seq_val = strand_char_map.get(getattr(bc, 'strand', None), "-")
-                is_strand_part = True
-            elif hasattr(bc, part_name):
-                barcode_seq_obj = getattr(bc, part_name)
-                if hasattr(barcode_seq_obj, "fw"):
-                    seq_val = barcode_seq_obj.fw
-
-            if seq_val:
-                if is_strand_part:
-                    html_parts.append(
-                        f'<div style="position: relative; width: 30px; height: 30px; margin: 0 2px; text-align: center; line-height: 30px;"><div style="background-color: {COLOR_PALETTE["strand_bg"]}; width: 100%; height: 100%; position: absolute; top: 0; left: 0; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div><span style="position: relative; z-index: 1; color: white; font-weight: bold;">{seq_val}</span></div>'
-                    )
-                else:
-                    part_type = get_part_type(part_name)
-                    color = COLOR_PALETTE.get(part_type, COLOR_PALETTE["default_seq"])
-                    html_parts.append(
-                        f'<span style="background-color: {color}; padding: 5px 8px; margin: 0 2px; border-radius: 3px; white-space: nowrap;">{seq_val}</span>'
-                    )
-
-        html_parts.append("</div>")  # Close flex container
-        # Add a hidden raw scheme and a tooltip for copy feedback
-        html_parts.append(
-            '<div class="scheme-raw-tooltip" style="display:none; position:absolute; top:-30px; left:0; background:#222; color:#fff; padding:3px 8px; border-radius:4px; font-size:12px; z-index:10;">Copied!</div>'
-        )
-        html_parts.append("</div>\n")  # Close adapter-scheme div
-
-        all_markdown_parts.extend(html_parts)
+        all_markdown_parts.append(render_scheme_html(scheme_raw))
 
         # Bullet Points
         if adapter_info["points"]:
@@ -171,9 +177,6 @@ def main():
                 all_markdown_parts.append(f"- {point}\n")
         all_markdown_parts.append("\n---\n")  # Add a horizontal rule for separation
 
-    # --- End Generate Markdown Content ---
-    # Remove unused markdown_content assignment
-    # Add JS/CSS for copy-to-clipboard functionality at the end of the markdown
     all_markdown_parts.append(
         '<script>'
         '(function() {'

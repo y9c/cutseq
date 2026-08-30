@@ -1,6 +1,6 @@
 [project]
 name = "cutseq"
-version = "0.0.68"
+version = "0.0.69"
 description = "Automatically cut adapter / barcode / UMI from NGS data"
 authors = [{ name = "Ye Chang", email = "yech1990@gmail.com" }]
 requires-python = "~=3.9"
@@ -15,6 +15,7 @@ keywords = [
 ]
 dependencies = [
     "cutadapt~=5.0",
+    "pyyaml>=6.0.3",
     "tomli>=2.0.1,<3 ; python_version < '3.11'",
 ]
 
