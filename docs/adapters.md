@@ -188,8 +188,16 @@ When no `-d`/`-O` is given, discard files are auto-named from the input files.
 - Spatial RNA library (m6A-ARTR / DBiT).
 - R1: TSO + cDNA; the barcode arm is on R2 (written in rc form after ':'),
 - per the molecule's 5'->3' order.
-- Use with --r1-primer TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and
-- --r2-primer GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG.
+- R1's read 5' scaffold is the TSO (template-switch oligo; R1's first
+- sequenced bases, downstream of the R1-primer site) and is what gets
+- trimmed by the scheme's left token (S0 R1).
+- The R1/R2 sequencing primers (TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and
+- GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG) anneal UPSTREAM of each read; reads
+- start downstream of them, so the primers are never part of the reads and
+- are not trimmed. --r1-primer / --r2-primer are informational only.
+- Full construct (5'->3'): P5 | i5(8) | R1-primer(34) | TSO(22) | insert |
+- polyA/T | UMI | rc(L1) | barcodeA(8) | rc(L2) | barcodeB(8) | rc(handle) |
+- rc(R2-primer) | i7(8) | rc(P7).
 
 ---
 <script>(function() {  function showTooltip(el) {    var tooltip = el.parentElement.querySelector(".scheme-raw-tooltip");    if (tooltip) {      tooltip.style.display = "block";      setTimeout(function() { tooltip.style.display = "none"; }, 1200);    }  }  document.querySelectorAll(".copy-scheme-raw").forEach(function(block) {    block.addEventListener("mouseenter", function() {      block.style.boxShadow = "0 0 0 2px #FF6F61";    });    block.addEventListener("mouseleave", function() {      block.style.boxShadow = "";    });    block.addEventListener("click", function(e) {      var scheme = block.getAttribute("data-scheme");      if (navigator.clipboard) {        navigator.clipboard.writeText(scheme).then(function() {          showTooltip(block);        });      } else {        var textarea = document.createElement("textarea");        textarea.value = scheme;        document.body.appendChild(textarea);        textarea.select();        document.execCommand("copy");        document.body.removeChild(textarea);        showTooltip(block);      }    });  });})();</script>
