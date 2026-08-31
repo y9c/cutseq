@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import cutadapt
+from cutadapt.adapters import RightmostFrontAdapter
 from cutadapt.files import InputPaths, OutputFiles
 from cutadapt.pipeline import PairedEndPipeline, SingleEndPipeline
 from cutadapt.predicates import Predicate, TooManyN, TooShort
@@ -262,6 +263,8 @@ class CutadaptConfig:
     force_anywhere: bool = False
     name_format: Optional[str] = None
     auto_inline: bool = True
+    seq_primer1: Optional[str] = None
+    seq_primer2: Optional[str] = None
 
 
 def json_report(
@@ -394,12 +397,24 @@ def _build_scheme(scheme, settings):
     )
 
 
+def _primer_cutter(seq):
+    """A 5' front-adapter that trims a sequencing read's 5' primer if present
+    (no-op if the sequence isn't at the read's 5' end)."""
+    return AdapterCutter([RightmostFrontAdapter(seq, max_errors=0.1,
+                                                min_overlap=10)])
+
+
 def _scheme_modifiers(cs, paired, settings):
     """Build the shared modifier list (trimming steps) for a CompiledScheme."""
     if paired:
         mods1, mods2 = cs.modifiers(paired=True)
         n = max(len(mods1), len(mods2))
         modifiers = []
+        if settings.seq_primer1 or settings.seq_primer2:
+            modifiers.append((
+                _primer_cutter(settings.seq_primer1) if settings.seq_primer1 else None,
+                _primer_cutter(settings.seq_primer2) if settings.seq_primer2 else None,
+            ))
         if settings.rname_suffix:
             modifiers.append((SuffixRemover(".1"), SuffixRemover(".2")))
             modifiers.append((SuffixRemover("/1"), SuffixRemover("/2")))
@@ -422,6 +437,11 @@ def _scheme_modifiers(cs, paired, settings):
         return modifiers
 
     modifiers, _ = cs.modifiers(paired=False)
+    if settings.seq_primer1 or settings.seq_primer2:
+        # A single read has one 5' primer: use the explicitly-set one
+        # (primer2 for an R2 single-end run, primer1 for R1).
+        p = settings.seq_primer1 or settings.seq_primer2
+        modifiers = [_primer_cutter(p)] + modifiers
     if settings.rname_suffix:
         modifiers = [SuffixRemover(".1"), SuffixRemover("/1")] + modifiers
     modifiers = modifiers + [QualityTrimmer(cutoff_front=0,
@@ -552,6 +572,41 @@ def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2
     outfiles.close()
 
 
+def _ensure_seq_primers(settings, input_files):
+    """Fill ``settings.seq_primer1/2`` by auto-detecting from the reads' 5'
+    ends when not explicitly given (skipped in dry-run so construction never
+    touches input files). Logs what was found or that nothing matched."""
+    if settings.dry_run:
+        return
+    need = (settings.seq_primer1 is None, settings.seq_primer2 is None)
+    if not any(need):
+        return
+    from .primers import detect_5prime_from_reads
+    try:
+        results = detect_5prime_from_reads(input_files[:2])
+    except Exception as e:  # missing/unreadable input in auto-detect
+        logging.warning(f"Seq-primer auto-detection skipped: {e}")
+        return
+    for idx, (is_none, (name, frag)) in enumerate(zip(need, results)):
+        if not is_none:
+            continue
+        side = "R1" if idx == 0 else "R2"
+        if frag:
+            logging.info(
+                f"Auto-detected {side} 5' sequencing primer: "
+                f"{name or 'unknown'} ({frag}); trimming from {side} 5'."
+            )
+            if idx == 0:
+                settings.seq_primer1 = frag
+            else:
+                settings.seq_primer2 = frag
+        else:
+            logging.info(
+                f"No known {side} 5' sequencing primer detected in the read "
+                f"ends; specify it with --seq-primer{idx + 1} if needed."
+            )
+
+
 def run_cutseq(args):
     """
     Sets up configurations and executes the grammar-based cutadapt pipeline.
@@ -579,6 +634,9 @@ def run_cutseq(args):
     settings.force_anywhere = args.force_anywhere
     settings.name_format = args.name_format
     settings.auto_inline = not args.no_auto_inline
+    settings.seq_primer1 = args.seq_primer1
+    settings.seq_primer2 = args.seq_primer2
+    _ensure_seq_primers(settings, args.input_file)
     if len(args.input_file) == 1:
         pipeline_grammar_single(
             args.input_file[0], args.output_file[0], args.discard_file[0],
@@ -700,6 +758,24 @@ def main():
         "--with-rname-suffix",
         action="store_true",
         help="Indicate if read names have MGI-style suffixes like '/1', '/2', '.1', or '.2' to be stripped.",
+    )
+
+    parser.add_argument(
+        "--seq-primer1",
+        type=str,
+        default=None,
+        help="Read-1 5' sequencing primer: the sequence found right at the "
+        "start of R1 that should be trimmed (e.g. the TSO). If omitted, "
+        "cutseq samples the input reads and tries to auto-detect it from the "
+        "built-in primer database (cutseq --list-primers).",
+    )
+    parser.add_argument(
+        "--seq-primer2",
+        type=str,
+        default=None,
+        help="Read-2 5' sequencing primer: the sequence found right at the "
+        "start of R2 that should be trimmed (e.g. a PCR/RT handle). If "
+        "omitted, auto-detected from the built-in primer database.",
     )
 
     parser.add_argument(

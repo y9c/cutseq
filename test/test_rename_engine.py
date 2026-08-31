@@ -317,18 +317,18 @@ def _m6a_pair():
 
 
 def test_same_strand_paired_mode():
-    """'&' mode must trim TSO on R1 and capture UMI/BCB/BCA on R2."""
+    """'&' mode must trim TSO on R1 and capture BCB/BCA/UMI on R2."""
     from cutseq.grammar import _capture_registry
 
     r1, r2, bcb, bca, umi = _m6a_pair()
-    # right side written 5'->3' from the insert: UMI, linker1, BCA, linker2,
-    # BCB, handle (R2 reads this in the reverse order)
-    scheme = (_M6A_TSO + "&" + "N10" + _M6A_L1 + "N8" + _M6A_L2 + "N8"
-              + _M6A_HANDLE)
+    # '&' means "right side written exactly as R2 reads it, 5'->3'": handle,
+    # BCB, linker2, BCA, linker1, UMI (no RC, no reversal).
+    scheme = (_M6A_TSO + "&" + _M6A_HANDLE + "N8" + _M6A_L2 + "N8" + _M6A_L1
+              + "N10")
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=True, settings=s)
-    mods[-1] = cs.renamer(paired=True, name_format="{id}_UMI:{1}_BCB:{3}_BCA:{2}")
+    mods[-1] = cs.renamer(paired=True, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
     grammar._RENAME_NEEDS_CAPTURES = True
     try:
         read1 = SequenceRecord("x/1", r1, "I" * len(r1))
@@ -345,13 +345,55 @@ def test_same_strand_paired_mode():
     finally:
         grammar._RENAME_NEEDS_CAPTURES = False
         _capture_registry.clear()
-    assert read1.name == f"x/1_UMI:{umi}_BCB:{bcb}_BCA:{bca}"
-    assert read2.name == f"x/2_UMI:{umi}_BCB:{bcb}_BCA:{bca}"
+    assert read1.name == f"x/1_BCB:{bcb}_BCA:{bca}_UMI:{umi}"
+    assert read2.name == f"x/2_BCB:{bcb}_BCA:{bca}_UMI:{umi}"
     # TSO trimmed off R1 (only the 30 nt cDNA kept); R2 fully trimmed down to
     # its cDNA tail, which is kept
     assert read1.sequence == r1[len(_M6A_TSO):]
     assert read2.sequence == r2[len(_M6A_HANDLE) + 8 + len(_M6A_L2) + 8
                               + len(_M6A_L1) + 10:]
+
+
+# --- 5' sequencing-primer args & auto-detection ------------------------------
+
+
+def test_seq_primer_detection_db():
+    from cutseq.primers import detect_5prime_primer
+
+    hit = detect_5prime_primer("ACACTCTTTCCCTACACGACGCTCTTCCGATCTACGT")
+    assert hit is not None and "TruSeq" in hit[1]
+    # custom TSO / handle are not in the DB -> None (falls back to args)
+    assert detect_5prime_primer("AAGCAGTGGTATCAACGCAGAGTAG") is None
+    assert detect_5prime_primer("CAAGCGTTGGCTTCTCGCATCTACGT") is None
+
+
+def test_seq_primer2_single_end_trims_handle():
+    """--seq-primer2 trims the 5' handle so the scheme can start at BCB."""
+    from cutseq.grammar import _capture_registry
+
+    r1, r2, bcb, bca, umi = _m6a_pair()
+    s = CutadaptConfig()
+    s.seq_primer2 = _M6A_HANDLE
+    # scheme has no handle; it starts at the BCB capture
+    scheme = "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
+    cs = _build_scheme(scheme, s)
+    mods = _scheme_modifiers(cs, paired=False, settings=s)
+    cs2 = _build_scheme(scheme, s)
+    mods[-1] = cs2.renamer(paired=False, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        read = SequenceRecord("x", r2, "I" * len(r2))
+        info = ModificationInfo(read)
+        for m in mods:
+            out = m(read, info)
+            if out is not None:
+                read = out
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        _capture_registry.clear()
+    assert read.name == f"x_BCB:{bcb}_BCA:{bca}_UMI:{umi}"
+    assert read.sequence == r2[len(_M6A_HANDLE) + 8 + len(_M6A_L2)
+                              + 8 + len(_M6A_L1) + 10:]
 
 
 def test_cli_rename_single_end():

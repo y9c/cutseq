@@ -4,6 +4,7 @@ Used to auto-detect inline barcodes in a library scheme. A scheme is expected
 to carry the sequencing primers (p5/p7 or the read-adjacent adapter sequences)
 at its two outermost ends; any fixed uppercase sequence between them is an
 inline barcode (matched and trimmed), so a barcode written in uppercase by
+[Output truncated. Continue viewing below]
 mistake can be detected and treated as ``inline``.
 
 Sources:
@@ -14,6 +15,8 @@ Sources:
 
 Sequences are stored 5' -> 3' in the top-strand orientation.
 """
+
+import logging
 
 # name -> 5'->3' sequence. Grouped by platform / library type.
 SEQUENCING_PRIMERS = {
@@ -102,3 +105,68 @@ def primer_name(seq):
         if _terminal_match(s, pn) or _terminal_match(s, _rc(pn)):
             names.append(name)
     return names or None
+
+
+def detect_5prime_primer(seq, max_scan=40):
+    """Check whether a read's 5' end begins with a known sequencing primer.
+
+    The read may start at the primer's 5' end (full oligo read-through) or
+    deeper in (the 5' part was clipped); any terminal fragment of at least
+    ``MIN_PRIMER_MATCH`` bp on either strand counts. Returns
+    ``(fragment_len, primer_name, matched_fragment)`` for the longest match,
+    or ``None``.
+    """
+    s = _norm(seq)[:max_scan]
+    if len(s) < MIN_PRIMER_MATCH:
+        return None
+    best = None  # (fragment_len, name, fragment)
+    for name, p in SEQUENCING_PRIMERS.items():
+        pn = _norm(p)
+        for frag in (pn, _rc(pn)):
+            if len(frag) < MIN_PRIMER_MATCH:
+                continue
+            limit = min(len(s), len(frag))
+            L = limit
+            while L >= MIN_PRIMER_MATCH:
+                if s[:L] == frag[:L]:
+                    if best is None or L > best[0]:
+                        best = (L, name, frag)
+                    break
+                L -= 1
+    return best
+
+
+def detect_5prime_from_reads(paths, n=200, max_scan=40):
+    """Detect the read-5' sequencing primer(s) from a sample of reads.
+
+    ``paths`` is one (R1) or two (R1, R2) input FASTQ paths. Returns a list
+    aligned with the inputs: for each file, ``(primer_name_or_None,
+    primer_seq_or_None)`` where ``primer_seq`` is the matched fragment to trim
+    (most common detection across the sample). Ungzipped/gzipped reads are both
+    supported.
+    """
+    try:
+        import dnaio
+    except ImportError:  # pragma: no cover
+        logging.debug("dnaio unavailable; primer auto-detection skipped")
+        return [(None, None) for _ in paths]
+
+    out = []
+    for path in paths:
+        counts = {}      # (name, frag) -> count
+        read_total = 0
+        with dnaio.open(path, fileformat="fastq") as fh:
+            for rec in fh:
+                read_total += 1
+                hit = detect_5prime_primer(rec.sequence, max_scan)
+                if hit is not None:
+                    _L, name, frag = hit
+                    counts[(name, frag)] = counts.get((name, frag), 0) + 1
+                if read_total >= n:
+                    break
+        if not counts:
+            out.append((None, None))
+            continue
+        (name, frag), _ = max(counts.items(), key=lambda kv: kv[1])
+        out.append((name, frag))
+    return out
