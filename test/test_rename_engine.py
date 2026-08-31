@@ -226,6 +226,7 @@ def test_threaded_rename_deterministic():
 #
 # m6A-ARTR-DBiT / Glori style, Read 1 (single-end):
 #   handle : BCB linker2 BCA linker1 UMI polyT cDNA Tn5 R2H i5 P5
+# (DBiT-seq spatial library; the m6A-ARTR-DBiT paper builds on this arm)
 # where BCB/BCA are 8-nt spatial barcodes, UMI is 10 nt. P7/i7 sit 5' of the
 # R1 primer and are NOT read. The 3' side must be processed in REVERSED
 # written (physical) order, not grouped by token kind -- this was a real bug.
@@ -235,7 +236,7 @@ def _dbit_pair():
     import random
 
     random.seed(11)
-    # Real m6A-ARTR-DBiT / Glori oligo (Read 1 arm, from the protocol's
+    # Real DBiT-seq (Glori-style) oligo (Read 1 arm, from the protocol's
     # full double-stranded sequence). P7/i7 lie 5' of the Read-1 primer, so
     # they are NOT read; R1 starts at the PCR handle.
     handle = "CAAGCGTTGGCTTCTCGCATCT"          # PCR handle, 22
@@ -352,6 +353,16 @@ def test_paired_standard_colon_interleaved_barcode_arm():
     # R1 barcode arm fully trimmed: only the 30 nt cDNA tail remains
     assert read1.sequence == bc_read[len(_M6A_HANDLE) + 8 + len(_M6A_L2)
                                 + 8 + len(_M6A_L1) + 10:]
+
+
+def test_dbitseq_builtin_renamed_from_m6aartr():
+    """The spatial 50x50 barcode-arm scheme was misnamed 'M6AARTR'; it is
+    DBiT-seq (deterministic barcoding in tissue, Cell 2020). The old name
+    must remain a working alias pointing at the same scheme."""
+    assert "DBITSEQ" in BUILDIN_ADAPTERS
+    assert "M6AARTR" in BUILDIN_ADAPTERS          # kept as a legacy alias
+    assert BUILDIN_ADAPTERS["M6AARTR"] == BUILDIN_ADAPTERS["DBITSEQ"]
+    assert "N12AGTCGTACGCCGATGCGAAAC" in BUILDIN_ADAPTERS["DBITSEQ"]
 
 
 # --- 5' sequencing-primer args & auto-detection ------------------------------

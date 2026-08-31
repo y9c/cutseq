@@ -10,22 +10,36 @@ except ImportError:
 # It will contain shared classes and functions
 
 
-def load_adapters() -> dict:
-    """Loads adapter definitions from the 'adapters.toml' file."""
+def _load_adapter_meta() -> dict:
+    """Load the full adapters.toml (all sections + fields)."""
     try:
-        # Python 3.9+ provides resources.files()
-        adapter_info = tomllib.loads(
+        return tomllib.loads(
             resources.files("cutseq")
             .joinpath("adapters.toml")
             .read_text(encoding="utf-8")
         )
-        # return only the name and scheme mapping
-        return {k: v["scheme"] for k, v in adapter_info.items() if "scheme" in v}
     except Exception as e:
         logging.error(f"Error loading or parsing 'adapters.toml': {e}")
-        # Depending on how critical this is, either raise e, sys.exit(), or return empty dict
-        # For now, let's re-raise to make the error visible
         raise e
+
+
+def load_adapters() -> dict:
+    """Loads adapter definitions from the 'adapters.toml' file.
+
+    Each ``[NAME]`` section with a ``scheme`` becomes a built-in name.
+    A section with only ``alias_of = "TARGET"`` (and no scheme) resolves to
+    the target's scheme, so legacy names keep working after a rename.
+    """
+    adapter_info = _load_adapter_meta()
+    out = {}
+    for k, v in adapter_info.items():
+        if not isinstance(v, dict):
+            continue
+        if "scheme" in v:
+            out[k] = v["scheme"]
+        elif v.get("alias_of"):
+            out[k] = adapter_info.get(v["alias_of"], {}).get("scheme")
+    return out
 
 
 BUILDIN_ADAPTERS = load_adapters()
@@ -69,9 +83,18 @@ def print_builtin_adapters():
     """
     from textwrap import wrap
 
+    meta = _load_adapter_meta()
+    labels = {}
+    for name in BUILDIN_ADAPTERS:
+        entry = meta.get(name, {})
+        if entry.get("alias_of"):
+            labels[name] = f"{name}  (alias -> {entry['alias_of']})"
+        else:
+            labels[name] = name
+
     print("\nBuilt-in adapter schemes:\n")
     # Find the max width for name and scheme for alignment
-    max_name_len = max(len(name) for name in BUILDIN_ADAPTERS)
+    max_name_len = max(len(labels[n]) for n in BUILDIN_ADAPTERS)
     max_scheme_len = max(len(scheme) for scheme in BUILDIN_ADAPTERS.values())
     # Header
     print(f"{'Name'.ljust(max_name_len)}   {'Scheme'}")
@@ -79,7 +102,7 @@ def print_builtin_adapters():
     # Print each adapter, wrapping long schemes
     for name, scheme in BUILDIN_ADAPTERS.items():
         wrapped_scheme = wrap(scheme, width=100)
-        print(f"{name.ljust(max_name_len)}   {wrapped_scheme[0]}")
+        print(f"{labels[name].ljust(max_name_len)}   {wrapped_scheme[0]}")
         for cont in wrapped_scheme[1:]:
             print(f"{' '*max_name_len}   {cont}")
     print("\nUse the adapter name or a custom grammar scheme with -A/--adapter-scheme (-a is an alias).\n")

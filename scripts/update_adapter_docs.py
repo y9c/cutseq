@@ -164,6 +164,12 @@ def main():
             )
             continue
 
+        if adapter_info.get("alias_of"):
+            all_markdown_parts.append(
+                f"> ⚠️ **Deprecated alias** — renamed to **{adapter_info['alias_of']}**; "
+                f"kept so existing `-A {adapter_key}` commands still resolve.\n\n"
+            )
+
         all_markdown_parts.append(
             f"### {adapter_key} ({adapter_info['description_name']})\n\n"
         )

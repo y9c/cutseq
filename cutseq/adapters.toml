@@ -184,11 +184,13 @@ points = [
   "Usually used for ATAC-seq libraries.",
 ]
 
-[M6AARTR]
+[DBITSEQ]
 scheme = "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
-description_name = "m6A-ARTR-DBiT (spatial)"
+description_name = "DBiT-seq (spatial RNA, 50x50 barcode grid)"
 points = [
-  "Spatial RNA library (m6A-ARTR / DBiT).",
+  "DBiT-seq: deterministic barcoding in tissue (Liu et al., Cell 2020),",
+  "spatial RNA with a 50x50 grid: each pixel is barcodeA + barcodeB,",
+  "8 nt each, plus a 12-nt UMI for duplicate removal.",
   "R1: TSO + cDNA; the barcode arm is on R2 (written in rc form after ':'),",
   "per the molecule's 5'->3' order.",
   "R1's read 5' scaffold is the TSO (template-switch oligo; R1's first",
@@ -199,6 +201,19 @@ points = [
   "start downstream of them, so the primers are never part of the reads and",
   "are not trimmed. --r1-primer / --r2-primer are informational only.",
   "Full construct (5'->3'): P5 | i5(8) | R1-primer(34) | TSO(22) | insert |",
-  "polyA/T | UMI | rc(L1) | barcodeA(8) | rc(L2) | barcodeB(8) | rc(handle) |",
+  "polyA/T | UMI(12) | rc(L1) | barcodeA(8) | rc(L2) | barcodeB(8) | rc(handle) |",
   "rc(R2-primer) | i7(8) | rc(P7).",
+]
+
+# Deprecated alias for the built-in scheme previously shipped as M6AARTR.
+# The method is DBiT-seq (spatial barcoding), not m6A-ARTR; the scheme is
+# unchanged, only the name is corrected. Use -A DBITSEQ.
+[M6AARTR]
+scheme = "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
+alias_of = "DBITSEQ"
+description_name = "renamed to DBITSEQ"
+points = [
+  "DEPRECATED name: this scheme is DBiT-seq (spatial barcoding), not",
+  "m6A-ARTR. It was briefly shipped as M6AARTR; -A M6AARTR still works",
+  "as an alias for -A DBITSEQ. Prefer -A DBITSEQ.",
 ]
