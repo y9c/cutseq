@@ -113,19 +113,15 @@ def tokenize(scheme):
     """Split a space-free scheme into a list of ``_Token`` objects.
 
     Tokens are delimited by character-class transitions (no whitespace
-    required): uppercase runs -> adapter, lowercase runs -> inline barcode,
+    allowed): uppercase runs -> adapter, lowercase runs -> inline barcode,
     ``N``/``X`` (+ optional length) -> capture/mask, ``: + -`` -> insert marker,
-    and ``A...A``-style dot-delimited runs -> poly-A/T tail. Whitespace is
-    ignored, so a scheme may be written with spaces for readability.
+    and ``A...A``-style dot-delimited runs -> poly-A/T tail.
     """
     tokens = []
     i = 0
     n = len(scheme)
     while i < n:
         ch = scheme[i]
-        if ch.isspace():
-            i += 1
-            continue
         if ch in _INSERT:
             tokens.append(_Token("insert", ch))
             i += 1

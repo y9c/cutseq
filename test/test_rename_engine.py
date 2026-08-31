@@ -255,8 +255,8 @@ def test_spatial_scheme_single_end_physical_order():
     from cutseq.grammar import _capture_registry
 
     r1, bc2, bc1, umi = _dbit_pair()
-    scheme = ("AAGCAGTGGTATCAACGCAGAGT : X22 N8 X30 N8 X28 N10 TTT...TTT"
-              )  # spaces must be tolerated
+    # space-free scheme (no whitespace allowed in cutseq schemes)
+    scheme = "AAGCAGTGGTATCAACGCAGAGT:X22N8X30N8X28N10TTT...TTT"
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=False, settings=s)
