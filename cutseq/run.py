@@ -391,6 +391,52 @@ def _graph_escape(s):
     return s.replace("[", "(").replace("]", ")").replace("\n", " ")
 
 
+def _token_label(t, side, i):
+    if t.kind == "capture":
+        lbl = f"{side}{i} capture {t.value}bp"
+    else:
+        lbl = f"{side}{i} {t.kind}:{t.value}"
+    if t.kind in ("capture", "inline") and t.label:
+        lbl += f" ({t.label})"
+    return lbl
+
+
+def _render_trimming_graph_vertical(cs, settings, paired):
+    """Compact vertical ASCII of the lazy trimming graph (no external
+    renderer needed; saves space vs the horizontal graph-easy layout)."""
+    mods = _scheme_modifiers(cs, paired, settings)
+
+    out = ["cutseq lazy trimming graph (vertical)", ""]
+    out.append("# 1) parsed scheme token graph  (5'->3'; ': ' = insert, kept)")
+    out.append("")
+    for i, t in enumerate(cs.left):
+        out.append(f"  [ {_token_label(t, 'L', i)} ]")
+        out.append("      |\n      v")
+    out.append("  [ : insert (cDNA, kept) ]")
+    out.append("      |\n      v")
+    for i, t in enumerate(cs.right):
+        out.append(f"  [ {_token_label(t, 'R', i)} ]")
+        out.append("      |\n      v")
+    out.pop()  # drop the trailing arrow
+
+    def chain(name):
+        c = [f"# 2) compiled {name} chain (lazy)", "", "  [ start ]"]
+        for i in range(len(mods)):
+            m = mods[i]
+            if not isinstance(m, tuple):
+                continue
+            d = _graph_escape(_describe(m[0]) if name == "R1" else _describe(m[1]))
+            c.append("      |\n      v")
+            c.append(f"  [ S{i} {name}: {d} ]")
+        return c
+
+    out.append("")
+    out.extend(chain("R1"))
+    out.append("")
+    out.extend(chain("R2"))
+    return "\n".join(out)
+
+
 def _render_trimming_graph(cs, settings, paired):
     """Dump the lazy trimming graph as Graph::Easy text (consumable by
     ``graph-easy-py``), separating the parsed scheme token graph from the
@@ -874,6 +920,12 @@ def main():
         "graph-easy-py), then exit without processing reads.",
     )
     parser.add_argument(
+        "--graph-vertical",
+        action="store_true",
+        help="Print the lazy trimming graph as compact vertical ASCII "
+        "(no external renderer needed), then exit without processing reads.",
+    )
+    parser.add_argument(
         "--ensure-inline-barcode",
         action="store_true",
         help="If set, reads without the specified inline barcode(s) will be "
@@ -1059,8 +1111,8 @@ def main():
             "inline barcode will NOT be screened out."
         )
 
-    if args.graph:
-        # Print the lazy trimming graph (Graph::Easy text) and exit.
+    if args.graph or args.graph_vertical:
+        # Print the lazy trimming graph and exit (no reads processed).
         settings = CutadaptConfig()
         settings.auto_inline = not args.no_auto_inline
         settings.conditional_cutter = args.conditional_cutter
@@ -1071,7 +1123,10 @@ def main():
         try:
             cs = _build_scheme(args.adapter_scheme, settings)
             paired = len(args.input_file) == 2
-            print(_render_trimming_graph(cs, settings, paired))
+            if args.graph_vertical:
+                print(_render_trimming_graph_vertical(cs, settings, paired))
+            else:
+                print(_render_trimming_graph(cs, settings, paired))
         except (ValueError, OSError) as e:
             logging.error(str(e))
             sys.exit(2)
