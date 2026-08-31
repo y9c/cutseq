@@ -188,7 +188,7 @@ points = [
 ]
 
 [DBITSEQ]
-scheme = "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
+scheme = "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
 description_name = "DBiT-seq (spatial RNA, 50x50 barcode grid)"
 points = [
   "DBiT-seq: deterministic barcoding in tissue (Liu et al., Cell 2020),",
@@ -198,7 +198,10 @@ points = [
   "per the molecule's 5'->3' order.",
   "R1's read 5' scaffold is the TSO (template-switch oligo; R1's first",
   "sequenced bases, downstream of the R1-primer site) and is what gets",
-  "trimmed by the scheme's left token (S0 R1).",
+  "trimmed by the scheme's left tokens (S0 R1).",
+  "A 5' poly-G / G-stretch right after the TSO is auto-detected and trimmed",
+  "(leftmost-anchored): the left adapter covers the TSO(+GAAT) region and the",
+  "relative GGG...GGG run trims any leading homopolymer - tunable with G<k>.",
   "The R1/R2 sequencing primers (TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG and",
   "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG) anneal UPSTREAM of each read; reads",
   "start downstream of them, so the primers are never part of the reads and",
@@ -212,7 +215,7 @@ points = [
 # The method is DBiT-seq (spatial barcoding), not m6A-ARTR; the scheme is
 # unchanged, only the name is corrected. Use -A DBITSEQ.
 [M6AARTR]
-scheme = "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
+scheme = "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG"
 alias_of = "DBITSEQ"
 description_name = "renamed to DBITSEQ"
 points = [
