@@ -109,39 +109,6 @@ def _scan_run_or_num(s, i, ch):
     return _Token(kind, j - i)
 
 
-def _scan_five_polytail(s, i):
-    """Scan a 5'-polytail body at ``i`` (right after the ``^`` marker).
-
-    Returns ``(base, end_index, options)``. Accepted forms: ``B...B``
-    (dot-delimited homopolymer), ``BBBB`` (plain run) or ``B<k>`` (numeric,
-    sets ``min_len=k``). Matching is leftmost + anchored at the read 5'.
-    """
-    n = len(s)
-    if i >= n or s[i] not in "ACGT":
-        raise ValueError(f"cutseq: '^' must be followed by a homopolymer base (got {s[i:i+1]!r})")
-    ch = s[i]
-    # numeric min_len: ^G10
-    if i + 1 < n and s[i + 1].isdigit():
-        k = i + 1
-        while k < n and s[k].isdigit():
-            k += 1
-        m = int(s[i + 1:k])
-        if m < 1:
-            raise ValueError(f"cutseq: ^ polytail min_len must be >= 1 (got {m})")
-        return ch, k, {"min_len": m}
-    # dot-delimited homopolymer: B...B
-    m = _POLY_RUN_RE.match(s[i:])
-    if m:
-        return ch, i + m.end(), {}
-    # plain run: BBBB
-    j = i
-    while j < n and s[j] == ch:
-        j += 1
-    if j == i:
-        raise ValueError(f"cutseq: '^' must be followed by a homopolymer run (got {s[i:]!r})")
-    return ch, j, {}
-
-
 def tokenize(scheme):
     """Split a space-free scheme into a list of ``_Token`` objects.
 
@@ -213,12 +180,6 @@ def tokenize(scheme):
             while j < n and scheme[j] in "acgt":
                 j += 1
             tokens.append(_Token("inline", scheme[i:j]))
-            i = j
-        elif ch == "^":
-            # `^B...B` / `^BBBB` / `^B8`: 5'-polytail - trim a leading run of B
-            # (leftmost, anchored at the read 5'), min length 3 or the number.
-            base, j, opt = _scan_five_polytail(scheme, i + 1)
-            tokens.append(_Token("poly5", base, options=opt))
             i = j
         elif ch == ">":
             # `>SEQUENCE` declares a 3' read-through (BackAdapter) adapter.
@@ -505,11 +466,6 @@ def parse_scheme_parts(data):
             if not base:
                 raise ValueError(f"cutseq: polytail part #{i} needs 'base'")
             tok = _Token("polytail", base, None, options)
-        elif typ == "polytail5":
-            base = part.get("base")
-            if not base:
-                raise ValueError(f"cutseq: polytail5 part #{i} needs 'base'")
-            tok = _Token("poly5", base, None, options)
         else:
             raise ValueError(f"cutseq: unknown part type {typ!r} at #{i}")
         side.append(tok)
@@ -726,12 +682,18 @@ def _emit_mask_se_three(tok, ctx):
 
 
 def _emit_polytail_five(tok, ctx):
+    # direction auto-detected from scheme position: a leading run (start of
+    # the arm / right after the outer adapter) trims the read 5', anything
+    # else trims the 3' (trailing tail / read-through).
+    min_len = tok.options.get("min_len") or MIN_POLY_LEN
+    if tok.options.get("five"):
+        return Poly5TailModifier(tok.value, min_len)
+    return PolyTailModifier(tok.value, min_len)
+
+
+def _emit_polytail_three(tok, ctx):
+    # the read-through mirror is always a 3' tail trim
     return PolyTailModifier(tok.value, tok.options.get("min_len") or MIN_POLY_LEN)
-
-
-def _emit_poly5_five(tok, ctx):
-    # leftmost, anchored-left 5' homopolymer run trim (Poly5TailModifier).
-    return Poly5TailModifier(tok.value, tok.options.get("min_len") or MIN_POLY_LEN)
 
 
 # Token-kind registry: kind -> (five_emitter, three_emitter, se_three_emitter).
@@ -746,8 +708,7 @@ _EMITTERS = {
     "inline": (_emit_inline_five, _emit_inline_three, _emit_inline_se_three),
     "capture": (_emit_capture_five, _emit_capture_three, _emit_capture_se_three),
     "mask": (_emit_mask_five, _emit_mask_three, _emit_mask_se_three),
-    "polytail": (_emit_polytail_five, _emit_polytail_five, _emit_polytail_five),
-    "poly5": (_emit_poly5_five, _emit_poly5_five, _emit_poly5_five),
+    "polytail": (_emit_polytail_five, _emit_polytail_three, _emit_polytail_three),
 }
 
 # Paired-end phase order (legacy pipeline order). "by_end" pairs adapters on
@@ -761,10 +722,22 @@ _PAIRED_PHASES = (
     ("capture", "side"),
     ("mask", "side"),
     ("polytail", "side"),
-    ("poly5", "side"),
 )
 
-_SINGLE_KINDS = ("adp", "back", "inline", "capture", "mask", "polytail", "poly5")
+_SINGLE_KINDS = ("adp", "back", "inline", "capture", "mask", "polytail")
+
+
+def _mark_polytail_direction(tokens):
+    """Auto-detect 5' vs 3' for dot-delimited homopolymer runs (``B...B``)
+    straight from the scheme layout: a run at the arm's read-start (the first
+    token, or immediately after the outer adapter/primer) is a *leading* 5'
+    run; any other placement (middle / toward the insert, after captures or
+    inner linkers) is a *trailing* run and trims the 3' end instead."""
+    for i, t in enumerate(tokens):
+        if t.kind == "polytail":
+            leading = (i == 0) or (i == 1 and tokens[0].kind == "adp")
+            if leading:
+                t.options = {**(t.options or {}), "five": True}
 
 
 def _side(tokens, kind):
@@ -785,6 +758,8 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
     R1's side, read out-to-in (standard Illumina paired-end).
     """
     ctx = _Ctx(conditional_cutter, force_trim_min_length, force_anywhere)
+    _mark_polytail_direction(left)
+    _mark_polytail_direction(right)
     rev_right = list(reversed(right))
 
     if not paired or orientation is None:

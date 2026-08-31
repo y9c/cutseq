@@ -365,28 +365,41 @@ def test_dbitseq_builtin_renamed_from_m6aartr():
     assert "N12AGTCGTACGCCGATGCGAAAC" in BUILDIN_ADAPTERS["DBITSEQ"]
 
 
-def test_five_prime_polytail_leftmost_anchored():
-    """`^B...B` trims a 5' homopolymer run, anchored LEFT (only position 0):
-    long leading runs are removed, internal homopolymers and short (<min_len)
-    leading runs are left untouched."""
-    from cutseq.grammar import (Poly5TailModifier, _scan_five_polytail,
-                                tokenize)
+def test_polytail_direction_auto_detected():
+    """`B...B` needs no '^': its 5'/3' direction is inferred from the scheme
+    layout. A run at the arm's read-start (first token, or right after the
+    outer adapter) trims the read 5'; elsewhere (after captures/inner
+    linkers) it trims the 3'. Leftmost-anchored on the 5' side."""
+    from cutseq.grammar import (Poly5TailModifier, PolyTailModifier,
+                                _Token, _mark_polytail_direction, tokenize)
 
-    # parse forms
-    assert _scan_five_polytail("^G...G", 1)[0] == "G"
-    toks = tokenize("ACGT^G...G^C4")
-    assert [t.kind for t in toks] == ["adp", "poly5", "poly5"]
-    assert toks[1].value == "G" and toks[2].options["min_len"] == 4
+    # dot-form parses as a plain polytail token, no marker needed
+    assert [t.kind for t in tokenize("GGG...GGG")] == ["polytail"]
 
+    # auto-detection of the trimmed end
+    leading = [_Token("adp", "ACGTGTACA"), _Token("polytail", "G")]
+    trailing = [_Token("adp", "ACGTGTACA"), _Token("capture", 4),
+                _Token("polytail", "G")]
+    _mark_polytail_direction(leading)
+    _mark_polytail_direction(trailing)
+    assert leading[1].options.get("five") is True      # leading -> 5'
+    assert trailing[2].options.get("five") is None     # inner       -> 3'
+
+    # the 5' modifier is leftmost-anchored (position 0)
     t5 = Poly5TailModifier("G", min_len=3)
-    cases = [("GGGGGGACGT", "ACGT"),          # long leading run trimmed
-             ("ACGTACGGGGCGTT", "ACGTACGGGGCGTT"),  # internal run: kept
-             ("GGGGGGGGG", ""),               # all-G read fully trimmed
-             ("GACGTACGT", "GACGTACGT")]      # single G: below min_len
+    cases = [("GGGGGGACGT", "ACGT"),          # leading run trimmed
+             ("ACGTACGGGGCGTT", "ACGTACGGGGCGTT"),  # internal: kept
+             ("GGGGGGGGG", ""),               # all-G read
+             ("GACGTACGT", "GACGTACGT")]      # single G (<min_len): kept
     for seq, want in cases:
         read = SequenceRecord("x", seq, "I" * len(seq))
         out = t5(read, ModificationInfo(read))
         assert out.sequence == want, (seq, out.sequence)
+
+    # a trailing run still trims the 3' end
+    t3 = PolyTailModifier("T", min_len=3)
+    read = SequenceRecord("y", "ACGTACGTTTTTT", "I" * 13)
+    assert t3(read, ModificationInfo(read)).sequence == "ACGTACG"
 
 
 # --- 5' sequencing-primer args & auto-detection ------------------------------

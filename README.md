@@ -69,7 +69,7 @@ with no spaces:
 - The outermost parts on both ends are the Illumina adapters (uppercase `ACGT...`).
 - The UMI sequence is the random sequence represented by `N` (e.g. `NNNNNNNN` / `N8`), captured into the read name.
 - The masked sequences are represented by `X` (e.g. `XXXXXX` / `X6`), trimmed but not captured. These can be random tails from template switching or other artifacts.
-- Homopolymer tails are trimmed with the dot form `AAA...AAA` / `TTT...TTT` (3' poly-A/T) and the `^`-prefixed form `^GGG...GGG`, `^BBBB` or `^B10` (5' poly-run, e.g. poly-G): the run of that base at that end is removed when it is at least 3 bases long (`^B10` sets the minimum to 10).
+- Homopolymer tails are trimmed with the dot form `AAA...AAA` / `TTT...TTT` / `GGG...GGG`. The 5'/3' direction is **auto-detected from the scheme layout**: a run at a read start (first token, or right after the outer sequencing adapter/primer) trims the 5′ (leftmost-anchored — e.g. a template-switching poly‑G stretch), while a run elsewhere trims the 3′ (e.g. a poly‑A tail). `B10` style (`G10`) sets the minimum run length.
 - Inline barcodes are written in lowercase (`acgt...`) and are matched and captured.
 - The center parts are the actual library sequence, split by `+`, `-`, or `:`:
   - `+` means the library is in the forward (sense) orientation,

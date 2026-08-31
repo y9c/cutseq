@@ -5,8 +5,9 @@
 #   acgt..  inline barcode (lower)  -> match & capture
 #   NNNNN   UMI capture -> into read name
 #   XXXXXX  mask -> trim only
-#   AAA...AAA   3' poly-tail trim (homopolymer run)
-#   ^GGG...GGG / ^B10   5' poly-run trim (leftmost-anchored run, min 3 or N)
+#   AAA...AAA   3'-poly-tail trim (homopolymer run); a run at a read start
+#               (after the outer adapter/primer) is auto-detected as a 5'
+#               leftmost-anchored poly-run trim (e.g. template-switch poly-G)
 #   : + -   insert marker (unstranded / sense / antisense), splits R1 | R2
 # Numeric shorthand (N5, X6) is accepted by the grammar but the built-ins use
 # the full repeated-run form below for readability.
