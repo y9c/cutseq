@@ -265,7 +265,8 @@ class CutadaptConfig:
     auto_inline: bool = True
     seq_primer1: Optional[str] = None
     seq_primer2: Optional[str] = None
-    r2_primer: Optional[str] = None  # R2 sequencing primer -> injected (RC-derived)
+    r1_primer: Optional[str] = None  # R1 sequencing primer -> injected (outer left)
+    r2_primer: Optional[str] = None  # R2 sequencing primer -> injected (outer right, RC)
 
 
 def json_report(
@@ -385,11 +386,73 @@ def _describe(mod):
     return repr(mod)
 
 
+def _graph_escape(s):
+    """Make a label safe for Graph::Easy functional-node syntax."""
+    return s.replace("[", "(").replace("]", ")").replace("\n", " ")
+
+
+def _render_trimming_graph(cs, settings, paired):
+    """Dump the lazy trimming graph as Graph::Easy text (consumable by
+    ``graph-easy-py``), separating the parsed scheme token graph from the
+    compiled R1/R2 modifier chains. This is the *lazy* graph: the scheme is
+    parsed once, and ``CompiledScheme.modifiers()`` materialises the modifier
+    chains on first access and caches them."""
+    out = ["graph { layout: north; }", ""]
+    out.append("# lazy trimming graph: one scheme -> R1/R2 modifier chains")
+    out.append("")
+
+    # 1) parsed token graph (scheme structure)
+    out.append("# STEP 1  parsed token graph (written 5' -> 3'; : = insert)")
+    left_node = ["start"]
+    for i, t in enumerate(cs.left):
+        lbl = t.value if t.kind in ("adp", "inline", "polytail") else f"{t.value} bp"
+        lbl = f"{t.kind}:{lbl}"
+        if t.kind in ("capture", "inline") and t.label:
+            lbl += f" ({t.label})"
+        node = _graph_escape(f"L{i} {lbl}")
+        out.append(f"[ {left_node[-1]} ] --> [ {node} ]")
+        left_node.append(node)
+    insert = "[ : insert (kept) ]"
+    out.append(f"[ {left_node[-1]} ] --> {insert}")
+    for i, t in enumerate(cs.right):
+        node = _graph_escape(f"R{i} {t.kind}:{t.value}")
+        out.append(f"{insert} --> [ {node} ]")
+        insert = f"[ {node} ]"
+    out.append("")
+
+    # 2) compiled chains (what each read actually executes)
+    out.append("# STEP 2  compiled modifier chains (lazy, cached per scheme)")
+    mods = _scheme_modifiers(cs, paired, settings)
+    if paired:
+        prev1 = prev2 = "start"
+        for i, m in enumerate(mods):
+            if not isinstance(m, tuple):
+                continue
+            d1 = _graph_escape(_describe(m[0])) if m[0] else "skip"
+            d2 = _graph_escape(_describe(m[1])) if m[1] else "skip"
+            n1 = f"[ S{i} R1: {d1} ]"
+            n2 = f"[ S{i} R2: {d2} ]"
+            out.append(f"{prev1} --> {n1}")
+            out.append(f"{prev2} --> {n2}")
+            prev1, prev2 = n1, n2
+    else:
+        prev = "start"
+        for i, m in enumerate(mods):
+            n = f"[ S{i} R1: {_graph_escape(_describe(m))} ]"
+            out.append(f"{prev} --> {n}")
+            prev = n
+    out.append("")
+    return "\n".join(out)
+
+
 def _build_scheme(scheme, settings):
     """Resolve a scheme value (built-in name / grammar string / YAML tokens)
     into a CompiledScheme bound to the current pipeline settings."""
     orientation, left, right = _resolve_scheme(scheme,
                                                auto_inline=settings.auto_inline)
+    if settings.r1_primer:
+        from .grammar import _Token
+        left = [_Token("adp", settings.r1_primer)] + list(left)
     if settings.r2_primer:
         # Inject the R2 sequencing primer as the outermost right-side token:
         # the engine reverse-complements it for R2, so R2 trims its rc (the
@@ -643,6 +706,7 @@ def run_cutseq(args):
     settings.auto_inline = not args.no_auto_inline
     settings.seq_primer1 = args.seq_primer1
     settings.seq_primer2 = args.seq_primer2
+    settings.r1_primer = args.r1_primer
     settings.r2_primer = args.r2_primer
     _ensure_seq_primers(settings, args.input_file)
     if len(args.input_file) == 1:
@@ -786,6 +850,13 @@ def main():
     )
 
     parser.add_argument(
+        "--r1-primer",
+        type=str,
+        default=None,
+        help="Read-1 sequencing primer. Injected as the outermost left-side "
+        "token (R1's 5'); trimmed from R1's 5' if present.",
+    )
+    parser.add_argument(
         "--r2-primer",
         type=str,
         default=None,
@@ -794,6 +865,13 @@ def main():
         "injects it into the scheme's right side and reverse-complements it "
         "for R2, so the Tn5ME read-through (rc of this primer) is trimmed "
         "from R2's 5' end.",
+    )
+    parser.add_argument(
+        "--graph",
+        action="store_true",
+        help="Print the lazy trimming graph (parsed scheme tokens + compiled "
+        "R1/R2 modifier chains) in Graph::Easy text (render with "
+        "graph-easy-py), then exit without processing reads.",
     )
     parser.add_argument(
         "--ensure-inline-barcode",
@@ -980,6 +1058,24 @@ def main():
             "(use -d/--discard-file or -O/--output-prefix). Reads that miss an "
             "inline barcode will NOT be screened out."
         )
+
+    if args.graph:
+        # Print the lazy trimming graph (Graph::Easy text) and exit.
+        settings = CutadaptConfig()
+        settings.auto_inline = not args.no_auto_inline
+        settings.conditional_cutter = args.conditional_cutter
+        settings.force_trim_min_length = args.force_trim_min_length
+        settings.force_anywhere = args.force_anywhere
+        settings.r1_primer = args.r1_primer
+        settings.r2_primer = args.r2_primer
+        try:
+            cs = _build_scheme(args.adapter_scheme, settings)
+            paired = len(args.input_file) == 2
+            print(_render_trimming_graph(cs, settings, paired))
+        except (ValueError, OSError) as e:
+            logging.error(str(e))
+            sys.exit(2)
+        sys.exit(0)
 
     try:
         run_cutseq(args)
