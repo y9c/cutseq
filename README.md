@@ -114,6 +114,57 @@ Use `--rename` to reproduce the old `--capture-separator ':'` behavior too:
 When no `--rename` is given, the default naming (captures appended with `_`)
 reproduces legacy output byte-for-byte, so existing pipelines do not change.
 
+## Complex example: spatial barcode arm (DBiT-seq)
+
+Spatial libraries put several fixed-length barcodes on one arm. In **DBiT-seq**
+(deterministic barcoding in tissue, 50×50 grid), the barcode read (R2) walks:
+
+```
+handle(22) | BarcodeB(8) | linker(30) | BarcodeA(8) | linker(30) | UMI(12) | polyT | cDNA
+```
+
+while Read 1 is the cDNA read, preceded by a template-switch oligo (TSO).
+Everything fits in one command:
+
+```bash
+cutseq -A DBITSEQ \
+       -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' \
+       -O mysample R1.fq.gz R2.fq.gz
+```
+
+Built-in scheme (`cutseq -A DBITSEQ`):
+
+```
+AAGCAGTGGTATCAACGCAGAGT : N12 AGTCGTACGCCGATGCGAAACATCGGCCAC
+N8 CGAATGCTCTGGCCTCTCAAGCACGTGGAT N8 AGATGCGAGAAGCCAACGCTTG
+```
+
+- The `TSO` (left of `:`) is R1's real read-5′ scaffold — R1 actually starts
+  with it, downstream of the R1 sequencing primer — so it is trimmed off R1.
+- The barcode arm (right of `:`) is walked on R2 as its reverse complement:
+  handle trimmed, then `BarcodeB` (8 nt, 1st capture → `{3}`), linker 2 trimmed,
+  `BarcodeA` (8 nt, 2nd capture → `{2}`), linker 1 trimmed, `UMI` (12 nt, 3rd
+  capture → `{1}`). Each captured part is written into the read header as
+  `@READID_BCB:…_BCA:…_UMI:…`.
+- `M6AARTR` is kept as a deprecated alias; `--r1-primer` / `--r2-primer` are
+  **informational only** — reads start downstream of the priming site, so the
+  sequencing primers themselves are never trimmed.
+
+The same library as a fully inline custom scheme:
+
+```bash
+cutseq -A "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" \
+       -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' -O mysample R1.fq.gz R2.fq.gz
+```
+
+Full construct, top strand 5′→3′:
+
+```
+P5(29) | i5(8) | R1-primer(34) | TSO(22) | insert | polyA/T | UMI(12)
+| rc(L1)(30) | BarcodeA(8) | rc(L2)(30) | BarcodeB(8) | rc(handle)(22)
+| rc(R2-primer)(34) | i7(8) | rc(P7)(24)
+```
+
 ## Inline barcodes and auto-detection
 
 Inline barcodes are written in lowercase (`acgt...`) and are matched and
