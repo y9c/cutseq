@@ -106,7 +106,7 @@ def main():
 
     # --- Generate Markdown Content ---
     all_markdown_parts = []
-    all_markdown_parts.append("---\ntitle: Adapter Schemes\nnav_order: 2\n---\n\n")
+    all_markdown_parts.append("---\ntitle: Adapter Schemes\nnav_order: 3\n---\n\n")
     all_markdown_parts.append("# Adapter Schemes\n\n")
     all_markdown_parts.append(
         "CutSeq supports a variety of built-in adapter schemes for common NGS library types. You can list all available schemes in your terminal with:\n\n"

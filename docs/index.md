@@ -37,3 +37,5 @@ CutSeq is open source and welcomes contributions! See the [GitHub repo](https://
 
 - [Quick Start](quickstart.md) - Installation and usage examples
 - [Adapter Schemes](adapters.md) - Comprehensive guide to supported adapter patterns
+- [Read Name Renaming](rename.md) - Label and transform captures in read names with `--rename`
+- [View on GitHub](https://github.com/y9c/cutseq)

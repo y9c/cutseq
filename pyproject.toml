@@ -26,7 +26,11 @@ Repository = "https://github.com/y9c/cutseq"
 cutseq = "cutseq.run:main"
 
 [dependency-groups]
-dev = ["pre-commit>=3.7.0,<4"]
+dev = [
+    "pre-commit>=3.7.0,<4",
+    "pytest>=7.0",
+    "pyflakes>=3.0",
+]
 
 [build-system]
 requires = ["hatchling"]

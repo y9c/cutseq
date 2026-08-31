@@ -27,27 +27,45 @@ cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC" test_R1.f
 
 ![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
 
-The scheme string describes the structure of your library, written 5' to 3':
+The scheme string describes the structure of your library. It is a
+**top-strand molecular map**: write the library as one DNA strand, 5' to 3',
+with no spaces:
+
+- The part **left of `+` `-` `:`** is read by Read 1 as-is (R1 sees the top
+  strand 5' -> 3').
+- The part **right of `+` `-` `:`** is the molecule's 3' continuation (top
+  strand, 5' -> 3'); Read 2 sequences the bottom strand, so it is matched as
+  the reverse complement of that part (e.g. a right-hand
+  `AGATCGGAAGAGCACACGTC` is matched on Read 2 as `GACGTGTGCTCTTCCGATCT`).
 - Uppercase `ACGT...`: adapters (matched & trimmed)
 - Lowercase `acgt...`: inline barcodes (matched & captured)
 - `NNNNN` / `N8`: UMI sequences (captured into the read name)
 - `XXXXXX` / `X8`: masked sequences (trimmed, not captured)
-- `+` `-` `:` in the middle: library strand / R1-R2 split (+ sense, - antisense, : unstranded)
+- `+` `-` `:` in the middle: library strand semantics (+ sense, - antisense,
+  : unstranded). They do not change what is trimmed — adapter trimming is
+  orientation-agnostic — and are only consulted by `--auto-rc` (single-end).
 
 Numeric shorthand (`N8`, `X6`) is equivalent to the expanded run form (`NNNNNNNN`, `XXXXXX`).
 
 ## Customizing read names
 
 Captured UMIs/barcodes are appended to the read name by default (legacy naming,
-e.g. `@READID_CTATTAAAAA`). Customize with:
+e.g. `@READID_CTATTAAAAA`). Customize with `--rename` (`--name-format` is an
+alias). It supports cutadapt's brace variables plus **positional captures**:
+`{1}`, `{2}`, ... reference the individual UMIs / inline barcodes in scheme
+order, with transform functions (`rc({1})`, `upper(RC({2}))`, `canon({1})`,
+`left({2},6)`, `slice({1},1,4)`, ...).
 
 ```bash
-# Custom template (cutadapt brace syntax)
-cutseq -A ECLIP10 --name-format '{id}|{cut_prefix}{cut_suffix}' test_R1.fq.gz
+# Label each captured part
+cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' test_R1.fq.gz test_R2.fq.gz
 
-# Separator between multiple captured UMIs/barcodes
-cutseq -A INLINE --capture-separator ':' test_R1.fq.gz test_R2.fq.gz
+# Same effect as the old --capture-separator ':' (insert ':' between captures)
+cutseq -A INLINE --rename '{id}:{1}:{2}' test_R1.fq.gz test_R2.fq.gz
 ```
+
+See the full [Read Name Renaming](rename.md) reference for the complete
+function list and paired-end (`{r1.1}` / `{r2.1}`) behavior.
 
 Defaults reproduce legacy output byte-for-byte.
 

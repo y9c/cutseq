@@ -54,8 +54,17 @@ Alternatively, you can specify a custom adapter scheme in the grammar format:
 
 ![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
 
-The customized scheme can be explained by the diagram above. The scheme is
-written 5' to 3' (R1 direction) with no spaces required:
+The customized scheme can be explained by the diagram above. The scheme is a
+**top-strand molecular map**: you write the library as one DNA strand, 5' to 3',
+with no spaces:
+
+- The part **left of the insert marker** (`+` `-` `:`) is read by Read 1 as-is
+  (R1 sequences the top strand 5' -> 3').
+- The part **right of the insert marker** is the molecule's 3' continuation,
+  written top-strand 5' -> 3' (from the insert toward p7). Read 2 sequences the
+  bottom strand, so the engine matches it as the **reverse complement** of that
+  part automatically — e.g. a right-hand `AGATCGGAAGAGCACACGTC` is matched on
+  Read 2 as `GACGTGTGCTCTTCCGATCT`.
 
 - The outermost parts on both ends are the Illumina adapters (uppercase `ACGT...`).
 - The UMI sequence is the random sequence represented by `N` (e.g. `NNNNNNNN` / `N8`), captured into the read name.
@@ -75,18 +84,35 @@ Numeric shorthand (`N8`, `X6`) is equivalent to the expanded run form
 
 By default, captured UMIs/barcodes are appended to the read name with `_`
 (e.g. `@READID_CTATTAAAAA`), exactly as the legacy engine named reads. You can
-customize this:
+customize this with `--rename` (`--name-format` is an accepted alias). It
+supports cutadapt's brace variables (`{id}`, `{header}`, `{comment}`,
+`{cut_prefix}`, `{cut_suffix}`, `{adapter_name}`, `{match_sequence}`, `{rc}`)
+plus **positional captures** — the individual UMIs and inline barcodes in
+scheme order:
 
 ```bash
-# Custom template using cutadapt's brace syntax
-cutseq -A ECLIP10 --name-format '{id}|{cut_prefix}{cut_suffix}' in_R1.fq.gz
-
-# Insert a separator between multiple captured UMIs/barcodes
-cutseq -A INLINE --capture-separator ':' in_R1.fq.gz in_R2.fq.gz
+# Label each captured part; {1},{2},{3} are the 1st/2nd/3rd capture
+cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' in_R1.fq.gz in_R2.fq.gz
 ```
 
-The default `--name-format` and `--capture-separator` values reproduce legacy
-output byte-for-byte, so existing pipelines do not need to change.
+Transform **functions** can wrap any capture and nest, and are case-insensitive:
+
+- `rc(x)` reverse complement (also `rev(x)` reverse, `comp(x)` complement only)
+- `upper(x)`, `lower(x)`, `len(x)`
+- `canon(x)` — canonical UMI form `min(x, rc(x))` for UMI collapsing
+- `left(x,k)`, `right(x,k)`, `slice(x,a,b)` — substring helpers
+  (`slice` is 1-based, inclusive)
+- examples: `upper(RC({1}))`, `rc(upper({2}))`, `left({2},6)`, `slice({1},1,4)`
+
+In paired mode `{r1.1}` / `{r2.1}` force a specific read; an unprefixed capture
+resolves to its *anchor* read (left-side captures → R1, right-side → R2), so
+both mates carry the same extracted value.
+
+Use `--rename` to reproduce the old `--capture-separator ':'` behavior too:
+`--rename '{id}:{1}:{2}'` inserts `:` between the captured parts.
+
+When no `--rename` is given, the default naming (captures appended with `_`)
+reproduces legacy output byte-for-byte, so existing pipelines do not change.
 
 ## Inline barcodes and auto-detection
 

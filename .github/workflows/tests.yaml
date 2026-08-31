@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'dev'
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv + Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies (uv sync)
+        run: uv sync
+      - name: Run tests
+        run: uv run pytest test/ -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install dependencies (uv sync)
+        run: uv sync
+      - name: pyflakes
+        run: uv run python -m pyflakes cutseq/ test/
+      - name: pre-commit hooks (adapter docs sync + uv.lock freshness)
+        run: uv run pre-commit run --all-files
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Build wheel + sdist
+        run: uv build
+      - name: Smoke-install wheel in a clean env
+        run: |
+          uv venv --python 3.12 /tmp/clean-venv
+          uv pip install --python /tmp/clean-venv dist/*.whl
+          /tmp/clean-venv/bin/cutseq --version
+          /tmp/clean-venv/bin/cutseq --list-adapters | head -5
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
