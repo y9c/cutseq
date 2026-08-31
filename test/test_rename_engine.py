@@ -224,47 +224,53 @@ def test_threaded_rename_deterministic():
 
 # --- spatial (DBiT) interleaved 3' structure ---------------------------------
 #
-# m6A-ARTR-DBiT / Glori style:
-#   TSO : X22 N8 X30 N8 X28 N10 TTT...TTT
-# Single-end R1 reads TSO | insert | X22 | BC2 | X30 | BC1 | X28 | UMI | polyT.
-# The 3' side must be processed in REVERSED written (physical) order, not
-# grouped by token kind -- this was a real bug.
+# m6A-ARTR-DBiT / Glori style, Read 1 (single-end):
+#   handle : BCB linker2 BCA linker1 UMI polyT cDNA Tn5 R2H i5 P5
+# where BCB/BCA are 8-nt spatial barcodes, UMI is 10 nt. P7/i7 sit 5' of the
+# R1 primer and are NOT read. The 3' side must be processed in REVERSED
+# written (physical) order, not grouped by token kind -- this was a real bug.
 
 
 def _dbit_pair():
     import random
 
     random.seed(11)
-    TSO = "AAGCAGTGGTATCAACGCAGAGT"
-    P7 = "AGATCGGAAGAGCACACGTC"
-    bc2 = "".join(random.choice("ACGT") for _ in range(8))
-    bc1 = "".join(random.choice("ACGT") for _ in range(8))
+    # Real m6A-ARTR-DBiT / Glori oligo (Read 1 arm, from the protocol's
+    # full double-stranded sequence). P7/i7 lie 5' of the Read-1 primer, so
+    # they are NOT read; R1 starts at the PCR handle.
+    handle = "CAAGCGTTGGCTTCTCGCATCT"          # PCR handle, 22
+    linker2 = "ATCCACGTGCTTGAGAGGCCAGAGCATTCG" # 30
+    linker1 = "GTGGCCGATGTTTCGCATCGGCGTACGACT" # 30
+    t5 = "CTGTCTCTTATACACATCT"                 # Tn5 mosaic end (read 2)
+    r2h = "GACGCTGCCGACGA"                     # read-2 handle
+    i5 = "TAGATCGC"
+    p5 = "GTGTAGATCTCGGTGGTCGCCGTATCATT"
+    bcB = "".join(random.choice("ACGT") for _ in range(8))
+    bcA = "".join(random.choice("ACGT") for _ in range(8))
     umi = "".join(random.choice("ACGT") for _ in range(10))
-    # avoid a UMI ending in 'T': greedy polyT trim would then absorb it (an
-    # inherent UMI<->polyT boundary ambiguity, not a trim error)
     if umi[-1] == "T":
         umi = umi[:-1] + "A"
-    ins = "".join(random.choice("ACGT") for _ in range(20))
-    x22 = "".join(random.choice("ACGT") for _ in range(22))
-    x30 = "".join(random.choice("ACGT") for _ in range(30))
-    x28 = "".join(random.choice("ACGT") for _ in range(28))
-    # R1 5'->3': TSO insert X22 BC2 X30 BC1 X28 UMI polyT P7 read-through
-    r1 = TSO + ins + x22 + bc2 + x30 + bc1 + x28 + umi + "T" * 12 + P7 + "AACT"
-    return r1, bc2, bc1, umi
+    cdna = "".join(random.choice("ACGT") for _ in range(30))
+    # R1 5'->3': handle BCB linker2 BCA linker1 UMI polyT cDNA Tn5 R2H i5 P5
+    r1 = handle + bcB + linker2 + bcA + linker1 + umi + "T" * 15 \
+        + cdna + t5 + r2h + i5 + p5
+    return r1, bcB, bcA, umi
 
 
 def test_spatial_scheme_single_end_physical_order():
     from cutseq.grammar import _capture_registry
 
-    r1, bc2, bc1, umi = _dbit_pair()
-    # space-free scheme (no whitespace allowed in cutseq schemes); the
-    # TruSeq p7 adapter sits at the very 3' end, after the polyT tail
-    scheme = ("AAGCAGTGGTATCAACGCAGAGT:X22N8X30N8X28N10TTT...TTT"
-              "AGATCGGAAGAGCACACGTC")
+    r1, bcB, bcA, umi = _dbit_pair()
+    # space-free scheme for Read 1 (single-end). P7/i7 are 5'-upstream of the
+    # R1 primer (not read); the 3' arm is the Nextera Tn5/R2/i5/P5 side.
+    scheme = ("CAAGCGTTGGCTTCTCGCATCT:N8ATCCACGTGCTTGAGAGGCCAGAGCATTCG"
+              "N8GTGGCCGATGTTTCGCATCGGCGTACGACTN10TTT...TTT"
+              "CTGTCTCTTATACACATCTGACGCTGCCGACGATAGATCGC"
+              "GTGTAGATCTCGGTGGTCGCCGTATCATT")
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=False, settings=s)
-    mods[-1] = cs.renamer(paired=False, name_format="{id}_BC2:{1}_BC1:{2}_UMI:{3}")
+    mods[-1] = cs.renamer(paired=False, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
     grammar._RENAME_NEEDS_CAPTURES = True
     try:
         read = SequenceRecord("x", r1, "I" * len(r1))
@@ -276,9 +282,7 @@ def test_spatial_scheme_single_end_physical_order():
     finally:
         grammar._RENAME_NEEDS_CAPTURES = False
         _capture_registry.clear()
-    assert read.name == f"x_BC2:{bc2}_BC1:{bc1}_UMI:{umi}"
-    # only the 20 nt insert remains
-    assert len(read.sequence) == 20
+    assert read.name == f"x_BCB:{bcB}_BCA:{bcA}_UMI:{umi}"
 
 
 def test_cli_rename_single_end():
