@@ -753,14 +753,16 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
 
     if paired and orientation == "&":
         # Same-strand paired: each read's 5' arm is trimmed independently in
-        # written order (R1 = left tokens; R2 = reversed right tokens).
+        # written order. R1 gets the left-side tokens; R2 gets the right-side
+        # tokens written exactly as R2 reads them 5'->3' (handle first, no
+        # removal of the interleaved barcode/linker/capture structure).
         mods1 = []
         for t in left:
             five = _EMITTERS[t.kind][0]
             if five is not None:
                 mods1.append(five(t, ctx))
         mods2 = []
-        for t in rev_right:
+        for t in right:
             five = _EMITTERS[t.kind][0]
             if five is not None:
                 mods2.append(five(t, ctx))
