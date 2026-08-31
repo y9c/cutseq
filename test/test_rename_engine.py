@@ -416,36 +416,24 @@ def test_seq_primer2_single_end_trims_handle():
                               + 8 + len(_M6A_L1) + 10:]
 
 
-def test_r2_primer_injected_as_rc_on_r2_5prime():
-    """--r2-primer injects the R2 sequencing primer onto the right side so the
-    engine trims its reverse complement (the Tn5ME read-through) at R2's 5'."""
-    from cutseq.grammar import _rc
+def test_primers_are_not_trimmed_from_reads():
+    """Sequencing primers anneal upstream of each read and are NOT part of
+    the read, so --r1-primer / --r2-primer must not inject any 5' trim."""
+    from cutseq.run import _describe
 
     s = CutadaptConfig()
-    _P = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
-    s.r2_primer = _P
+    s.r1_primer = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG"
+    s.r2_primer = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
     cs = _build_scheme("ACGT:N8", s)
-    assert any(t.kind == "adp" and t.value == _P for t in cs.right)
+    assert all(t.kind != "adp" or t.value not in (s.r1_primer, s.r2_primer)
+               for t in cs.left + cs.right)
     mods = _scheme_modifiers(cs, paired=True, settings=s)
-    # the scheme's tip token -> R2 5' front adapter is rc(primer), which starts
-    # with the Tn5ME region CTGTCTCTTATACACATCT.
-    rcP = _rc(_P)
-    assert rcP.startswith("CTGTCTCTTATACACATCT")
-    r2_fronts = []
     for m in mods:
-        if isinstance(m, tuple) and m[1] is not None:
-            d = _describe_tok(m[1])
-            if d:
-                r2_fronts.append(d)
-    assert any("CTGTCTCTTATACACATCT" in x for x in r2_fronts), r2_fronts
-
-
-def _describe_tok(mod):
-    from cutseq.run import _describe
-    try:
-        return _describe(mod)
-    except Exception:
-        return ""
+        if isinstance(m, tuple):
+            for mm, sub in ((m[0], "TCGTCGGCAGCGTC"),
+                            (m[1], "GTCTCGTGGGCTCGG")):
+                if mm:
+                    assert sub not in _describe(mm)
 
 
 def test_cli_rename_single_end():

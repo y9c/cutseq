@@ -534,15 +534,9 @@ def _build_scheme(scheme, settings):
     into a CompiledScheme bound to the current pipeline settings."""
     orientation, left, right = _resolve_scheme(scheme,
                                                auto_inline=settings.auto_inline)
-    if settings.r1_primer:
-        from .grammar import _Token
-        left = [_Token("adp", settings.r1_primer)] + list(left)
-    if settings.r2_primer:
-        # Inject the R2 sequencing primer as the outermost right-side token:
-        # the engine reverse-complements it for R2, so R2 trims its rc (the
-        # Tn5ME read-through region) at the 5' end.
-        from .grammar import _Token
-        right = list(right) + [_Token("adp", settings.r2_primer)]
+    # NOTE: --r1-primer / --r2-primer are sequencing PRIMERS: they anneal
+    # upstream of where each read starts and are NOT part of the read, so they
+    # are never trimmed here (only informative / for future auto-detection).
     return CompiledScheme(
         orientation, left, right,
         conditional_cutter=settings.conditional_cutter,
@@ -937,18 +931,17 @@ def main():
         "--r1-primer",
         type=str,
         default=None,
-        help="Read-1 sequencing primer. Injected as the outermost left-side "
-        "token (R1's 5'); trimmed from R1's 5' if present.",
+        help="Read-1 sequencing primer (informational / for auto-detection; "
+        "never trimmed from reads, because reads start downstream of the "
+        "primer). Example: TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG.",
     )
     parser.add_argument(
         "--r2-primer",
         type=str,
         default=None,
-        help="Read-2 sequencing primer (34 nt e.g. "
-        "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG for Tn5 libraries). Cutseq "
-        "injects it into the scheme's right side and reverse-complements it "
-        "for R2, so the Tn5ME read-through (rc of this primer) is trimmed "
-        "from R2's 5' end.",
+        help="Read-2 sequencing primer (informational; never trimmed from "
+        "reads, because reads start downstream of the primer). Example: "
+        "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG.",
     )
     parser.add_argument(
         "--graph",
