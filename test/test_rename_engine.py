@@ -323,8 +323,11 @@ def test_paired_standard_colon_interleaved_barcode_arm():
     from cutseq.grammar import _capture_registry
 
     cdna_read, bc_read, bcb, bca, umi = _m6a_pair()
+    # full scheme: barcode arm (R1, written order) : R2 primer (34 nt, reverse
+    # complement -> cutseq trims the Tn5ME read-through CTGTCTCTTATACACATCT..)
+    _R2_PRIMER = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
     scheme = (_M6A_HANDLE + "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
-              + "TTT...TTT" + ":" + "CTGTCTCTTATACACATCT" + "GACGCTGCCGACGA")
+              + "TTT...TTT" + ":" + _R2_PRIMER)
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=True, settings=s)
