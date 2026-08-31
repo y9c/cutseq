@@ -14,6 +14,7 @@ Grammar (space-separated tokens, every character shell-safe)::
     AAA...AAA    variable poly-A/T tail             -> trim whole 3' run (>= min)
     TTT...TTT
     : | + | -    insert (keep) + R1/R2 split        -> unstranded / sense / antisense
+    &            same-strand paired (native-orientation R1+R2)
 
 The whole scheme is written as a *top-strand molecular map*, 5' -> 3', the
 same way you would draw the library on the board: the sequence of R1 at its 5'
@@ -28,6 +29,13 @@ end on the right. Concretely:
   order*, of that right-hand part; the engine derives it automatically. That
   is why a right-hand ``AGATCGGAAGAGCACACGTC`` is matched on R2 as its
   reverse complement ``GACGTGTGCTCTTCCGATCT``.
+
+- The ``&`` marker selects **same-strand paired** mode: both reads are
+  sequenced 5' -> 3' along the SAME strand (RNA/cDNA spatial libraries such as
+  m6A-ARTR / DBiT). R1 gets the left tokens (written order); R2 reads the
+  molecule's 3' end, so it gets the right tokens in REVERSED written order,
+  without reverse complementation. There is no mirrored read-through in this
+  mode.
 
 The ``:``/``+``/``-`` marker carries only *strand semantics* (unstranded /
 sense / antisense); it does not change what gets trimmed, because adapter
@@ -71,7 +79,7 @@ class _Token:
         self.options = options or {}  # per-part extras (max_errors, min_overlap, min_len...)
 
 
-_INSERT = frozenset(":+-")
+_INSERT = frozenset(":+-&")
 
 
 def _scan_polytail(s, i):
@@ -731,9 +739,32 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
     adapters (front then read-through), explicit back, inline, captures, then
     masks — with written-side (left) tokens before mirrored (right) tokens
     inside the inline/capture/mask phases.
+
+    An orientation of ``'&'`` selects *same-strand paired* mode (native
+    / forward-orientation paired reads): both R1 and R2 are sequenced 5' -> 3'
+    along the SAME strand (e.g. RNA/cDNA spatial libraries such as m6A-ARTR /
+    DBiT where R1 carries TSO+cDNA and R2 carries barcodes/linkers). R1 gets
+    the left-side tokens in written order; R2 reads the molecule's 3' end, so
+    the right-side tokens are applied in REVERSED written order on R2, without
+    reverse complementation.
     """
     ctx = _Ctx(conditional_cutter, force_trim_min_length, force_anywhere)
     rev_left, rev_right = list(reversed(left)), list(reversed(right))
+
+    if paired and orientation == "&":
+        # Same-strand paired: each read's 5' arm is trimmed independently in
+        # written order (R1 = left tokens; R2 = reversed right tokens).
+        mods1 = []
+        for t in left:
+            five = _EMITTERS[t.kind][0]
+            if five is not None:
+                mods1.append(five(t, ctx))
+        mods2 = []
+        for t in rev_right:
+            five = _EMITTERS[t.kind][0]
+            if five is not None:
+                mods2.append(five(t, ctx))
+        return mods1, mods2
 
     if not paired or orientation is None:
         # Single-end: the scheme is a top-strand molecular map of the single

@@ -289,6 +289,71 @@ def test_spatial_scheme_single_end_physical_order():
     assert read.name == f"x_BCB:{bcB}_BCA:{bcA}_UMI:{umi}"
 
 
+# --- same-strand paired mode ('&') -------------------------------------------
+#
+# m6A-ARTR / DBiT spatial library: both reads are sequenced 5'->3' along the
+# SAME strand. R1 = TSO + cDNA; R2 = handle + BCB + linker2 + BCA + linker1 +
+# UMI + cDNA. The '&' marker processes each read's 5' arm in written order
+# (R2 = reversed right tokens, no reverse complementation).
+
+_M6A_HANDLE = "CAAGCGTTGGCTTCTCGCATCT"
+_M6A_L2 = "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"
+_M6A_L1 = "GTGGCCGATGTTTCGCATCGGCGTACGACT"
+_M6A_TSO = "AAGCAGTGGTATCAACGCAGAGT"
+
+
+def _m6a_pair():
+    import random
+
+    random.seed(41)
+    rnd = lambda n: "".join(random.choice("ACGT") for _ in range(n))
+    bcb, bca, umi = rnd(8), rnd(8), rnd(10)
+    if umi[-1] == "T":
+        umi = umi[:-1] + "A"
+    cdna = rnd(30)
+    r1 = _M6A_TSO + cdna
+    r2 = _M6A_HANDLE + bcb + _M6A_L2 + bca + _M6A_L1 + umi + cdna
+    return r1, r2, bcb, bca, umi
+
+
+def test_same_strand_paired_mode():
+    """'&' mode must trim TSO on R1 and capture UMI/BCB/BCA on R2."""
+    from cutseq.grammar import _capture_registry
+
+    r1, r2, bcb, bca, umi = _m6a_pair()
+    # right side written 5'->3' from the insert: UMI, linker1, BCA, linker2,
+    # BCB, handle (R2 reads this in the reverse order)
+    scheme = (_M6A_TSO + "&" + "N10" + _M6A_L1 + "N8" + _M6A_L2 + "N8"
+              + _M6A_HANDLE)
+    s = CutadaptConfig()
+    cs = _build_scheme(scheme, s)
+    mods = _scheme_modifiers(cs, paired=True, settings=s)
+    mods[-1] = cs.renamer(paired=True, name_format="{id}_UMI:{1}_BCB:{3}_BCA:{2}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        read1 = SequenceRecord("x/1", r1, "I" * len(r1))
+        read2 = SequenceRecord("x/2", r2, "I" * len(r2))
+        i1, i2 = ModificationInfo(read1), ModificationInfo(read2)
+        for step in mods:
+            if isinstance(step, tuple):
+                m1, m2 = step
+                n1 = m1(read1, i1) if m1 else read1
+                n2 = m2(read2, i2) if m2 else read2
+                read1, read2 = n1 or read1, n2 or read2
+            else:
+                step(read1, read2, i1, i2)
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        _capture_registry.clear()
+    assert read1.name == f"x/1_UMI:{umi}_BCB:{bcb}_BCA:{bca}"
+    assert read2.name == f"x/2_UMI:{umi}_BCB:{bcb}_BCA:{bca}"
+    # TSO trimmed off R1 (only the 30 nt cDNA kept); R2 fully trimmed down to
+    # its cDNA tail, which is kept
+    assert read1.sequence == r1[len(_M6A_TSO):]
+    assert read2.sequence == r2[len(_M6A_HANDLE) + 8 + len(_M6A_L2) + 8
+                              + len(_M6A_L1) + 10:]
+
+
 def test_cli_rename_single_end():
     # single-end on the same scheme: capture2 & the inline are at R1's 3' end
     with tempfile.TemporaryDirectory() as td:
