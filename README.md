@@ -3,216 +3,171 @@
 [![Pypi Releases](https://img.shields.io/pypi/v/cutseq.svg)](https://pypi.python.org/pypi/cutseq)
 [![Downloads](https://pepy.tech/badge/cutseq)](https://pepy.tech/project/cutseq)
 
-CutSeq is a tool that provides an efficient wrapper for the cutadapt tool, which is powerful in handling various types of NGS libraries.
-Due to the complexities involved in NGS library preparation methods, mutiple operations are necessary to process sequencing reads correctly.
+CutSeq is a library-aware wrapper for **cutadapt**. Real NGS libraries need
+several trimming steps performed **in the correct order** — encoding them all in
+one cutadapt command is error-prone, and chaining separate commands wastes I/O.
+CutSeq fixes this with a single input: **what the library looks like**. It
+compiles your library scheme into one native cutadapt pass and runs it
+automatically.
 
-Take _SMARTer® Stranded Total RNA-Seq Kit v3_ as an example, at least 9 operations are required.
+Take _SMARTer® Stranded Total RNA-Seq Kit v3_ (built-in `TAKARAV3`) — many
+operations in one pass:
 
 ![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/takaraV3.png)
 
-For **Read 1**:
+| Read | Steps |
+|------|-------|
+| **R1** | remove the 5′ p5 adapter + 3-nt linker mask · **capture the 8-nt UMI** & mask the 6-nt linker at the 3′ end (the 14-nt run-over when insert < read) · remove the 3′ read-through adapter · quality trim |
+| **R2** | remove the 5′ read-through adapter · **extract the 8-nt UMI into the read name** · mask the 6-nt linker right after it · remove the 3′ read-through adapter · quality trim |
 
-1.  Remove the Illumina p7 adapter from the end of the sequence.
-2.  Remove 14 nt (8+3+3) at the rightmost position of the sequence, representing UMI and linker sequence from the beginning of read 2. This is required when the library insert size is shorter than the sequencing length.
-3.  Remove poly-T sequences at the beginning of the sequence (read 1 is oriented in reverse to the RNA, hence a polyA tail appears as a leading polyT sequence).
-4.  Remove low-quality bases from right to left.
-
-For **Read 2**:
-
-5.  Remove the reverse complement Illumina p5 adapter from the end of the sequence.
-6.  Extract the 8 nt UMI sequence from the beginning of the sequence and append it to the read name for downstream analysis.
-7.  Mask a 6 nt linker sequence at the leftmost position immediately after clipping the UMI sequence.
-8.  Remove poly-A sequences at the end of the read.
-9.  Remove low-quality bases from right to left.
-
-These operations must be performed in the **correct order**. The limitations of the cutadapt tool make it challenging to configure these operations in a single command, often leading to errors unnoticed in some publications.
-
----
-
-To solve this by using cutadapt, we can run multiple cutadpat insitent sequentially or pipe multiple commands together. But this waste lots of IO and computational resource. I am thinking there a more eligent API to make things easy. Then comes this toy project.
--- **What you need is only one parameter which spcific what the library would looks like.**
-
-CutSeq overcomes these limitations by enabling multiple operations in a automatical manner to ensure accuracy and efficiency.
-
-## How to install?
+## Installation
 
 ```bash
 pip install cutseq
 ```
 
-## How to use?
+## Basic usage
 
-Execute adapter trimming by providing a single parameter and your input files:
+Express the whole library as **one scheme** and let CutSeq do the rest:
 
 ```bash
+# built-in scheme
 cutseq -A TAKARAV3 test_R1.fq.gz test_R2.fq.gz
+
+# or a custom grammar scheme
+cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
 ```
 
-Alternatively, you can specify a custom adapter scheme in the grammar format:
-
-`cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"`
+The scheme is a **top-strand molecular map**: one DNA strand, 5′ → 3′, no
+spaces:
 
 ![](https://raw.githubusercontent.com/y9c/cutseq/main/docs/explain_library.png)
 
-The customized scheme can be explained by the diagram above. The scheme is a
-**top-strand molecular map**: you write the library as one DNA strand, 5' to 3',
-with no spaces:
-
-- The part **left of the insert marker** (`+` `-` `:`) is read by Read 1 as-is
-  (R1 sequences the top strand 5' -> 3').
-- The part **right of the insert marker** is the molecule's 3' continuation,
-  written top-strand 5' -> 3' (from the insert toward p7). Read 2 sequences the
-  bottom strand, so the engine matches it as the **reverse complement** of that
-  part automatically — e.g. a right-hand `AGATCGGAAGAGCACACGTC` is matched on
-  Read 2 as `GACGTGTGCTCTTCCGATCT`.
-
-- The outermost parts on both ends are the Illumina adapters (uppercase `ACGT...`).
-- The UMI sequence is the random sequence represented by `N` (e.g. `NNNNNNNN` / `N8`), captured into the read name.
-- The masked sequences are represented by `X` (e.g. `XXXXXX` / `X6`), trimmed but not captured. These can be random tails from template switching or other artifacts.
-- Homopolymer tails are trimmed with the dot form `AAA...AAA` / `TTT...TTT` / `GGG...GGG`. The 5'/3' direction is **auto-detected from the scheme layout**: a run at a read start (first token, or right after the outer sequencing adapter/primer) trims the 5′ (leftmost-anchored — e.g. a template-switching poly‑G stretch), while a run elsewhere trims the 3′ (e.g. a poly‑A tail). `B10` style (`G10`) sets the minimum run length.
-- Inline barcodes are written in lowercase (`acgt...`) and are matched and captured.
-- The center parts are the actual library sequence, split by `+`, `-`, or `:`:
-  - `+` means the library is in the forward (sense) orientation,
-  - `-` means reverse (antisense) orientation,
-  - `:` means the library orientation is unknown (unstranded).
-- A 3' read-through adapter (the adapter that appears on the opposite read)
-  is trimmed automatically from the other end of each read.
-
-Numeric shorthand (`N8`, `X6`) is equivalent to the expanded run form
-(`NNNNNNNN`, `XXXXXX`).
+- The part **left of the insert marker** (`+` `-` `:`) is read by **R1 as-is**;
+  the part **right** of it is the molecule's 3′ continuation and is matched on
+  **R2 as its reverse complement** automatically (e.g. a right-hand
+  `AGATCGGAAGAGCACACGTC` is matched on R2 as `GACGTGTGCTCTTCCGATCT`).
+- `+` = sense, `-` = antisense, `:` = unstranded.
+- **Uppercase** `ACGT…` = adapters/primers, trimmed.
+- **`N`** = random UMI, captured into the read name (`NNNNNNNN` / `N8`).
+- **`X`** = masked sequence, trimmed but not captured (`XXXXXX` / `X6`).
+- **Lowercase** `acgt…` = inline barcode, matched and captured.
+- **Homopolymer tails** use the dot form `AAA...AAA` / `TTT...TTT` /
+  `GGG...GGG`; the 5′/3′ direction is auto-detected from the scheme layout
+  (a run at the read start trims the 5′, elsewhere the 3′), and `G<k>` sets the
+  minimum run length (e.g. `G10`).
+- A **3′ read-through adapter** (from the other read's 5′ arm) is trimmed
+  automatically from the opposite end of each read.
+- Numeric shorthand (`N8`, `X6`) equals the expanded run form.
 
 ## Customizing read names
 
-By default, captured UMIs/barcodes are appended to the read name with `_`
-(e.g. `@READID_CTATTAAAAA`), exactly as the legacy engine named reads. You can
-customize this with `--rename` (`--name-format` is an accepted alias). It
-supports cutadapt's brace variables (`{id}`, `{header}`, `{comment}`,
-`{cut_prefix}`, `{cut_suffix}`, `{adapter_name}`, `{match_sequence}`, `{rc}`)
-plus **positional captures** — the individual UMIs and inline barcodes in
-scheme order:
+Captured UMIs/barcodes are appended to the read name with `_` by default
+(`@READID_CTATTAAAAA`, exactly like legacy output). Use `--rename` for full
+control — cutadapt's brace variables (`{id}`, `{header}`, `{cut_prefix}`,
+`{match_sequence}`, `{rc}`, …) plus **positional captures** `{1}`, `{2}`, …
+in scheme order:
 
 ```bash
-# Label each captured part; {1},{2},{3} are the 1st/2nd/3rd capture
 cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' in_R1.fq.gz in_R2.fq.gz
 ```
 
-Transform **functions** can wrap any capture and nest, and are case-insensitive:
+Transform functions wrap any capture and nest (case-insensitive):
 
-- `rc(x)` reverse complement (also `rev(x)` reverse, `comp(x)` complement only)
+- `rc(x)` / `rev(x)` / `comp(x)` — reverse complement / reverse / complement
 - `upper(x)`, `lower(x)`, `len(x)`
-- `canon(x)` — canonical UMI form `min(x, rc(x))` for UMI collapsing
+- `canon(x)` — canonical UMI, `min(x, rc(x))`, for UMI collapsing
 - `left(x,k)`, `right(x,k)`, `slice(x,a,b)` — substring helpers
-  (`slice` is 1-based, inclusive)
-- examples: `upper(RC({1}))`, `rc(upper({2}))`, `left({2},6)`, `slice({1},1,4)`
 
 In paired mode `{r1.1}` / `{r2.1}` force a specific read; an unprefixed capture
 resolves to its *anchor* read (left-side captures → R1, right-side → R2), so
-both mates carry the same extracted value.
-
-Use `--rename` to reproduce the old `--capture-separator ':'` behavior too:
-`--rename '{id}:{1}:{2}'` inserts `:` between the captured parts.
-
-When no `--rename` is given, the default naming (captures appended with `_`)
-reproduces legacy output byte-for-byte, so existing pipelines do not change.
+both mates carry the same value. Without `--rename`, output is byte-for-byte
+legacy-compatible.
 
 ## Complex example: spatial barcode arm (DBiT-seq)
 
-Spatial libraries put several fixed-length barcodes on one arm. In **DBiT-seq**
-(deterministic barcoding in tissue, 50×50 grid), the barcode read (R2) walks:
-
-```
-handle(22) | BarcodeB(8) | linker(30) | BarcodeA(8) | linker(30) | UMI(12) | polyT | cDNA
-```
-
-while Read 1 is the cDNA read, preceded by a template-switch oligo (TSO).
+Spatial libraries stack several fixed-length barcodes on one arm. In
+**DBiT-seq** (deterministic barcoding in tissue, 50×50 grid) R2 walks
+`handle(22) | BarcodeB(8) | linker(30) | BarcodeA(8) | linker(30) | UMI(12) |
+polyT | cDNA`, while R1 carries the insert with a template-switch oligo (TSO).
 Everything fits in one command:
 
 ```bash
 cutseq -A DBITSEQ \
-       -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' \
-       -O mysample R1.fq.gz R2.fq.gz
+  -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' \
+  -O mysample R1.fq.gz R2.fq.gz
 ```
 
-Built-in scheme (`cutseq -A DBITSEQ`):
+Built-in `DBITSEQ` scheme:
 
 ```
-AAGCAGTGGTATCAACGCAGAGT : N12 AGTCGTACGCCGATGCGAAACATCGGCCAC
-N8 CGAATGCTCTGGCCTCTCAAGCACGTGGAT N8 AGATGCGAGAAGCCAACGCTTG
+AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG : N12 AGTCGTACGCCGATGCGAAACATCGGCCAC
+                                           N8  CGAATGCTCTGGCCTCTCAAGCACGTGGAT
+                                           N8  AGATGCGAGAAGCCAACGCTTG
 ```
 
-- The `TSO` (left of `:`) is R1's real read-5′ scaffold — R1 actually starts
-  with it, downstream of the R1 sequencing primer — so it is trimmed off R1.
-- The barcode arm (right of `:`) is walked on R2 as its reverse complement:
-  handle trimmed, then `BarcodeB` (8 nt, 1st capture → `{3}`), linker 2 trimmed,
-  `BarcodeA` (8 nt, 2nd capture → `{2}`), linker 1 trimmed, `UMI` (12 nt, 3rd
-  capture → `{1}`). Each captured part is written into the read header as
+- Left of `:` = R1's real read-5′ scaffold: the **TSO** (23 nt) then an
+  auto-detected 5′ **G-stretch** (`GAATGGG...GGG`), both trimmed.
+- Right of `:` = the barcode arm, walked on R2: **UMI** `N12` → capture `{1}`,
+  linker trimmed, **BarcodeA** `N8` → capture `{2}`, linker trimmed,
+  **BarcodeB** `N8` → capture `{3}`, handle trimmed. The `-R` template writes
   `@READID_BCB:…_BCA:…_UMI:…`.
-- `M6AARTR` is kept as a deprecated alias; `--r1-primer` / `--r2-primer` are
+- `M6AARTR` is kept as a deprecated alias. `--r1-primer` / `--r2-primer` are
   **informational only** — reads start downstream of the priming site, so the
-  sequencing primers themselves are never trimmed.
+  sequencing primers are never trimmed.
 
-The same library as a fully inline custom scheme:
+The same library as a fully inline scheme:
 
 ```bash
-cutseq -A "AAGCAGTGGTATCAACGCAGAGT:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" \
-       -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' -O mysample R1.fq.gz R2.fq.gz
+cutseq -A "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" \
+  -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' -O mysample R1.fq.gz R2.fq.gz
 ```
 
-Full construct, top strand 5′→3′:
+Full construct, top strand 5′ → 3′:
 
 ```
-P5(29) | i5(8) | R1-primer(34) | TSO(22) | insert | polyA/T | UMI(12)
+P5(29) | i5(8) | R1-primer(34) | TSO(23) | insert | polyA/T | UMI(12)
 | rc(L1)(30) | BarcodeA(8) | rc(L2)(30) | BarcodeB(8) | rc(handle)(22)
 | rc(R2-primer)(34) | i7(8) | rc(P7)(24)
 ```
 
-## Inline barcodes and auto-detection
+## Inline-barcode auto-detection
 
-Inline barcodes are written in lowercase (`acgt...`) and are matched and
-trimmed. If you write a barcode in uppercase by mistake, it would merge with
-the adjacent sequencing primer into one adapter run. CutSeq detects this:
+If an uppercase barcode is written next to a sequencing primer, the engine
+checks the scheme's two outermost adapters against a curated database of
+Illumina / BGI primers (`cutseq --list-primers`); a fixed uppercase run
+adjacent to a recognized primer is reclassified as an inline barcode (with a
+warning). Custom schemes without known primers are never altered. Disable with
+`--no-auto-inline`.
 
-- The two outermost adapters of a scheme are checked against a curated
-  database of Illumina / BGI (MGI) sequencing primers (see `cutseq --list-primers`).
-- Any fixed uppercase sequence adjacent to (or between) recognized primers is
-  reclassified as an inline barcode, with a warning.
-- Genuinely custom schemes (no known primers at the ends) are never altered.
+## Discarding reads with a reason
 
-Disable with `--no-auto-inline`.
-
-## Discarding reads with a reason tag
-
-A single discard output captures all reads that fail QC, with the reason
-stored in the read name:
+A single `-d` output collects every rejected read, with the reason encoded in
+the name:
 
 ```bash
 cutseq -A SMALLRNA -d discarded_R1.fq.gz discarded_R2.fq.gz in_R1.fq.gz in_R2.fq.gz
 ```
 
-Discarded reads carry a `reason=...` tag in their name:
+| Tag | Why |
+|-----|-----|
+| `reason=too_short` | shorter than `--min-length` after trimming |
+| `reason=too_many_n` | exceeds `--max-n` |
+| `reason=low_quality` | mean Phred below `--min-avg-quality` |
+| `reason=no_barcode` | missing an inline barcode (with `--ensure-inline-barcode`) |
 
-- `reason=too_short` — shorter than `--min-length` after trimming,
-- `reason=too_many_n` — exceeds `--max-n`,
-- `reason=low_quality` — mean Phred quality below `--min-avg-quality`,
-- `reason=no_barcode` — missing an expected inline barcode (only with
-  `--ensure-inline-barcode`).
-
-`--ensure-inline-barcode` routes reads that lack the scheme's inline barcodes
-to the discard output; it requires the scheme to declare inline barcodes.
-When no `-d`/`-O` is given, discard files are auto-named from the input files.
+Without `-d`/`-O`, discard files are auto-named from the input files.
 
 ## How it works
 
-CutSeq compiles a library scheme once into a lazy graph of native cutadapt
-modifiers (adapter cutters, renamers, quality trimmers) and runs them in a
-single cutadapt pass — no intermediate I/O. The modifier chain is data-driven:
-each grammar token kind maps to a 5' / 3' / single-end emitter, so new token
-kinds are added with one registry entry. Output from the grammar engine is
-verified to match the legacy engine exactly across all built-in schemes in
-both paired- and single-end mode.
+CutSeq compiles a scheme once into a lazy graph of native cutadapt modifiers
+(adapter cutters, renamers, quality trimmers) and runs them in a **single
+cutadapt pass** — no intermediate I/O. Each grammar token maps to a 5′/3′/
+single-end emitter, and output is verified to match the legacy engine exactly
+across all built-in schemes, paired- and single-end.
 
-More details can be found in the [document](https://cutseq.yech.science)
+More details: <https://cutseq.yech.science>
 
 ## TODO
 
-[ ] support more library scheme
+- [ ] support more library schemes
