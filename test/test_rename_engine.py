@@ -291,9 +291,10 @@ def test_spatial_scheme_single_end_physical_order():
 
 # --- m6A-ARTR / DBiT spatial library (R2 = reverse complement of R1) ---------
 #
-# Library: R1 = TSO + cDNA; barcode arm (handle + BCB + linker2 + BCA +
-# linker1 + UMI) is carried by the reads per the standard reverse-complement
-# Illumina paired-end convention.
+# Barcode arm (handle + BCB + linker2 + BCA + linker1 + UMI) sits 5' of the
+# insert and is the R1 read; R2 is the reverse complement (standard Illumina
+# paired-end). The paired compile must walk the interleaved arm on R1's 5' in
+# written order (adapters and captures interleaved), not kind-phase grouped.
 
 _M6A_HANDLE = "CAAGCGTTGGCTTCTCGCATCT"
 _M6A_L2 = "ATCCACGTGCTTGAGAGGCCAGAGCATTCG"
@@ -315,9 +316,42 @@ def _m6a_pair():
     return r1, r2, bcb, bca, umi
 
 
+def test_paired_standard_colon_interleaved_barcode_arm():
+    """Full ':' scheme must walk the interleaved handle->BCB->linker2->BCA->
+    linker1->UMI arm on R1's 5' in written order (R2 = its reverse complement).
+    """
+    from cutseq.grammar import _capture_registry
+
+    cdna_read, bc_read, bcb, bca, umi = _m6a_pair()
+    scheme = (_M6A_HANDLE + "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
+              + "TTT...TTT" + ":" + "CTGTCTCTTATACACATCT" + "GACGCTGCCGACGA")
+    s = CutadaptConfig()
+    cs = _build_scheme(scheme, s)
+    mods = _scheme_modifiers(cs, paired=True, settings=s)
+    mods[-1] = cs.renamer(paired=True, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        read1 = SequenceRecord("b/1", bc_read, "I" * len(bc_read))   # R1: barcode arm
+        read2 = SequenceRecord("c/2", cdna_read, "I" * len(cdna_read))  # R2: cDNA
+        i1, i2 = ModificationInfo(read1), ModificationInfo(read2)
+        for step in mods:
+            if isinstance(step, tuple):
+                m1, m2 = step
+                n1 = m1(read1, i1) if m1 else read1
+                n2 = m2(read2, i2) if m2 else read2
+                read1, read2 = n1 or read1, n2 or read2
+            else:
+                step(read1, read2, i1, i2)
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        _capture_registry.clear()
+    assert read1.name == f"b/1_BCB:{bcb}_BCA:{bca}_UMI:{umi}"
+    # R1 barcode arm fully trimmed: only the 30 nt cDNA tail remains
+    assert read1.sequence == bc_read[len(_M6A_HANDLE) + 8 + len(_M6A_L2)
+                                + 8 + len(_M6A_L1) + 10:]
+
+
 # --- 5' sequencing-primer args & auto-detection ------------------------------
-
-
 def test_seq_primer_detection_db():
     from cutseq.primers import detect_5prime_primer
 

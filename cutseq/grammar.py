@@ -734,7 +734,7 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
     R1's side, read out-to-in (standard Illumina paired-end).
     """
     ctx = _Ctx(conditional_cutter, force_trim_min_length, force_anywhere)
-    rev_left, rev_right = list(reversed(left)), list(reversed(right))
+    rev_right = list(reversed(right))
 
     if not paired or orientation is None:
         # Single-end: the scheme is a top-strand molecular map of the single
@@ -756,27 +756,32 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
         return r1, []
 
     mods1, mods2 = [], []
-    for kind, shape in _PAIRED_PHASES:
-        five, three, _ = _EMITTERS[kind]
-        if shape == "by_end":
-            if five:
-                mods1 += [five(t, ctx) for t in _side(left, kind)]
-                mods2 += [five(_for_r2(t), ctx) for t in _side(rev_right, kind)]
-            if three:
-                mods1 += [three(t, ctx) for t in _side(rev_right, kind)]
-                mods2 += [three(_for_r2(t), ctx) for t in _side(rev_left, kind)]
-        elif shape == "own":
-            if five:
-                mods1 += [five(t, ctx) for t in _side(left, kind)]
-                mods2 += [five(_for_r2(t), ctx) for t in _side(rev_right, kind)]
-        else:
-            if five:
-                mods1 += [five(t, ctx) for t in _side(left, kind)]
-            if three:
-                mods2 += [three(_for_r2(t), ctx) for t in _side(rev_left, kind)]
-                mods1 += [three(t, ctx) for t in _side(rev_right, kind)]
-            if five:
-                mods2 += [five(_for_r2(t), ctx) for t in _side(rev_right, kind)]
+    # R1 5' arm: left tokens in written order, so interleaved adapter /
+    # capture / mask arms (e.g. a handle -> BCB -> linker -> BCA -> UMI
+    # barcode arm) are walked in the right order.
+    for t in left:
+        five = _EMITTERS[t.kind][0]
+        if five is not None:
+            mods1.append(five(t, ctx))
+    # R1 3' read-through: the right side, read out-to-in (reversed) with the
+    # 3' (BackAdapter/negative) emitters.
+    for t in rev_right:
+        three = _EMITTERS[t.kind][1]
+        if three is not None:
+            mods1.append(three(t, ctx))
+    # R2 5' arm: the right side read out-to-in (reversed) and reverse
+    # complemented -- R2 is the reverse complement of R1's side.
+    for t in rev_right:
+        five = _EMITTERS[t.kind][0]
+        if five is not None:
+            mods2.append(five(_for_r2(t), ctx))
+    # R2 3' read-through: the left side (rc of R1's 5' arm), walked in R1's
+    # 5' written order (outermost p5 read-through first, then the capture
+    # mirror region).
+    for t in left:
+        three = _EMITTERS[t.kind][1]
+        if three is not None:
+            mods2.append(three(_for_r2(t), ctx))
     return mods1, mods2
 
 
