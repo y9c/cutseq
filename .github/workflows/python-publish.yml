@@ -65,5 +65,5 @@ jobs:
         #   https://pypi.org/manage/account/publishing/
         with:
           packages-dir: dist/
-          username: __token__
+          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
