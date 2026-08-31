@@ -109,6 +109,39 @@ def _scan_run_or_num(s, i, ch):
     return _Token(kind, j - i)
 
 
+def _scan_five_polytail(s, i):
+    """Scan a 5'-polytail body at ``i`` (right after the ``^`` marker).
+
+    Returns ``(base, end_index, options)``. Accepted forms: ``B...B``
+    (dot-delimited homopolymer), ``BBBB`` (plain run) or ``B<k>`` (numeric,
+    sets ``min_len=k``). Matching is leftmost + anchored at the read 5'.
+    """
+    n = len(s)
+    if i >= n or s[i] not in "ACGT":
+        raise ValueError(f"cutseq: '^' must be followed by a homopolymer base (got {s[i:i+1]!r})")
+    ch = s[i]
+    # numeric min_len: ^G10
+    if i + 1 < n and s[i + 1].isdigit():
+        k = i + 1
+        while k < n and s[k].isdigit():
+            k += 1
+        m = int(s[i + 1:k])
+        if m < 1:
+            raise ValueError(f"cutseq: ^ polytail min_len must be >= 1 (got {m})")
+        return ch, k, {"min_len": m}
+    # dot-delimited homopolymer: B...B
+    m = _POLY_RUN_RE.match(s[i:])
+    if m:
+        return ch, i + m.end(), {}
+    # plain run: BBBB
+    j = i
+    while j < n and s[j] == ch:
+        j += 1
+    if j == i:
+        raise ValueError(f"cutseq: '^' must be followed by a homopolymer run (got {s[i:]!r})")
+    return ch, j, {}
+
+
 def tokenize(scheme):
     """Split a space-free scheme into a list of ``_Token`` objects.
 
@@ -180,6 +213,12 @@ def tokenize(scheme):
             while j < n and scheme[j] in "acgt":
                 j += 1
             tokens.append(_Token("inline", scheme[i:j]))
+            i = j
+        elif ch == "^":
+            # `^B...B` / `^BBBB` / `^B8`: 5'-polytail - trim a leading run of B
+            # (leftmost, anchored at the read 5'), min length 3 or the number.
+            base, j, opt = _scan_five_polytail(scheme, i + 1)
+            tokens.append(_Token("poly5", base, options=opt))
             i = j
         elif ch == ">":
             # `>SEQUENCE` declares a 3' read-through (BackAdapter) adapter.
@@ -466,6 +505,11 @@ def parse_scheme_parts(data):
             if not base:
                 raise ValueError(f"cutseq: polytail part #{i} needs 'base'")
             tok = _Token("polytail", base, None, options)
+        elif typ == "polytail5":
+            base = part.get("base")
+            if not base:
+                raise ValueError(f"cutseq: polytail5 part #{i} needs 'base'")
+            tok = _Token("poly5", base, None, options)
         else:
             raise ValueError(f"cutseq: unknown part type {typ!r} at #{i}")
         side.append(tok)
@@ -685,6 +729,11 @@ def _emit_polytail_five(tok, ctx):
     return PolyTailModifier(tok.value, tok.options.get("min_len") or MIN_POLY_LEN)
 
 
+def _emit_poly5_five(tok, ctx):
+    # leftmost, anchored-left 5' homopolymer run trim (Poly5TailModifier).
+    return Poly5TailModifier(tok.value, tok.options.get("min_len") or MIN_POLY_LEN)
+
+
 # Token-kind registry: kind -> (five_emitter, three_emitter, se_three_emitter).
 #   five       = written-side 5' emission (FrontAdapter / positive cuts)
 #   three      = paired-end mirrored 3' emission (BackAdapter / negative cuts)
@@ -698,6 +747,7 @@ _EMITTERS = {
     "capture": (_emit_capture_five, _emit_capture_three, _emit_capture_se_three),
     "mask": (_emit_mask_five, _emit_mask_three, _emit_mask_se_three),
     "polytail": (_emit_polytail_five, _emit_polytail_five, _emit_polytail_five),
+    "poly5": (_emit_poly5_five, _emit_poly5_five, _emit_poly5_five),
 }
 
 # Paired-end phase order (legacy pipeline order). "by_end" pairs adapters on
@@ -711,9 +761,10 @@ _PAIRED_PHASES = (
     ("capture", "side"),
     ("mask", "side"),
     ("polytail", "side"),
+    ("poly5", "side"),
 )
 
-_SINGLE_KINDS = ("adp", "back", "inline", "capture", "mask", "polytail")
+_SINGLE_KINDS = ("adp", "back", "inline", "capture", "mask", "polytail", "poly5")
 
 
 def _side(tokens, kind):
@@ -1371,6 +1422,32 @@ class PolyTailModifier(_mods.SingleEndModifier):
 
     def __repr__(self):
         return f"PolyTail({self.base},min={self.min_len})"
+
+
+class Poly5TailModifier(_mods.SingleEndModifier):
+    """Trim a 5' homopolymer run of *base* if it is at least *min_len* long.
+
+    Matching is **leftmost and anchored at the read 5'** (position 0): only a
+    run that actually begins the read is trimmed, and internal homopolymers
+    are never touched. Mirrors cutadapt's own ``PolyATrimmer`` design.
+    """
+
+    def __init__(self, base, min_len=MIN_POLY_LEN):
+        self.base = base
+        self.min_len = min_len
+        self.five = True  # marker: trims the read 5' (for graph / dry-run labels)
+
+    def __call__(self, read, info):
+        seq = read.sequence
+        i = 0
+        while i < len(seq) and seq[i] == self.base:
+            i += 1
+        if i >= self.min_len:
+            return read[i:]
+        return read
+
+    def __repr__(self):
+        return f"Poly5Tail({self.base},min={self.min_len})"
 
 
 def build_modifiers(scheme, paired=True, conditional_cutter=True,

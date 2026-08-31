@@ -409,6 +409,8 @@ def _recap(mod):
         return "5'"
     if back:
         return "3'"
+    if getattr(mod, "five", False):  # Poly5TailModifier trims the read 5'
+        return "5'"
     if hasattr(mod, "base"):  # PolyTailModifier trims the 3' terminal run
         return "3'"
     return ""

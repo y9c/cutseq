@@ -365,6 +365,30 @@ def test_dbitseq_builtin_renamed_from_m6aartr():
     assert "N12AGTCGTACGCCGATGCGAAAC" in BUILDIN_ADAPTERS["DBITSEQ"]
 
 
+def test_five_prime_polytail_leftmost_anchored():
+    """`^B...B` trims a 5' homopolymer run, anchored LEFT (only position 0):
+    long leading runs are removed, internal homopolymers and short (<min_len)
+    leading runs are left untouched."""
+    from cutseq.grammar import (Poly5TailModifier, _scan_five_polytail,
+                                tokenize)
+
+    # parse forms
+    assert _scan_five_polytail("^G...G", 1)[0] == "G"
+    toks = tokenize("ACGT^G...G^C4")
+    assert [t.kind for t in toks] == ["adp", "poly5", "poly5"]
+    assert toks[1].value == "G" and toks[2].options["min_len"] == 4
+
+    t5 = Poly5TailModifier("G", min_len=3)
+    cases = [("GGGGGGACGT", "ACGT"),          # long leading run trimmed
+             ("ACGTACGGGGCGTT", "ACGTACGGGGCGTT"),  # internal run: kept
+             ("GGGGGGGGG", ""),               # all-G read fully trimmed
+             ("GACGTACGT", "GACGTACGT")]      # single G: below min_len
+    for seq, want in cases:
+        read = SequenceRecord("x", seq, "I" * len(seq))
+        out = t5(read, ModificationInfo(read))
+        assert out.sequence == want, (seq, out.sequence)
+
+
 # --- 5' sequencing-primer args & auto-detection ------------------------------
 def test_seq_primer_detection_db():
     from cutseq.primers import detect_5prime_primer
