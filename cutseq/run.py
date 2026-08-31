@@ -369,9 +369,21 @@ def _print_known_primers():
     print("\nUse --no-auto-inline to disable auto-detection.\n")
 
 
-def _cut_end(mod):
-    """The end of the read a modifier trims ('' if it doesn't cut):
-    '5'' (left) vs '3'' (right)."""
+# Adapter matching strategy, used to annotate AdapterCutter steps in the
+# dry-run / graph so it's explicit whether an adapter is anchored at an end
+# (left-most), found anywhere (internal), or picked as the rightmost match.
+_ADAPTER_MATCH = {
+    "PrefixAdapter": "anchored",
+    "RightmostFrontAdapter": "rightmost",
+    "FrontAdapter": "front",
+    "SuffixAdapter": "anchored",
+    "BackAdapter": "anywhere",
+    "AnywhereAdapter": "anywhere (internal)",
+}
+
+
+def _recap(mod):
+    """The read end a modifier trims (5' left / 3' right)."""
     if isinstance(mod, AdapterCutter):
         from cutadapt.adapters import (BackAdapter, FrontAdapter, PrefixAdapter,
                                        RightmostFrontAdapter, SuffixAdapter)
@@ -403,16 +415,21 @@ def _cut_end(mod):
 
 
 def _describe(mod):
-    """Render a modifier readably for dry-run logs / graph (each cutter is
-    annotated with the end it trims: 5' = left, 3' = right)."""
+    """Render a modifier readably for dry-run logs / graph: cut end (5'/3')
+    plus, for adapters, the matching strategy (anchored / rightmost /
+    anywhere) so left-cut vs right-cut vs internal is explicit."""
     if isinstance(mod, tuple):
         a = _describe(mod[0]) if mod[0] else ""
         b = _describe(mod[1]) if mod[1] else ""
         return f"({a}, {b})"
     if isinstance(mod, AdapterCutter):
         parts = ", ".join(a.sequence for a in mod.adapters)
-        end = _cut_end(mod)
-        return f"AdapterCutter({parts}) [{end}]" if end else f"AdapterCutter({parts})"
+        end = _recap(mod)
+        tags = sorted({_ADAPTER_MATCH.get(type(a).__name__, type(a).__name__)
+                       for a in mod.adapters})
+        strat = "; ".join(tags)
+        detail = f"{end}; {strat}" if end and strat else (end or strat)
+        return f"AdapterCutter({parts}) [{detail}]"
     if isinstance(mod, _renamers):
         return f"{type(mod).__name__}({mod._template!r})"
     if hasattr(mod, "_template"):
@@ -420,7 +437,7 @@ def _describe(mod):
         if name == "function":  # fast-renamer closure
             name = "Renamer"
         return f"{name}({mod._template!r})"
-    end = _cut_end(mod)
+    end = _recap(mod)
     return f"{mod!r} [{end}]" if end else repr(mod)
 
 
