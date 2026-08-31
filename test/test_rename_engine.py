@@ -236,6 +236,7 @@ def _dbit_pair():
 
     random.seed(11)
     TSO = "AAGCAGTGGTATCAACGCAGAGT"
+    P7 = "AGATCGGAAGAGCACACGTC"
     bc2 = "".join(random.choice("ACGT") for _ in range(8))
     bc1 = "".join(random.choice("ACGT") for _ in range(8))
     umi = "".join(random.choice("ACGT") for _ in range(10))
@@ -247,7 +248,8 @@ def _dbit_pair():
     x22 = "".join(random.choice("ACGT") for _ in range(22))
     x30 = "".join(random.choice("ACGT") for _ in range(30))
     x28 = "".join(random.choice("ACGT") for _ in range(28))
-    r1 = TSO + ins + x22 + bc2 + x30 + bc1 + x28 + umi + "T" * 12
+    # R1 5'->3': TSO insert X22 BC2 X30 BC1 X28 UMI polyT P7 read-through
+    r1 = TSO + ins + x22 + bc2 + x30 + bc1 + x28 + umi + "T" * 12 + P7 + "AACT"
     return r1, bc2, bc1, umi
 
 
@@ -255,8 +257,10 @@ def test_spatial_scheme_single_end_physical_order():
     from cutseq.grammar import _capture_registry
 
     r1, bc2, bc1, umi = _dbit_pair()
-    # space-free scheme (no whitespace allowed in cutseq schemes)
-    scheme = "AAGCAGTGGTATCAACGCAGAGT:X22N8X30N8X28N10TTT...TTT"
+    # space-free scheme (no whitespace allowed in cutseq schemes); the
+    # TruSeq p7 adapter sits at the very 3' end, after the polyT tail
+    scheme = ("AAGCAGTGGTATCAACGCAGAGT:X22N8X30N8X28N10TTT...TTT"
+              "AGATCGGAAGAGCACACGTC")
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=False, settings=s)
