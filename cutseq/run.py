@@ -265,6 +265,7 @@ class CutadaptConfig:
     auto_inline: bool = True
     seq_primer1: Optional[str] = None
     seq_primer2: Optional[str] = None
+    r2_primer: Optional[str] = None  # R2 sequencing primer -> injected (RC-derived)
 
 
 def json_report(
@@ -389,6 +390,12 @@ def _build_scheme(scheme, settings):
     into a CompiledScheme bound to the current pipeline settings."""
     orientation, left, right = _resolve_scheme(scheme,
                                                auto_inline=settings.auto_inline)
+    if settings.r2_primer:
+        # Inject the R2 sequencing primer as the outermost right-side token:
+        # the engine reverse-complements it for R2, so R2 trims its rc (the
+        # Tn5ME read-through region) at the 5' end.
+        from .grammar import _Token
+        right = list(right) + [_Token("adp", settings.r2_primer)]
     return CompiledScheme(
         orientation, left, right,
         conditional_cutter=settings.conditional_cutter,
@@ -636,6 +643,7 @@ def run_cutseq(args):
     settings.auto_inline = not args.no_auto_inline
     settings.seq_primer1 = args.seq_primer1
     settings.seq_primer2 = args.seq_primer2
+    settings.r2_primer = args.r2_primer
     _ensure_seq_primers(settings, args.input_file)
     if len(args.input_file) == 1:
         pipeline_grammar_single(
@@ -777,6 +785,16 @@ def main():
         "omitted, auto-detected from the built-in primer database.",
     )
 
+    parser.add_argument(
+        "--r2-primer",
+        type=str,
+        default=None,
+        help="Read-2 sequencing primer (34 nt e.g. "
+        "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG for Tn5 libraries). Cutseq "
+        "injects it into the scheme's right side and reverse-complements it "
+        "for R2, so the Tn5ME read-through (rc of this primer) is trimmed "
+        "from R2's 5' end.",
+    )
     parser.add_argument(
         "--ensure-inline-barcode",
         action="store_true",

@@ -365,6 +365,30 @@ def test_seq_primer_detection_db():
     assert detect_5prime_primer("CAAGCGTTGGCTTCTCGCATCTACGT") is None
 
 
+def test_seq_primer1_single_end_trims_tso():
+    """--seq-primer1 trims R1's 5' TSO scaffold."""
+    from cutseq.grammar import _capture_registry
+
+    r1, r2, bcb, bca, umi = _m6a_pair()
+    s = CutadaptConfig()
+    s.seq_primer1 = _M6A_TSO
+    cs = _build_scheme(":", s)   # `:` = keep the cDNA insert, no left tokens
+    mods = _scheme_modifiers(cs, paired=False, settings=s)
+    mods[-1] = cs.renamer(paired=False, name_format="{id}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        read = SequenceRecord("x", r1, "I" * len(r1))
+        info = ModificationInfo(read)
+        for m in mods:
+            out = m(read, info)
+            if out is not None:
+                read = out
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        _capture_registry.clear()
+    assert read.sequence == r1[len(_M6A_TSO):]
+
+
 def test_seq_primer2_single_end_trims_handle():
     """--seq-primer2 trims the 5' handle so the scheme can start at BCB."""
     from cutseq.grammar import _capture_registry
@@ -372,12 +396,10 @@ def test_seq_primer2_single_end_trims_handle():
     r1, r2, bcb, bca, umi = _m6a_pair()
     s = CutadaptConfig()
     s.seq_primer2 = _M6A_HANDLE
-    # scheme has no handle; it starts at the BCB capture
     scheme = "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=False, settings=s)
-    cs2 = _build_scheme(scheme, s)
-    mods[-1] = cs2.renamer(paired=False, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
+    mods[-1] = cs.renamer(paired=False, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")
     grammar._RENAME_NEEDS_CAPTURES = True
     try:
         read = SequenceRecord("x", r2, "I" * len(r2))
@@ -392,6 +414,38 @@ def test_seq_primer2_single_end_trims_handle():
     assert read.name == f"x_BCB:{bcb}_BCA:{bca}_UMI:{umi}"
     assert read.sequence == r2[len(_M6A_HANDLE) + 8 + len(_M6A_L2)
                               + 8 + len(_M6A_L1) + 10:]
+
+
+def test_r2_primer_injected_as_rc_on_r2_5prime():
+    """--r2-primer injects the R2 sequencing primer onto the right side so the
+    engine trims its reverse complement (the Tn5ME read-through) at R2's 5'."""
+    from cutseq.grammar import _rc
+
+    s = CutadaptConfig()
+    _P = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
+    s.r2_primer = _P
+    cs = _build_scheme("ACGT:N8", s)
+    assert any(t.kind == "adp" and t.value == _P for t in cs.right)
+    mods = _scheme_modifiers(cs, paired=True, settings=s)
+    # the scheme's tip token -> R2 5' front adapter is rc(primer), which starts
+    # with the Tn5ME region CTGTCTCTTATACACATCT.
+    rcP = _rc(_P)
+    assert rcP.startswith("CTGTCTCTTATACACATCT")
+    r2_fronts = []
+    for m in mods:
+        if isinstance(m, tuple) and m[1] is not None:
+            d = _describe_tok(m[1])
+            if d:
+                r2_fronts.append(d)
+    assert any("CTGTCTCTTATACACATCT" in x for x in r2_fronts), r2_fronts
+
+
+def _describe_tok(mod):
+    from cutseq.run import _describe
+    try:
+        return _describe(mod)
+    except Exception:
+        return ""
 
 
 def test_cli_rename_single_end():
