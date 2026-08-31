@@ -730,12 +730,14 @@ def main():
     )
 
     parser.add_argument(
+        "-R",
         "--rename",
         "--name-format",
         dest="name_format",
         type=str,
         default=None,
-        help="Custom read name template. Uses cutadapt's brace variables "
+        help="Custom read name template (short flag: -R). Uses cutadapt's brace "
+        "variables "
         "({id}, {header}, {comment}, {cut_prefix}, {cut_suffix}, "
         "{adapter_name}, {match_sequence}, {rc}) plus positional captures "
         "{1}, {2}, ... (1-based, scheme written order; N-captures and inline "

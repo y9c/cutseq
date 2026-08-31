@@ -74,6 +74,24 @@ def test_cli_name_format_flag():
     r = subprocess.run([cutseq, "--help"], capture_output=True, text=True)
     assert "--name-format" in r.stdout
     assert "--rename" in r.stdout
+    assert "-R" in r.stdout
+
+
+def test_cli_short_R_rename_flag():
+    import subprocess
+    import gzip
+    cutseq = str(ROOT / ".venv" / "bin" / "cutseq")
+    r1 = str(ROOT / "test" / "input_R1.fq.gz")
+    with tempfile.TemporaryDirectory() as td:
+        p = subprocess.run(
+            [cutseq, "-A", "ECLIP10", "-R", "{id}|{1}",
+             "-O", f"{td}/cam", r1],
+            capture_output=True, text=True,
+        )
+        assert p.returncode == 0, p.stderr
+        with gzip.open(f"{td}/cam_trimmed_R1.fastq.gz", "rt") as fh:
+            first = next(fh).strip()
+        assert "|" in first
 
 
 def test_cli_name_format_end_to_end():
