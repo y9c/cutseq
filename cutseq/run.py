@@ -369,13 +369,50 @@ def _print_known_primers():
     print("\nUse --no-auto-inline to disable auto-detection.\n")
 
 
+def _cut_end(mod):
+    """The end of the read a modifier trims ('' if it doesn't cut):
+    '5'' (left) vs '3'' (right)."""
+    if isinstance(mod, AdapterCutter):
+        from cutadapt.adapters import (BackAdapter, FrontAdapter, PrefixAdapter,
+                                       RightmostFrontAdapter, SuffixAdapter)
+        ends = set()
+        for a in mod.adapters:
+            if isinstance(a, (BackAdapter, SuffixAdapter)):
+                ends.add("3'")
+            elif isinstance(a, (FrontAdapter, PrefixAdapter,
+                                RightmostFrontAdapter)):
+                ends.add("5'")
+        if ends:
+            return "/".join(sorted(ends))
+        return ""
+    if getattr(mod, "length", 0) > 0:
+        return "5'"
+    if getattr(mod, "length", 0) < 0:
+        return "3'"
+    front = getattr(mod, "cutoff_front", 0) or 0
+    back = getattr(mod, "cutoff_back", 0) or 0
+    if front and back:
+        return "5'/3'"
+    if front:
+        return "5'"
+    if back:
+        return "3'"
+    if hasattr(mod, "base"):  # PolyTailModifier trims the 3' terminal run
+        return "3'"
+    return ""
+
+
 def _describe(mod):
-    """Render a modifier readably for dry-run logs (native reprs are opaque)."""
+    """Render a modifier readably for dry-run logs / graph (each cutter is
+    annotated with the end it trims: 5' = left, 3' = right)."""
     if isinstance(mod, tuple):
-        return f"({_describe(mod[0])}, {_describe(mod[1])})"
+        a = _describe(mod[0]) if mod[0] else ""
+        b = _describe(mod[1]) if mod[1] else ""
+        return f"({a}, {b})"
     if isinstance(mod, AdapterCutter):
         parts = ", ".join(a.sequence for a in mod.adapters)
-        return f"AdapterCutter({parts})"
+        end = _cut_end(mod)
+        return f"AdapterCutter({parts}) [{end}]" if end else f"AdapterCutter({parts})"
     if isinstance(mod, _renamers):
         return f"{type(mod).__name__}({mod._template!r})"
     if hasattr(mod, "_template"):
@@ -383,7 +420,8 @@ def _describe(mod):
         if name == "function":  # fast-renamer closure
             name = "Renamer"
         return f"{name}({mod._template!r})"
-    return repr(mod)
+    end = _cut_end(mod)
+    return f"{mod!r} [{end}]" if end else repr(mod)
 
 
 def _graph_escape(s):
