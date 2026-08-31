@@ -222,6 +222,61 @@ def test_threaded_rename_deterministic():
         assert a and a == b
 
 
+# --- spatial (DBiT) interleaved 3' structure ---------------------------------
+#
+# m6A-ARTR-DBiT / Glori style:
+#   TSO : X22 N8 X30 N8 X28 N10 TTT...TTT
+# Single-end R1 reads TSO | insert | X22 | BC2 | X30 | BC1 | X28 | UMI | polyT.
+# The 3' side must be processed in REVERSED written (physical) order, not
+# grouped by token kind -- this was a real bug.
+
+
+def _dbit_pair():
+    import random
+
+    random.seed(11)
+    TSO = "AAGCAGTGGTATCAACGCAGAGT"
+    bc2 = "".join(random.choice("ACGT") for _ in range(8))
+    bc1 = "".join(random.choice("ACGT") for _ in range(8))
+    umi = "".join(random.choice("ACGT") for _ in range(10))
+    # avoid a UMI ending in 'T': greedy polyT trim would then absorb it (an
+    # inherent UMI<->polyT boundary ambiguity, not a trim error)
+    if umi[-1] == "T":
+        umi = umi[:-1] + "A"
+    ins = "".join(random.choice("ACGT") for _ in range(20))
+    x22 = "".join(random.choice("ACGT") for _ in range(22))
+    x30 = "".join(random.choice("ACGT") for _ in range(30))
+    x28 = "".join(random.choice("ACGT") for _ in range(28))
+    r1 = TSO + ins + x22 + bc2 + x30 + bc1 + x28 + umi + "T" * 12
+    return r1, bc2, bc1, umi
+
+
+def test_spatial_scheme_single_end_physical_order():
+    from cutseq.grammar import _capture_registry
+
+    r1, bc2, bc1, umi = _dbit_pair()
+    scheme = ("AAGCAGTGGTATCAACGCAGAGT : X22 N8 X30 N8 X28 N10 TTT...TTT"
+              )  # spaces must be tolerated
+    s = CutadaptConfig()
+    cs = _build_scheme(scheme, s)
+    mods = _scheme_modifiers(cs, paired=False, settings=s)
+    mods[-1] = cs.renamer(paired=False, name_format="{id}_BC2:{1}_BC1:{2}_UMI:{3}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        read = SequenceRecord("x", r1, "I" * len(r1))
+        info = ModificationInfo(read)
+        for m in mods:
+            out = m(read, info)
+            if out is not None:
+                read = out
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        _capture_registry.clear()
+    assert read.name == f"x_BC2:{bc2}_BC1:{bc1}_UMI:{umi}"
+    # only the 20 nt insert remains
+    assert len(read.sequence) == 20
+
+
 def test_cli_rename_single_end():
     # single-end on the same scheme: capture2 & the inline are at R1's 3' end
     with tempfile.TemporaryDirectory() as td:

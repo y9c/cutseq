@@ -92,6 +92,14 @@ def test_polytail_does_not_swallow_insert():
     ]
 
 
+def test_whitespace_is_ignored():
+    """Whitespace may be used for readability; it never alters tokens."""
+    assert _describe(tokenize("ACGT N8")) == _describe(tokenize("ACGTN8"))
+    assert _describe(tokenize("AAGCAGTGGTATCAACGCAGAGT : X22 N8 X30 N8 "
+                              "X28 N10 TTT...TTT")) == _describe(
+        tokenize("AAGCAGTGGTATCAACGCAGAGT:X22N8X30N8X28N10TTT...TTT"))
+
+
 def test_homopolymer_adapter_numeric():
     """A12 expands to a 12-base homopolymer adapter."""
     assert _describe(tokenize("A12")) == [("adp", "AAAAAAAAAAAA")]

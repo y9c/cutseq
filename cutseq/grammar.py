@@ -115,13 +115,17 @@ def tokenize(scheme):
     Tokens are delimited by character-class transitions (no whitespace
     required): uppercase runs -> adapter, lowercase runs -> inline barcode,
     ``N``/``X`` (+ optional length) -> capture/mask, ``: + -`` -> insert marker,
-    and ``A...A``-style dot-delimited runs -> poly-A/T tail.
+    and ``A...A``-style dot-delimited runs -> poly-A/T tail. Whitespace is
+    ignored, so a scheme may be written with spaces for readability.
     """
     tokens = []
     i = 0
     n = len(scheme)
     while i < n:
         ch = scheme[i]
+        if ch.isspace():
+            i += 1
+            continue
         if ch in _INSERT:
             tokens.append(_Token("insert", ch))
             i += 1
@@ -736,12 +740,22 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
     rev_left, rev_right = list(reversed(left)), list(reversed(right))
 
     if not paired or orientation is None:
+        # Single-end: the scheme is a top-strand molecular map of the single
+        # read. Left-side tokens are applied 5' -> 3' in written order; the
+        # right-side tokens are the molecule's 3' continuation, so they are
+        # read from the 3' end inward -- i.e. in REVERSED written order. This
+        # preserves the physical order when masks / captures / poly-tails are
+        # interleaved (e.g. spatial/DBiT schemes), and each token uses its
+        # 5' / single-end-3' emitter.
         r1 = []
-        for kind in _SINGLE_KINDS:
-            five, _, se_three = _EMITTERS[kind]
-            r1 += [five(t, ctx) for t in _side(left, kind) if five is not None]
-            r1 += [se_three(t, ctx) for t in _side(rev_right, kind)
-                   if se_three is not None]
+        for t in left:
+            five = _EMITTERS[t.kind][0]
+            if five is not None:
+                r1.append(five(t, ctx))
+        for t in rev_right:
+            se_three = _EMITTERS[t.kind][2]
+            if se_three is not None:
+                r1.append(se_three(t, ctx))
         return r1, []
 
     mods1, mods2 = [], []
