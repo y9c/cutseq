@@ -262,10 +262,14 @@ def test_spatial_scheme_single_end_physical_order():
 
     r1, bcB, bcA, umi = _dbit_pair()
     # space-free scheme for Read 1 (single-end). P7/i7 are 5'-upstream of the
-    # R1 primer (not read); the 3' arm is the Nextera Tn5/R2/i5/P5 side.
-    scheme = ("CAAGCGTTGGCTTCTCGCATCT:N8ATCCACGTGCTTGAGAGGCCAGAGCATTCG"
-              "N8GTGGCCGATGTTTCGCATCGGCGTACGACTN10TTT...TTT"
-              "CTGTCTCTTATACACATCTGACGCTGCCGACGATAGATCGC"
+    # R1 primer (not read); BCB..polyT are the 5' side, the cDNA insert is
+    # implicit between polyT and the Nextera Tn5/R2/i5/P5 3' arm (so ':' sits
+    # right before the Tn5 arm).
+    scheme = ("CAAGCGTTGGCTTCTCGCATCT"
+              "N8ATCCACGTGCTTGAGAGGCCAGAGCATTCG"
+              "N8GTGGCCGATGTTTCGCATCGGCGTACGACT"
+              "N10TTT...TTT"
+              ":CTGTCTCTTATACACATCTGACGCTGCCGACGATAGATCGC"
               "GTGTAGATCTCGGTGGTCGCCGTATCATT")
     s = CutadaptConfig()
     cs = _build_scheme(scheme, s)
