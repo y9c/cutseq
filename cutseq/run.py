@@ -688,9 +688,8 @@ def main():
         "is the 3' continuation, matched on R2 as its reverse complement). "
         "Uppercase ACGT.. are adapters, lowercase "
         "acgt.. are inline barcodes, N.. are UMI captures, X.. are masks, and "
-        "`+`, `-`, `:`, `&` split the library into R1 | R2 (sense / antisense / "
-        "unstranded; `&` = same-strand paired, both reads sequenced 5'->3' on "
-        "the same strand, e.g. spatial RNA libraries).",
+        "`+`, `-`, `:` split the library into R1 | R2 (sense / antisense / "
+        "unstranded).",
     )
     parser.add_argument(
         "-O",
