@@ -84,7 +84,7 @@ class LowAverageQuality(Predicate):
         return f"LowAverageQuality(min={self.min_avg_quality})"
 
     def test(self, read, info):
-        if len(read) == 0:
+        if len(read) == 0 or read.qualities is None:
             return False
         # Phred+33 encoding: each byte is ord(qual) - 33.
         return (sum(b - 33 for b in read.qualities.encode()) / len(read)
@@ -153,6 +153,89 @@ def _apply_statistics_guard():
         Statistics._collect_modifier = _guarded_collect_modifier
 
 
+def _option_arities(parser):
+    """Map each option string to how many values it consumes.
+
+    Derived directly from the parser's actions so it cannot drift from the CLI
+    spec: ``0`` for flags (``store_true`` / ``BooleanOptionalAction``), ``1``
+    for single-value options, and ``'many'`` for the varargs ``-o``/``-d``
+    options.
+    """
+    arities = {}
+    for opt, action in parser._option_string_actions.items():
+        n = action.nargs  # None -> 1; 0 -> 0; "+" -> many
+        arities[opt] = "many" if n == "+" else (1 if n is None else 0)
+    return arities
+
+
+def _reorder_inputs_first(argv, arities):
+    """Reorder ``argv`` so the positional input reads come before the options.
+
+    argparse greedily assigns *every* trailing token to an ``nargs='+'`` option
+    (``-o`` / ``-d``) when the ``nargs='*'`` ``input_file`` positional is still
+    empty, so ``cutseq -A X -o a.fq b.fq in.fq`` swallows ``in.fq`` as an
+    output file and then fails with "Input file is required". Reordering lets
+    input files be given before or after the options.
+
+    The two valid input counts (2 = paired, then 1 = single-end) are tried as
+    a fixed point: a count ``k`` is consistent when the walk consumes exactly
+    ``k`` values for each varargs option and collects exactly ``k`` leftover
+    positional tokens. The first consistent count wins; argv is rewritten with
+    those positionals moved to the front. If no count is consistent (a genuine
+    user error, or ``--`` is used so argparse should handle it), argv is
+    returned unchanged and argparse reports its own error.
+    """
+    if not argv or "--" in argv:
+        return argv
+    # If a real positional token appears before the first varargs option
+    # (-o/-d), argparse can already disambiguate; leave argv untouched.
+    # Option *values* (e.g. 'SMALLRNA' after -A) are skipped during the walk.
+    i, n = 0, len(argv)
+    identity_safe = False
+    while i < n:
+        t = argv[i]
+        if t in arities:
+            a = arities[t]
+            if a == "many":
+                break
+            i += 1 + (1 if a == 1 else 0)
+        else:
+            identity_safe = True
+            break
+    if identity_safe:
+        return argv
+    for k in (2, 1, 0):
+        inputs, rest = [], []
+        i, n = 0, len(argv)
+        ok = True
+        while i < n and ok:
+            tok = argv[i]
+            if tok in arities:
+                arity = arities[tok]
+                rest.append(tok)
+                i += 1
+                if arity == "many":
+                    for _ in range(k):
+                        if i >= n or argv[i] in arities:
+                            ok = False
+                            break
+                        rest.append(argv[i])
+                        i += 1
+                elif arity == 1:
+                    if i >= n:
+                        ok = False
+                        break
+                    rest.append(argv[i])
+                    i += 1
+                # arity == 0: a flag, nothing to consume
+            else:
+                inputs.append(tok)
+                i += 1
+        if ok and len(inputs) == k:
+            return inputs + rest
+    return argv
+
+
 __version__ = importlib.metadata.version(__package__ or __name__)
 
 
@@ -178,7 +261,6 @@ class CutadaptConfig:
     force_trim_min_length: int = 50
     force_anywhere: bool = False
     name_format: Optional[str] = None
-    capture_separator: Optional[str] = None
     auto_inline: bool = True
 
 
@@ -291,6 +373,11 @@ def _describe(mod):
         return f"AdapterCutter({parts})"
     if isinstance(mod, _renamers):
         return f"{type(mod).__name__}({mod._template!r})"
+    if hasattr(mod, "_template"):
+        name = getattr(mod, "__name__", type(mod).__name__)
+        if name == "function":  # fast-renamer closure
+            name = "Renamer"
+        return f"{name}({mod._template!r})"
     return repr(mod)
 
 
@@ -331,8 +418,7 @@ def _scheme_modifiers(cs, paired, settings):
                 "oriented via the scheme's strand marker."
             )
         modifiers.append(cs.renamer(paired=True,
-                                    name_format=settings.name_format,
-                                    capture_separator=settings.capture_separator))
+                                    name_format=settings.name_format))
         return modifiers
 
     modifiers, _ = cs.modifiers(paired=False)
@@ -349,13 +435,11 @@ def _scheme_modifiers(cs, paired, settings):
                 "ignoring --auto-rc."
             )
     modifiers = modifiers + [cs.renamer(paired=False,
-                                        name_format=settings.name_format,
-                                        capture_separator=settings.capture_separator)]
+                                        name_format=settings.name_format)]
     return modifiers
 
 
-def pipeline_grammar_single(input1, output1, discard1, scheme,
-                            barcode_names, settings):
+def pipeline_grammar_single(input1, output1, discard1, scheme, settings):
     """Run a single-end library-grammar pipeline (see cutseq.grammar).
 
     ``discard1`` is the path for discarded reads; each discarded read has its
@@ -401,14 +485,14 @@ def pipeline_grammar_single(input1, output1, discard1, scheme,
         stats = runner.run(pipeline, Progress(), outfiles)
 
         if settings.json_file is not None:
-            json_report(settings.json_file, stats, {}, input1, None,
+            json_report(settings.json_file, stats, cs.summary(), input1, None,
                         output1, None, discard1, None)
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
 
 
 def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2,
-                            scheme, barcode_names, settings):
+                            scheme, settings):
     """Run a paired-end library-grammar pipeline (see cutseq.grammar).
 
     ``discard1``/``discard2`` are the paths for discarded read pairs; each
@@ -462,7 +546,7 @@ def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2
         stats = runner.run(pipeline, Progress(), outfiles)
 
         if settings.json_file is not None:
-            json_report(settings.json_file, stats, {}, input1, input2,
+            json_report(settings.json_file, stats, cs.summary(), input1, input2,
                         output1, output2, discard1, discard2)
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
@@ -494,20 +578,18 @@ def run_cutseq(args):
     settings.force_trim_min_length = args.force_trim_min_length  # Pass from args
     settings.force_anywhere = args.force_anywhere
     settings.name_format = args.name_format
-    settings.capture_separator = args.capture_separator
     settings.auto_inline = not args.no_auto_inline
-    names = [x for x in args.barcode_names.split(",")] if args.barcode_names else None
     if len(args.input_file) == 1:
         pipeline_grammar_single(
             args.input_file[0], args.output_file[0], args.discard_file[0],
-            args.adapter_scheme, names, settings,
+            args.adapter_scheme, settings,
         )
     else:
         pipeline_grammar_paired(
             args.input_file[0], args.input_file[1],
             args.output_file[0], args.output_file[1],
             args.discard_file[0], args.discard_file[1],
-            args.adapter_scheme, names, settings,
+            args.adapter_scheme, settings,
         )
 
 
@@ -543,7 +625,10 @@ def main():
         dest="adapter_scheme",
         type=str,
         help="Adapter scheme. Either a built-in adapter name (e.g. TAKARAV3) or a "
-        "custom grammar scheme string. Uppercase ACGT.. are adapters, lowercase "
+        "custom grammar scheme string. The scheme is a top-strand molecular map "
+        "written 5' to 3' (left of `+`/`-`/`:` applies to R1 as-is; right of it "
+        "is the 3' continuation, matched on R2 as its reverse complement). "
+        "Uppercase ACGT.. are adapters, lowercase "
         "acgt.. are inline barcodes, N.. are UMI captures, X.. are masks, and "
         "`+`, `-`, `:` split the library into R1 | R2 (sense / antisense / "
         "unstranded).",
@@ -574,14 +659,6 @@ def main():
         "'no_barcode' (missing an expected inline barcode, only with "
         "--ensure-inline-barcode). Must match number of input files.",
     )
-    parser.add_argument(
-        "--barcode-names",
-        type=str,
-        help="Comma-separated capture labels for the library grammar, in the order "
-        "the captures appear in the scheme. If omitted, captures are named "
-        "barcode1, barcode2, ...",
-    )
-
     parser.add_argument(
         "--json-file",
         type=str,
@@ -653,21 +730,22 @@ def main():
     )
 
     parser.add_argument(
+        "--rename",
         "--name-format",
+        dest="name_format",
         type=str,
         default=None,
-        help="Custom read name template in cutadapt's brace syntax, e.g. "
-        "'{id}_{cut_prefix}_{cut_suffix}'. By default read names follow "
-        "legacy naming: captured UMIs/barcodes appended to the original name "
-        "with '_'.",
-    )
-    parser.add_argument(
-        "--capture-separator",
-        type=str,
-        default=None,
-        help="Separator inserted between captured UMIs/barcodes in the default "
-        "read name template (e.g. '_'). Only used when --name-format is not "
-        "set; default reproduces legacy naming exactly.",
+        help="Custom read name template. Uses cutadapt's brace variables "
+        "({id}, {header}, {comment}, {cut_prefix}, {cut_suffix}, "
+        "{adapter_name}, {match_sequence}, {rc}) plus positional captures "
+        "{1}, {2}, ... (1-based, scheme written order; N-captures and inline "
+        "barcodes counted together, e.g. YAML scheme label: names can also be "
+        "used). Transform functions "
+        "may wrap a capture and nest, e.g. rc({1}), upper(RC({1})), "
+        "rev({1}), comp({1}), canon({1}), len({1}), left({2},6), "
+        "right({2},6), slice({1},1,4). In paired mode {r1.1}/{r2.1} force a "
+        "side. Example: --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})'. "
+        "--name-format is accepted as an alias.",
     )
 
     parser.add_argument(
@@ -688,7 +766,10 @@ def main():
     parser.add_argument(
         "--auto-rc",
         action="store_true",
-        help="Automatically reverse complement reads if the library strand (from adapter scheme) is '-'. For paired-end, R1 and R2 will be swapped.",
+        help="Automatically reverse complement reads if the library strand "
+        "(from adapter scheme) is '-'. Only applies to single-end data: for "
+        "paired-end the R1/R2 orientation is fixed by the scheme's strand "
+        "marker and --auto-rc is ignored (a warning is printed).",
     )
 
     parser.add_argument(
@@ -721,7 +802,10 @@ def main():
         parser.print_help(sys.stdout)
         sys.exit(0)
 
-    args = parser.parse_args()
+    # Work around argparse's nargs='+' greediness (see _reorder_inputs_first):
+    # allow input files to be given before *or* after -o/-d.
+    args = parser.parse_args(_reorder_inputs_first(sys.argv[1:],
+                                                   _option_arities(parser)))
 
     if args.list_adapters:
         print_builtin_adapters()
@@ -794,8 +878,20 @@ def main():
     args.discard_file = validate_output_file(
         args.discard_file, args.input_file, args.output_prefix, "discard"
     )
+    if args.ensure_inline_barcode and args.discard_file[0] is None:
+        logging.warning(
+            "--ensure-inline-barcode is set but no discard output is configured "
+            "(use -d/--discard-file or -O/--output-prefix). Reads that miss an "
+            "inline barcode will NOT be screened out."
+        )
 
-    run_cutseq(args)
+    try:
+        run_cutseq(args)
+    except (ValueError, OSError) as e:
+        # Scheme / --rename template / YAML / file-not-found errors: report
+        # cleanly, no traceback.
+        logging.error(str(e))
+        sys.exit(2)
 
 
 if __name__ == "__main__":

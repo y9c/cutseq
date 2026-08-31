@@ -125,7 +125,9 @@ def test_cli_accepts_yaml_file_single():
             [CUTSEQ, "-A", y, "-n", R1], capture_output=True, text=True
         )
         assert p.returncode == 0, p.stderr
-        assert "ConditionalCutter(length=8)" in p.stderr + p.stdout
+        assert "ConditionalCutter(length=8" in p.stderr + p.stdout
+        # The YAML 'label: umi' capture should be visible in dry-run output.
+        assert "name=umi" in p.stderr + p.stdout
 
 
 def test_cli_runs_paired_yaml():

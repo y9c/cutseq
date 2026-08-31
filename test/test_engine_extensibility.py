@@ -1,5 +1,5 @@
 """Tests for the extensible engine API: CompiledScheme, the token-kind
-registry, and read-name customization (--name-format / --capture-separator)."""
+registry, and read-name customization (--name-format / --rename)."""
 
 import sys
 import tempfile
@@ -42,9 +42,12 @@ def test_make_renamer_custom_format():
     assert r._template == "{id}|{cut_suffix}"
 
 
-def test_make_renamer_capture_separator():
-    r = grammar.make_renamer(True, has_captures=True, capture_separator=":")
-    assert r._template == "{id}:{r1.cut_prefix}:{r2.cut_prefix}"
+def test_make_renamer_name_format_template():
+    # the --rename template is stored verbatim for introspection
+    orientation, left, right = grammar.parse_scheme("ACGT+N8")
+    cs = grammar.CompiledScheme(orientation, left, right)
+    r = cs.renamer(paired=True, name_format="{id}:{1}")
+    assert r._template == "{id}:{1}"
 
 
 def test_make_renamer_defaults_match_legacy():
@@ -70,7 +73,7 @@ def test_cli_name_format_flag():
     cutseq = str(ROOT / ".venv" / "bin" / "cutseq")
     r = subprocess.run([cutseq, "--help"], capture_output=True, text=True)
     assert "--name-format" in r.stdout
-    assert "--capture-separator" in r.stdout
+    assert "--rename" in r.stdout
 
 
 def test_cli_name_format_end_to_end():

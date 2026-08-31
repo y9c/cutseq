@@ -19,8 +19,7 @@ R2 = str(ROOT / "test" / "input_R2.fq.gz")
 
 sys.path.insert(0, str(ROOT))
 from cutseq import grammar  # noqa: E402
-from cutseq.primers import (MIN_PRIMER_MATCH, SEQUENCING_PRIMERS,  # noqa: E402
-                            is_known_primer, primer_name)
+from cutseq.primers import is_known_primer, primer_name  # noqa: E402
 
 
 def _kinds(scheme):
