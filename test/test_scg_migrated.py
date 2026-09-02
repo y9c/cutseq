@@ -10,8 +10,12 @@ assert barcode/UMI extraction + trimming through the real modifier pipeline.
 
 import random
 import sys
-import tomllib
 from pathlib import Path
+
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:
+    import tomli as tomllib  # Python < 3.11
 
 import pytest
 
