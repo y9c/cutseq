@@ -42,6 +42,31 @@ def load_adapters() -> dict:
     return out
 
 
+def load_adapters_no_auto_inline() -> frozenset:
+    """Names of built-in schemes that must skip inline-barcode auto-detection.
+
+    Migrated SCG/seqspec schemes are fully typed (barcode/UMI/adapter roles
+    are explicit in the grammar), so cutseq's ``auto_inline`` heuristic — which
+    reclassifies an uppercase run between two sequencing primers as an inline
+    barcode — would mislabel genuine structural linkers. Each such scheme
+    declares ``auto_inline = false`` in adapters.toml; this returns the set of
+    names that carry that flag (resolving ``alias_of`` chains).
+    """
+    adapter_info = _load_adapter_meta()
+    out = set()
+    for k, v in adapter_info.items():
+        if not isinstance(v, dict):
+            continue
+        marked = v.get("auto_inline") is False
+        if marked and "scheme" in v:
+            out.add(k)
+        elif marked and v.get("alias_of"):
+            tgt = adapter_info.get(v["alias_of"])
+            if tgt and "scheme" in tgt:
+                out.add(k)
+    return frozenset(out)
+
+
 BUILDIN_ADAPTERS = load_adapters()
 
 
@@ -76,7 +101,6 @@ def remove_fq_suffix(f):
     return f
 
 
-
 def print_builtin_adapters():
     """
     Print all built-in adapter names and their schemes in a well-organized, pretty table.
@@ -98,11 +122,13 @@ def print_builtin_adapters():
     max_scheme_len = max(len(scheme) for scheme in BUILDIN_ADAPTERS.values())
     # Header
     print(f"{'Name'.ljust(max_name_len)}   {'Scheme'}")
-    print(f"{'-'*max_name_len}   {'-'*max(30, min(max_scheme_len, 100))}")
+    print(f"{'-' * max_name_len}   {'-' * max(30, min(max_scheme_len, 100))}")
     # Print each adapter, wrapping long schemes
     for name, scheme in BUILDIN_ADAPTERS.items():
         wrapped_scheme = wrap(scheme, width=100)
         print(f"{labels[name].ljust(max_name_len)}   {wrapped_scheme[0]}")
         for cont in wrapped_scheme[1:]:
-            print(f"{' '*max_name_len}   {cont}")
-    print("\nUse the adapter name or a custom grammar scheme with -A/--adapter-scheme (-a is an alias).\n")
+            print(f"{' ' * max_name_len}   {cont}")
+    print(
+        "\nUse the adapter name or a custom grammar scheme with -A/--adapter-scheme (-a is an alias).\n"
+    )

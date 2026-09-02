@@ -8,15 +8,18 @@
 
 import argparse
 import importlib.metadata
-import json
 import logging
+import os
 import sys
+import tempfile
 from dataclasses import dataclass
 from typing import Optional
 
 import cutadapt
+import dnaio
 from cutadapt.adapters import RightmostFrontAdapter
 from cutadapt.files import InputPaths, OutputFiles
+from cutadapt.json import dumps as json_dumps
 from cutadapt.pipeline import PairedEndPipeline, SingleEndPipeline
 from cutadapt.predicates import Predicate, TooManyN, TooShort
 from cutadapt.report import Statistics, minimal_report
@@ -39,6 +42,7 @@ from cutadapt.utils import Progress
 
 from .common import (
     BUILDIN_ADAPTERS,
+    load_adapters_no_auto_inline,
     print_builtin_adapters,
     remove_fq_suffix,
 )
@@ -88,8 +92,29 @@ class LowAverageQuality(Predicate):
         if len(read) == 0 or read.qualities is None:
             return False
         # Phred+33 encoding: each byte is ord(qual) - 33.
-        return (sum(b - 33 for b in read.qualities.encode()) / len(read)
-                < self.min_avg_quality)
+        return (
+            sum(b - 33 for b in read.qualities.encode()) / len(read)
+            < self.min_avg_quality
+        )
+
+
+class NoCassette(Predicate):
+    """Select reads where not all of the given R2-arm (barcode cassette)
+    adapter sequences matched — used by ``--require-cassette`` to discard
+    pairs whose R2 lacks the spatial barcode cassette (reason=no_cassette).
+    Cutadapt rebuilds adapter objects per match, so comparison is by adapter
+    *sequence* against ``info.matches``.
+    """
+
+    def __init__(self, ref_adapters):
+        self.ref_seqs = [getattr(a, "sequence", None) for a in ref_adapters]
+
+    def __repr__(self):
+        return f"NoCassette(ref_seqs={self.ref_seqs})"
+
+    def test(self, read, info):
+        matched = {getattr(m.adapter, "sequence", None) for m in info.matches}
+        return not all(s in matched for s in self.ref_seqs)
 
 
 class _TaggedSingleEndFilter(SingleEndFilter):
@@ -114,8 +139,7 @@ class _TaggedPairedEndFilter(PairedEndFilter):
     """PairedEndFilter that appends ``reason=...`` to both read names before
     writing, so a single shared discard file can carry multiple reasons."""
 
-    def __init__(self, predicate1, predicate2, writer, reason,
-                 pair_filter_mode="any"):
+    def __init__(self, predicate1, predicate2, writer, reason, pair_filter_mode="any"):
         super().__init__(predicate1, predicate2, writer, pair_filter_mode)
         self._reason = reason
 
@@ -128,6 +152,7 @@ class _TaggedPairedEndFilter(PairedEndFilter):
                 self.writer.write(read1, read2)
             return None
         return read1, read2
+
 
 #  statistics workaround ....
 # cutadapt's Statistics._collect_modifier contains an assert that can be
@@ -250,6 +275,8 @@ class CutadaptConfig:
 
     rname_suffix: bool = False
     ensure_inline_barcode: bool = False
+    require_cassette: bool = False
+    head: Optional[int] = None
     conditional_cutter: bool = True
     min_length: int = 20
     min_quality: int = 20
@@ -266,7 +293,9 @@ class CutadaptConfig:
     seq_primer1: Optional[str] = None
     seq_primer2: Optional[str] = None
     r1_primer: Optional[str] = None  # R1 sequencing primer -> injected (outer left)
-    r2_primer: Optional[str] = None  # R2 sequencing primer -> injected (outer right, RC)
+    r2_primer: Optional[str] = (
+        None  # R2 sequencing primer -> injected (outer right, RC)
+    )
 
 
 def json_report(
@@ -341,7 +370,7 @@ def json_report(
             if m.get("three_prime_end"):
                 m["three_prime_end"]["trimmed_lengths"] = []
     with open(file, "w") as json_file:
-        json_file.write(json.dumps(d, indent=2))
+        json_file.write(json_dumps(d, indent=2))
 
 
 def _resolve_scheme(scheme, auto_inline=True):
@@ -361,8 +390,10 @@ def _print_known_primers():
     """Print the known sequencing primers used for inline-barcode detection."""
     from .primers import MIN_PRIMER_MATCH, SEQUENCING_PRIMERS
 
-    print(f"\nKnown sequencing primers (terminal match >= {MIN_PRIMER_MATCH} bp, "
-          f"either strand) used for inline-barcode auto-detection:\n")
+    print(
+        f"\nKnown sequencing primers (terminal match >= {MIN_PRIMER_MATCH} bp, "
+        f"either strand) used for inline-barcode auto-detection:\n"
+    )
     width = max(len(n) for n in SEQUENCING_PRIMERS)
     for name, seq in SEQUENCING_PRIMERS.items():
         print(f"{name.ljust(width)}  {seq}")
@@ -385,14 +416,19 @@ _ADAPTER_MATCH = {
 def _recap(mod):
     """The read end a modifier trims (5' left / 3' right)."""
     if isinstance(mod, AdapterCutter):
-        from cutadapt.adapters import (BackAdapter, FrontAdapter, PrefixAdapter,
-                                       RightmostFrontAdapter, SuffixAdapter)
+        from cutadapt.adapters import (
+            BackAdapter,
+            FrontAdapter,
+            PrefixAdapter,
+            RightmostFrontAdapter,
+            SuffixAdapter,
+        )
+
         ends = set()
         for a in mod.adapters:
             if isinstance(a, (BackAdapter, SuffixAdapter)):
                 ends.add("3'")
-            elif isinstance(a, (FrontAdapter, PrefixAdapter,
-                                RightmostFrontAdapter)):
+            elif isinstance(a, (FrontAdapter, PrefixAdapter, RightmostFrontAdapter)):
                 ends.add("5'")
         if ends:
             return "/".join(sorted(ends))
@@ -427,8 +463,12 @@ def _describe(mod):
     if isinstance(mod, AdapterCutter):
         parts = ", ".join(a.sequence for a in mod.adapters)
         end = _recap(mod)
-        tags = sorted({_ADAPTER_MATCH.get(type(a).__name__, type(a).__name__)
-                       for a in mod.adapters})
+        tags = sorted(
+            {
+                _ADAPTER_MATCH.get(type(a).__name__, type(a).__name__)
+                for a in mod.adapters
+            }
+        )
         strat = "; ".join(tags)
         detail = f"{end}; {strat}" if end and strat else (end or strat)
         return f"AdapterCutter({parts}) [{detail}]"
@@ -551,13 +591,14 @@ def _render_trimming_graph(cs, settings, paired):
 def _build_scheme(scheme, settings):
     """Resolve a scheme value (built-in name / grammar string / YAML tokens)
     into a CompiledScheme bound to the current pipeline settings."""
-    orientation, left, right = _resolve_scheme(scheme,
-                                               auto_inline=settings.auto_inline)
+    orientation, left, right = _resolve_scheme(scheme, auto_inline=settings.auto_inline)
     # NOTE: --r1-primer / --r2-primer are sequencing PRIMERS: they anneal
     # upstream of where each read starts and are NOT part of the read, so they
     # are never trimmed here (only informative / for future auto-detection).
     return CompiledScheme(
-        orientation, left, right,
+        orientation,
+        left,
+        right,
         conditional_cutter=settings.conditional_cutter,
         force_trim_min_length=settings.force_trim_min_length,
         force_anywhere=settings.force_anywhere,
@@ -567,8 +608,7 @@ def _build_scheme(scheme, settings):
 def _primer_cutter(seq):
     """A 5' front-adapter that trims a sequencing read's 5' primer if present
     (no-op if the sequence isn't at the read's 5' end)."""
-    return AdapterCutter([RightmostFrontAdapter(seq, max_errors=0.1,
-                                                min_overlap=10)])
+    return AdapterCutter([RightmostFrontAdapter(seq, max_errors=0.1, min_overlap=10)])
 
 
 def _scheme_modifiers(cs, paired, settings):
@@ -578,29 +618,38 @@ def _scheme_modifiers(cs, paired, settings):
         n = max(len(mods1), len(mods2))
         modifiers = []
         if settings.seq_primer1 or settings.seq_primer2:
-            modifiers.append((
-                _primer_cutter(settings.seq_primer1) if settings.seq_primer1 else None,
-                _primer_cutter(settings.seq_primer2) if settings.seq_primer2 else None,
-            ))
+            modifiers.append(
+                (
+                    _primer_cutter(settings.seq_primer1)
+                    if settings.seq_primer1
+                    else None,
+                    _primer_cutter(settings.seq_primer2)
+                    if settings.seq_primer2
+                    else None,
+                )
+            )
         if settings.rname_suffix:
             modifiers.append((SuffixRemover(".1"), SuffixRemover(".2")))
             modifiers.append((SuffixRemover("/1"), SuffixRemover("/2")))
         for i in range(n):
-            modifiers.append((
-                mods1[i] if i < len(mods1) else None,
-                mods2[i] if i < len(mods2) else None,
-            ))
-        modifiers.append((
-            QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
-            QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
-        ))
+            modifiers.append(
+                (
+                    mods1[i] if i < len(mods1) else None,
+                    mods2[i] if i < len(mods2) else None,
+                )
+            )
+        modifiers.append(
+            (
+                QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
+                QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality),
+            )
+        )
         if settings.auto_rc:
             logging.warning(
                 "--auto-rc is ignored for paired-end data: R1/R2 are already "
                 "oriented via the scheme's strand marker."
             )
-        modifiers.append(cs.renamer(paired=True,
-                                    name_format=settings.name_format))
+        modifiers.append(cs.renamer(paired=True, name_format=settings.name_format))
         return modifiers
 
     modifiers, _ = cs.modifiers(paired=False)
@@ -611,8 +660,9 @@ def _scheme_modifiers(cs, paired, settings):
         modifiers = [_primer_cutter(p)] + modifiers
     if settings.rname_suffix:
         modifiers = [SuffixRemover(".1"), SuffixRemover("/1")] + modifiers
-    modifiers = modifiers + [QualityTrimmer(cutoff_front=0,
-                                            cutoff_back=settings.min_quality)]
+    modifiers = modifiers + [
+        QualityTrimmer(cutoff_front=0, cutoff_back=settings.min_quality)
+    ]
     if settings.auto_rc:
         if cs.orientation == "-":
             modifiers.append(ReverseComplementModifier())
@@ -621,9 +671,64 @@ def _scheme_modifiers(cs, paired, settings):
                 "Library scheme is not '-' strand, but --auto-rc is enabled; "
                 "ignoring --auto-rc."
             )
-    modifiers = modifiers + [cs.renamer(paired=False,
-                                        name_format=settings.name_format)]
+    modifiers = modifiers + [cs.renamer(paired=False, name_format=settings.name_format)]
     return modifiers
+
+
+def _write_head(srcs, tmps, head):
+    """Copy the first ``head`` records of ``srcs`` into the temp fastq files
+    ``tmps`` (plain format, compact enough for a small debug subset)."""
+
+    def fmt(rec):
+        return f"@{rec.name}\n{rec.sequence}\n+\n{rec.qualities or ''}\n"
+
+    if len(srcs) == 1:
+        with dnaio.open(srcs[0], fileformat="fastq") as reader:
+            with open(tmps[0], "w") as w:
+                for i, rec in enumerate(reader):
+                    if i >= head:
+                        break
+                    w.write(fmt(rec))
+    else:
+        with dnaio.open(srcs[0], srcs[1], fileformat="fastq") as reader:
+            with open(tmps[0], "w") as w1, open(tmps[1], "w") as w2:
+                for i, (a, b) in enumerate(reader):
+                    if i >= head:
+                        break
+                    w1.write(fmt(a))
+                    w2.write(fmt(b))
+
+
+def _apply_head(inpaths, head):
+    """Limit the input to the first ``head`` records by writing them to small
+    temporary fastq files, so the subset can be run with multiple cores.
+    Returns ``(inpaths_on_tmp, cleanup)``; call ``cleanup()`` after the run
+    (leaks on crash are small and bounded)."""
+    if head is None or head <= 0:
+        return inpaths, (lambda: None)
+    tmps = []
+    for _ in inpaths.paths:
+        fd, tmp = tempfile.mkstemp(prefix="cutseq_head_", suffix=".fq")
+        os.close(fd)
+        tmps.append(tmp)
+    try:
+        _write_head(list(inpaths.paths), tmps, head)
+    except Exception:
+        for t in tmps:
+            try:
+                os.remove(t)
+            except OSError:
+                pass
+        raise
+
+    def cleanup():
+        for t in tmps:
+            try:
+                os.remove(t)
+            except OSError:
+                pass
+
+    return InputPaths(*tmps), cleanup
 
 
 def pipeline_grammar_single(input1, output1, discard1, scheme, settings):
@@ -642,7 +747,7 @@ def pipeline_grammar_single(input1, output1, discard1, scheme, settings):
             print(f"Step {i}: {_describe(m)}")
         return
 
-    inpaths = InputPaths(input1)
+    inpaths, _head_cleanup = _apply_head(InputPaths(input1), settings.head)
     with make_runner(inpaths, cores=settings.threads) as runner:
         outfiles = OutputFiles(
             proxied=settings.threads > 1,
@@ -650,36 +755,65 @@ def pipeline_grammar_single(input1, output1, discard1, scheme, settings):
             interleaved=False,
         )
         steps = []
-        discard_writer = (outfiles.open_record_writer(discard1, interleaved=False)
-                          if discard1 is not None else None)
+        discard_writer = (
+            outfiles.open_record_writer(discard1, interleaved=False)
+            if discard1 is not None
+            else None
+        )
         if settings.max_n is not None:
-            steps.append(_TaggedSingleEndFilter(
-                TooManyN(settings.max_n), discard_writer, "too_many_n"))
+            steps.append(
+                _TaggedSingleEndFilter(
+                    TooManyN(settings.max_n), discard_writer, "too_many_n"
+                )
+            )
         if settings.min_avg_quality is not None:
-            steps.append(_TaggedSingleEndFilter(
-                LowAverageQuality(settings.min_avg_quality), discard_writer,
-                "low_quality"))
-        steps.append(_TaggedSingleEndFilter(
-            TooShort(settings.min_length), discard_writer, "too_short"))
+            steps.append(
+                _TaggedSingleEndFilter(
+                    LowAverageQuality(settings.min_avg_quality),
+                    discard_writer,
+                    "low_quality",
+                )
+            )
+        steps.append(
+            _TaggedSingleEndFilter(
+                TooShort(settings.min_length), discard_writer, "too_short"
+            )
+        )
         r1_adps, _ = cs.inline_adapters(paired=False)
         if settings.ensure_inline_barcode and r1_adps and discard_writer is not None:
-            steps.append(_TaggedSingleEndFilter(
-                IsUntrimmedAny(r1_adps), discard_writer, "no_barcode"))
-        steps.append(SingleEndSink(
-            outfiles.open_record_writer(output1, interleaved=False),
-        ))
+            steps.append(
+                _TaggedSingleEndFilter(
+                    IsUntrimmedAny(r1_adps), discard_writer, "no_barcode"
+                )
+            )
+        steps.append(
+            SingleEndSink(
+                outfiles.open_record_writer(output1, interleaved=False),
+            )
+        )
         pipeline = SingleEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
 
         if settings.json_file is not None:
-            json_report(settings.json_file, stats, cs.summary(), input1, None,
-                        output1, None, discard1, None)
+            json_report(
+                settings.json_file,
+                stats,
+                cs.summary(),
+                input1,
+                None,
+                output1,
+                None,
+                discard1,
+                None,
+            )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
+    _head_cleanup()
 
 
-def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2,
-                            scheme, settings):
+def pipeline_grammar_paired(
+    input1, input2, output1, output2, discard1, discard2, scheme, settings
+):
     """Run a paired-end library-grammar pipeline (see cutseq.grammar).
 
     ``discard1``/``discard2`` are the paths for discarded read pairs; each
@@ -695,7 +829,7 @@ def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2
             print(f"Step {i}: {_describe(b)}")
         return
 
-    inpaths = InputPaths(input1, input2)
+    inpaths, _head_cleanup = _apply_head(InputPaths(input1, input2), settings.head)
     with make_runner(inpaths, cores=settings.threads) as runner:
         outfiles = OutputFiles(
             proxied=settings.threads > 1,
@@ -703,40 +837,87 @@ def pipeline_grammar_paired(input1, input2, output1, output2, discard1, discard2
             interleaved=False,
         )
         steps = []
-        discard_writer = (outfiles.open_record_writer(discard1, discard2,
-                                                      interleaved=False)
-                          if (discard1 is not None and discard2 is not None)
-                          else None)
+        discard_writer = (
+            outfiles.open_record_writer(discard1, discard2, interleaved=False)
+            if (discard1 is not None and discard2 is not None)
+            else None
+        )
         if settings.max_n is not None:
-            steps.append(_TaggedPairedEndFilter(
-                TooManyN(settings.max_n), TooManyN(settings.max_n),
-                discard_writer, "too_many_n"))
+            steps.append(
+                _TaggedPairedEndFilter(
+                    TooManyN(settings.max_n),
+                    TooManyN(settings.max_n),
+                    discard_writer,
+                    "too_many_n",
+                )
+            )
         if settings.min_avg_quality is not None:
-            steps.append(_TaggedPairedEndFilter(
-                LowAverageQuality(settings.min_avg_quality),
-                LowAverageQuality(settings.min_avg_quality),
-                discard_writer, "low_quality"))
-        steps.append(_TaggedPairedEndFilter(
-            TooShort(settings.min_length), TooShort(settings.min_length),
-            discard_writer, "too_short"))
+            steps.append(
+                _TaggedPairedEndFilter(
+                    LowAverageQuality(settings.min_avg_quality),
+                    LowAverageQuality(settings.min_avg_quality),
+                    discard_writer,
+                    "low_quality",
+                )
+            )
+        steps.append(
+            _TaggedPairedEndFilter(
+                TooShort(settings.min_length),
+                TooShort(settings.min_length),
+                discard_writer,
+                "too_short",
+            )
+        )
+        if settings.require_cassette and discard_writer is not None:
+            r2_arm_adps = cs.r2_arm_adapters(paired=True)
+            if r2_arm_adps:
+                steps.append(
+                    _TaggedPairedEndFilter(
+                        None,
+                        NoCassette(r2_arm_adps),
+                        discard_writer,
+                        "no_cassette",
+                        pair_filter_mode="any",
+                    )
+                )
         r1_adps, r2_adps = cs.inline_adapters(paired=True)
-        if (settings.ensure_inline_barcode and discard_writer is not None
-                and (r1_adps or r2_adps)):
-            steps.append(_TaggedPairedEndFilter(
-                IsUntrimmedAny(r1_adps) if r1_adps else None,
-                IsUntrimmedAny(r2_adps) if r2_adps else None,
-                discard_writer, "no_barcode", pair_filter_mode="any"))
-        steps.append(PairedEndSink(
-            outfiles.open_record_writer(output1, output2),
-        ))
+        if (
+            settings.ensure_inline_barcode
+            and discard_writer is not None
+            and (r1_adps or r2_adps)
+        ):
+            steps.append(
+                _TaggedPairedEndFilter(
+                    IsUntrimmedAny(r1_adps) if r1_adps else None,
+                    IsUntrimmedAny(r2_adps) if r2_adps else None,
+                    discard_writer,
+                    "no_barcode",
+                    pair_filter_mode="any",
+                )
+            )
+        steps.append(
+            PairedEndSink(
+                outfiles.open_record_writer(output1, output2),
+            )
+        )
         pipeline = PairedEndPipeline(modifiers, steps)
         stats = runner.run(pipeline, Progress(), outfiles)
 
         if settings.json_file is not None:
-            json_report(settings.json_file, stats, cs.summary(), input1, input2,
-                        output1, output2, discard1, discard2)
+            json_report(
+                settings.json_file,
+                stats,
+                cs.summary(),
+                input1,
+                input2,
+                output1,
+                output2,
+                discard1,
+                discard2,
+            )
         print(minimal_report(stats, time=None, gc_content=None), file=sys.stderr)
     outfiles.close()
+    _head_cleanup()
 
 
 def _ensure_seq_primers(settings, input_files):
@@ -749,6 +930,7 @@ def _ensure_seq_primers(settings, input_files):
     if not any(need):
         return
     from .primers import detect_5prime_from_reads
+
     try:
         results = detect_5prime_from_reads(input_files[:2])
     except Exception as e:  # missing/unreadable input in auto-detect
@@ -788,6 +970,8 @@ def run_cutseq(args):
     settings = CutadaptConfig()
     settings.rname_suffix = args.with_rname_suffix
     settings.ensure_inline_barcode = args.ensure_inline_barcode
+    settings.require_cassette = args.require_cassette
+    settings.head = args.head
     settings.conditional_cutter = args.conditional_cutter
     settings.threads = args.threads
     settings.min_length = args.min_length
@@ -801,6 +985,8 @@ def run_cutseq(args):
     settings.force_anywhere = args.force_anywhere
     settings.name_format = args.name_format
     settings.auto_inline = not args.no_auto_inline
+    if getattr(args, "scheme_no_auto_inline", False):
+        settings.auto_inline = False
     settings.seq_primer1 = args.seq_primer1
     settings.seq_primer2 = args.seq_primer2
     settings.r1_primer = args.r1_primer
@@ -808,15 +994,22 @@ def run_cutseq(args):
     _ensure_seq_primers(settings, args.input_file)
     if len(args.input_file) == 1:
         pipeline_grammar_single(
-            args.input_file[0], args.output_file[0], args.discard_file[0],
-            args.adapter_scheme, settings,
+            args.input_file[0],
+            args.output_file[0],
+            args.discard_file[0],
+            args.adapter_scheme,
+            settings,
         )
     else:
         pipeline_grammar_paired(
-            args.input_file[0], args.input_file[1],
-            args.output_file[0], args.output_file[1],
-            args.discard_file[0], args.discard_file[1],
-            args.adapter_scheme, settings,
+            args.input_file[0],
+            args.input_file[1],
+            args.output_file[0],
+            args.output_file[1],
+            args.discard_file[0],
+            args.discard_file[1],
+            args.adapter_scheme,
+            settings,
         )
 
 
@@ -885,6 +1078,13 @@ def main():
         "'low_quality' (mean Phred quality below --min-avg-quality), or "
         "'no_barcode' (missing an expected inline barcode, only with "
         "--ensure-inline-barcode). Must match number of input files.",
+    )
+    parser.add_argument(
+        "--head",
+        type=int,
+        default=None,
+        help="Process only the first N reads (or read pairs) and exit. "
+        "Useful for quick debugging / QC of a pipeline without a full run.",
     )
     parser.add_argument(
         "--json-file",
@@ -984,6 +1184,15 @@ def main():
     )
 
     parser.add_argument(
+        "--require-cassette",
+        action="store_true",
+        help="Paired-end only: discard read pairs whose R2 5' arm (the spatial "
+        "barcode cassette: handle -> barcode -> linker -> barcode -> linker -> "
+        "UMI) did NOT fully match, tagged reason=no_cassette. Removes reads "
+        "without a valid barcode cassette (e.g. failed constructs / mosaics).",
+    )
+
+    parser.add_argument(
         "--conditional-cutter",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -1080,8 +1289,9 @@ def main():
 
     # Work around argparse's nargs='+' greediness (see _reorder_inputs_first):
     # allow input files to be given before *or* after -o/-d.
-    args = parser.parse_args(_reorder_inputs_first(sys.argv[1:],
-                                                   _option_arities(parser)))
+    args = parser.parse_args(
+        _reorder_inputs_first(sys.argv[1:], _option_arities(parser))
+    )
 
     if args.list_adapters:
         print_builtin_adapters()
@@ -1112,7 +1322,11 @@ def main():
             f"Resolved built-in adapter name '{args.adapter_scheme}' to scheme."
         )
         args.adapter_scheme = builtin
+        args.scheme_no_auto_inline = (
+            args.adapter_scheme.upper() in load_adapters_no_auto_inline()
+        )
     else:
+        args.scheme_no_auto_inline = False
         logging.info(
             f"'{args.adapter_scheme}' is not a built-in adapter name; "
             f"interpreting as grammar scheme."
@@ -1165,6 +1379,8 @@ def main():
         # Print the lazy trimming graph and exit (no reads processed).
         settings = CutadaptConfig()
         settings.auto_inline = not args.no_auto_inline
+        if getattr(args, "scheme_no_auto_inline", False):
+            settings.auto_inline = False
         settings.conditional_cutter = args.conditional_cutter
         settings.force_trim_min_length = args.force_trim_min_length
         settings.force_anywhere = args.force_anywhere

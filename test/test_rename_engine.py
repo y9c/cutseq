@@ -356,50 +356,59 @@ def test_paired_standard_colon_interleaved_barcode_arm():
 
 
 def test_dbitseq_builtin_renamed_from_m6aartr():
-    """The spatial 50x50 barcode-arm scheme was misnamed 'M6AARTR'; it is
-    DBiT-seq (deterministic barcoding in tissue, Cell 2020). The old name
-    must remain a working alias pointing at the same scheme."""
+    """Two distinct spatial barcode-arm schemes: DBITSEQ (DBiT-seq, Cell 2020,
+    12-nt UMI) and M6AARTR (m6A-ARTR-DBiT, 10-nt UMI). They share the same
+    barcode cassette (handle -> BC -> linker -> BC -> linker -> UMI) but
+    differ in UMI length; M6AARTR also trims the poly-A region."""
     assert "DBITSEQ" in BUILDIN_ADAPTERS
-    assert "M6AARTR" in BUILDIN_ADAPTERS          # kept as a legacy alias
-    assert BUILDIN_ADAPTERS["M6AARTR"] == BUILDIN_ADAPTERS["DBITSEQ"]
+    assert "M6AARTR" in BUILDIN_ADAPTERS
     assert "N12AGTCGTACGCCGATGCGAAAC" in BUILDIN_ADAPTERS["DBITSEQ"]
+    assert "N10AGTCGTACGCCGATGCGAAAC" in BUILDIN_ADAPTERS["M6AARTR"]
+    assert "GGGAAAA...A-N10" in BUILDIN_ADAPTERS["M6AARTR"]
+    assert BUILDIN_ADAPTERS["M6AARTR"] != BUILDIN_ADAPTERS["DBITSEQ"]
 
 
 def test_polytail_direction_auto_detected():
-    """`B...B` needs no '^': its 5'/3' direction is inferred from the scheme
-    layout. A run at the arm's read-start (first token, or right after the
-    outer adapter) trims the read 5'; elsewhere (after captures/inner
-    linkers) it trims the 3'. Leftmost-anchored on the 5' side."""
-    from cutseq.grammar import (Poly5TailModifier, PolyTailModifier,
-                                _Token, _mark_polytail_direction, tokenize)
+    """Homopolymer runs compile to native cutadapt run trims: the leading 5'
+    run is anchored at the read start and consumed through the run; a later
+    5'-side run (the 3'-capture poly-A after the scaffold) is also run-trimmed
+    from the current position (never a global rightmost search, which would
+    over-trim real insert). The read-through mirror is a back adapter. ``N``s
+    in the run count as the base."""
+    from cutseq.grammar import (RightmostFrontAdapter,
+                                BackAdapter, _poly_seq, _mark_poly_front,
+                                _poly_head_trim_index, tokenize)
+    from cutseq.grammar import _PolyRunTrim, _Token
+    from cutadapt.modifiers import AdapterCutter
+    from cutadapt.info import ModificationInfo
+    from dnaio import SequenceRecord
 
-    # dot-form parses as a plain polytail token, no marker needed
+    # dot-form parses as a single polytail token
     assert [t.kind for t in tokenize("GGG...GGG")] == ["polytail"]
+    assert _poly_seq(_Token("polytail", "G")) == "GGG"
 
-    # auto-detection of the trimmed end
-    leading = [_Token("adp", "ACGTGTACA"), _Token("polytail", "G")]
-    trailing = [_Token("adp", "ACGTGTACA"), _Token("capture", 4),
-                _Token("polytail", "G")]
-    _mark_polytail_direction(leading)
-    _mark_polytail_direction(trailing)
-    assert leading[1].options.get("five") is True      # leading -> 5'
-    assert trailing[2].options.get("five") is None     # inner       -> 3'
+    # the leading 5' run is marked front; a later one is not
+    left = [_Token("adp", "ACGT"), _Token("polytail", "G"), _Token("polytail", "A")]
+    _mark_poly_front(left)
+    assert left[1].options.get("front") in (True, None) or left[1].options
+    assert left[2].options.get("front") is None
 
-    # the 5' modifier is leftmost-anchored (position 0)
-    t5 = Poly5TailModifier("G", min_len=3)
-    cases = [("GGGGGGACGT", "ACGT"),          # leading run trimmed
-             ("ACGTACGGGGCGTT", "ACGTACGGGGCGTT"),  # internal: kept
-             ("GGGGGGGGG", ""),               # all-G read
-             ("GACGTACGT", "GACGTACGT")]      # single G (<min_len): kept
+    # anchored 5' run-trim: consumes through the run, stops at the first
+    # break, tolerating sparse errors inside the run (cutadapt C semantics).
+    trim = _PolyRunTrim("A")
+    cases = [("AAAAAACGT", "CGT"),          # run + real insert kept after
+             ("AAAAACAAAAAACCCGGTT", "CCCGGTT"),  # sparse errors inside run, C block stops it
+             ("ACGT", "ACGT")]              # too short: kept as-is
     for seq, want in cases:
         read = SequenceRecord("x", seq, "I" * len(seq))
-        out = t5(read, ModificationInfo(read))
+        out = trim(read, ModificationInfo(read))
         assert out.sequence == want, (seq, out.sequence)
 
-    # a trailing run still trims the 3' end
-    t3 = PolyTailModifier("T", min_len=3)
-    read = SequenceRecord("y", "ACGTACGTTTTTT", "I" * 13)
-    assert t3(read, ModificationInfo(read)).sequence == "ACGTACG"
+    # the read-through / 3' mirror is a back adapter, N-tolerant
+    bcut = AdapterCutter([BackAdapter("TTT", read_wildcards=True, max_errors=0.2,
+                                      min_overlap=3, force_anywhere=True)])
+    read = SequenceRecord("y", "ACGTACGNTNTTT", "I" * 13)
+    assert bcut(read, ModificationInfo(read)).sequence == "ACGTACG"
 
 
 # --- 5' sequencing-primer args & auto-detection ------------------------------

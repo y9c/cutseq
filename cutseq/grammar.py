@@ -42,6 +42,7 @@ default the captured bases are appended to the read name in physical order
 """
 
 import re
+from collections import defaultdict
 from pathlib import Path
 
 import cutadapt.modifiers as _mods
@@ -51,24 +52,27 @@ from cutadapt.adapters import (
     RightmostFrontAdapter,
     SuffixAdapter,
 )
+from cutadapt.qualtrim import poly_a_trim_index
 
 # --- parsing ---------------------------------------------------------------
 
 # unanchored poly-tail form so a poly tail may be followed by further tokens
 _POLY_RUN_RE = re.compile(r"([ACGT])\1*\.\.\.\1*")
 
-MIN_POLY_LEN = 3  # minimum run of a homopolymer to be trimmed as a poly tail
+MIN_POLY_LEN = 3  # minimum run length a dot-form poly tail (``B...B``) expands to
 
 
 class _Token:
     __slots__ = ("kind", "value", "label", "index", "options")
 
     def __init__(self, kind, value, label=None, options=None):
-        self.kind = kind      # adp | inline | capture | mask | polytail
-        self.value = value    # seq / length / (base,) as appropriate
-        self.label = label    # capture label
-        self.index = None     # written capture ordinal (fixes name tag order)
-        self.options = options or {}  # per-part extras (max_errors, min_overlap, min_len...)
+        self.kind = kind  # adp | inline | capture | mask | polytail
+        self.value = value  # seq / length / (base,) as appropriate
+        self.label = label  # capture label
+        self.index = None  # written capture ordinal (fixes name tag order)
+        self.options = (
+            options or {}
+        )  # per-part extras (max_errors, min_overlap, min_len...)
 
 
 _INSERT = frozenset(":+-")
@@ -86,7 +90,7 @@ def _scan_polytail(s, i):
 
 def _scan_run_or_num(s, i, ch):
     """Scan an ``N``/``X`` token from index ``i``.
-    ``ch`` is one of ``N`` (capture) / ``X`` (mask). Returns a _Token.
+    ``ch`` is one of ``N`` (capture) / ``X`` (mask). Returns ``(_Token, end)``.
     """
     j = i
     n = len(s)
@@ -102,11 +106,11 @@ def _scan_run_or_num(s, i, ch):
                 f"(got {length} at index {j})"
             )
         kind = "capture" if ch == "N" else "mask"
-        return _Token(kind, length)
+        return _Token(kind, length), k
     while j < n and s[j] == ch:
         j += 1
     kind = "capture" if ch == "N" else "mask"
-    return _Token(kind, j - i)
+    return _Token(kind, j - i), j
 
 
 def tokenize(scheme):
@@ -126,18 +130,18 @@ def tokenize(scheme):
             tokens.append(_Token("insert", ch))
             i += 1
         elif ch in "Xx":
-            tokens.append(_scan_run_or_num(scheme, i, "X"))
-            i = _token_end(scheme, i, "X")
+            tok, i = _scan_run_or_num(scheme, i, "X")
+            tokens.append(tok)
         elif ch in "Nn":
-            tokens.append(_scan_run_or_num(scheme, i, "N"))
-            i = _token_end(scheme, i, "N")
+            tok, i = _scan_run_or_num(scheme, i, "N")
+            tokens.append(tok)
         elif ch in "ACGT":
             # Numeric shorthand for a homopolymer adapter: `A12` -> 12 As.
             if i + 1 < n and scheme[i + 1].isdigit():
                 k = i + 1
                 while k < n and scheme[k].isdigit():
                     k += 1
-                length = int(scheme[i + 1:k])
+                length = int(scheme[i + 1 : k])
                 if length < 1:
                     raise ValueError(
                         f"cutseq: homopolymer adapter length must be >= 1 "
@@ -186,20 +190,11 @@ def tokenize(scheme):
             j = i + 1
             while j < n and scheme[j] in "ACGT":
                 j += 1
-            tokens.append(_Token("back", scheme[i + 1:j]))
+            tokens.append(_Token("back", scheme[i + 1 : j]))
             i = j
         else:
             raise ValueError(f"cutseq: cannot parse scheme character {ch!r} at {i}")
     return tokens
-
-
-def _token_end(scheme, i, ch):
-    """Return the index just past the N/X token whose first char is at ``i``."""
-    n = len(scheme)
-    j = i + 1
-    while j < n and (scheme[j].isdigit() or scheme[j] == ch):
-        j += 1
-    return j
 
 
 def parse_scheme(scheme, auto_inline=True):
@@ -245,7 +240,7 @@ def _auto_detect_inline(left, right):
     """
     import logging
 
-    from .primers import (MIN_PRIMER_MATCH, SEQUENCING_PRIMERS, _norm, _rc)
+    from .primers import MIN_PRIMER_MATCH, SEQUENCING_PRIMERS, _norm, _rc
 
     # A detected barcode must be at least this long; shorter leftovers are
     # partial-primer match noise, not real barcodes.
@@ -279,8 +274,9 @@ def _auto_detect_inline(left, right):
             for strand in (p, _rc(p)):
                 if len(strand) < MIN_PRIMER_MATCH:
                     continue
-                if len(v) >= MIN_PRIMER_MATCH and \
-                   (strand.endswith(v) or strand.startswith(v)):
+                if len(v) >= MIN_PRIMER_MATCH and (
+                    strand.endswith(v) or strand.startswith(v)
+                ):
                     return True
         return False
 
@@ -303,7 +299,11 @@ def _auto_detect_inline(left, right):
                 if hit is None:
                     continue
                 primer_part, at_5prime = hit
-                bc = v[len(primer_part):] if at_5prime else v[:len(v) - len(primer_part)]
+                bc = (
+                    v[len(primer_part) :]
+                    if at_5prime
+                    else v[: len(v) - len(primer_part)]
+                )
                 if not (MIN_INLINE_BC <= len(bc) < len(primer_part)):
                     continue
                 if best is None or len(primer_part) > len(best[0]):
@@ -330,22 +330,25 @@ def _auto_detect_inline(left, right):
             logging.warning(
                 "Auto-detected inline barcode %r adjacent to sequencing "
                 "primer %r; treating it as an inline barcode.",
-                bc, primer,
+                bc,
+                primer,
             )
             outer.value = primer
             outer.kind = "adp"
             # Left side: primer+barcode -> barcode after primer.
             # Right side: barcode+primer -> barcode before primer.
             insert_at = outer_i + (1 if outer_is_first else 0)
-            side.insert(insert_at,
-                        _Token("inline", bc, outer.label, options=outer.options))
+            side.insert(
+                insert_at, _Token("inline", bc, outer.label, options=outer.options)
+            )
             adp_idx = [i for i, t in enumerate(side) if t.kind == "adp"]
         # Reclassify remaining standalone inner adapters as inline barcodes.
         if len(adp_idx) < 2:
             return
         for i in adp_idx:
-            if (outer_is_first and i == adp_idx[0]) or \
-               (not outer_is_first and i == adp_idx[-1]):
+            if (outer_is_first and i == adp_idx[0]) or (
+                not outer_is_first and i == adp_idx[-1]
+            ):
                 continue
             logging.warning(
                 "Auto-detected inline barcode %r between sequencing primers; "
@@ -379,8 +382,13 @@ def assign_labels(tokens):
 # --- YAML-part scheme (``-A file.yaml``) -----------------------------------
 
 _OPT_KEYS = {
-    "max_errors", "min_overlap", "min_len",
-    "read_wildcards", "adapter_wildcards", "indels", "force_anywhere",
+    "max_errors",
+    "min_overlap",
+    "min_len",
+    "read_wildcards",
+    "adapter_wildcards",
+    "indels",
+    "force_anywhere",
 }
 
 
@@ -475,8 +483,14 @@ def parse_scheme_parts(data):
 # --- compile: lazy token graph -> cutadapt-native modifiers -----------------
 
 
-_ADAPTER_KW = ("max_errors", "min_overlap", "read_wildcards",
-               "adapter_wildcards", "indels", "force_anywhere")
+_ADAPTER_KW = (
+    "max_errors",
+    "min_overlap",
+    "read_wildcards",
+    "adapter_wildcards",
+    "indels",
+    "force_anywhere",
+)
 
 
 # --- labeled-capture recording ----------------------------------------------
@@ -511,29 +525,59 @@ def _consume_captures(info):
 
 class _ConditionalCutter(_mods.SingleEndModifier):
     """Like legacy ``ConditionalCutter``: trim n bases only if an adapter was
-    matched or the read is long enough. cutadapt 5.2 has no native equivalent."""
+    matched or the read is long enough. cutadapt 5.2 has no native equivalent.
 
-    def __init__(self, length, force_trim_min_length=50, conditional=True,
-                 capture=False, label=None):
+    When ``requires_adapter`` is set (the adapter that precedes this cutter in
+    the same chain), the cut is *strictly* gated on that specific adapter
+    having matched on this read — so read-through captures only fire when the
+    walk actually reached them, and 5' barcode captures only fire when the
+    outer adapter matched. Cutadapt rebuilds adapter objects per match, so the
+    gate compares the matched adapter's *sequence* rather than object identity.
+    Without it, the legacy lenient guard (any match OR read long enough) is
+    kept for compatibility.
+    """
+
+    def __init__(
+        self,
+        length,
+        force_trim_min_length=50,
+        conditional=True,
+        capture=False,
+        label=None,
+        requires_adapter=None,
+    ):
         self.length = length
         self.force_trim_min_length = force_trim_min_length
         self.conditional = conditional
         self.capture = capture
         self.label = label
+        self.requires_adapter = requires_adapter
+        self.requires_seq = (
+            requires_adapter.sequence if requires_adapter is not None else None
+        )
 
     def __call__(self, read, info):
         if self.length == 0:
             return read
-        if self.conditional and not info.matches and len(read.sequence) < self.force_trim_min_length:
-            return read
+        if self.conditional:
+            if self.requires_seq is not None:
+                # strict per-chain gate: fire only if the preceding adapter
+                # (by sequence) matched on THIS read's walk
+                if not any(
+                    getattr(m.adapter, "sequence", None) == self.requires_seq
+                    for m in info.matches
+                ):
+                    return read
+            elif not info.matches and len(read.sequence) < self.force_trim_min_length:
+                return read
         if self.length > 0:
             if self.capture:
                 cut = read.sequence[: self.length]
                 info.cut_prefix = cut
                 _record_capture(info, self.label, cut)
-            return read[self.length:]
+            return read[self.length :]
         if self.capture:
-            cut = read.sequence[self.length:]
+            cut = read.sequence[self.length :]
             info.cut_suffix = cut
             _record_capture(info, self.label, cut)
         return read[: self.length]
@@ -543,6 +587,37 @@ class _ConditionalCutter(_mods.SingleEndModifier):
         if self.label:
             name += f", name={self.label}"
         return name + ")"
+
+
+class _PolyRunTrim(_mods.SingleEndModifier):
+    """Trim a 5'-anchored homopolymer run of *base* from the current read start.
+
+    The poly is a variable-length run (e.g. a 3'-capture poly-A after the TSO
+    scaffold). Cut through the run and stop at the first base that breaks it,
+    tolerating sparse miscalls inside the run. This reuses cutadapt's C
+    implementation (``poly_a_trim_index``) rather than a Python scan: a fixed
+    adapter cannot consume a variable-length run and a rightmost search
+    over-trims when the insert repeats the run base.
+    """
+
+    def __init__(self, base, max_errors=0.2, min_overlap=3):
+        self.base = base
+        self.max_errors = max_errors
+        self.min_overlap = min_overlap
+        self.trimmed_bases = defaultdict(int)
+
+    def __repr__(self):
+        return f"PolyRunTrim({self.base}, errors={self.max_errors})"
+
+    def __call__(self, read, info):
+        s = read.sequence
+        if len(s) < self.min_overlap:
+            return read
+        cut = _poly_head_trim_index(s, self.base)
+        if cut < self.min_overlap:
+            return read
+        self.trimmed_bases[cut] += 1
+        return read[cut:]
 
 
 class _InlineCapture(_mods.SingleEndModifier):
@@ -566,8 +641,11 @@ class _InlineCapture(_mods.SingleEndModifier):
             a._cs_label = label
 
     def _actual_seq(self, read, info):
-        matched = [m for m in info.matches
-                   if getattr(m.adapter, "_cs_label", None) == self.label]
+        matched = [
+            m
+            for m in info.matches
+            if getattr(m.adapter, "_cs_label", None) == self.label
+        ]
         if not matched:
             return None
         m = matched[0]
@@ -604,8 +682,9 @@ def _wrap_inline_capture(mod, tok, three_prime=False):
 
 
 def _adapter_kw(options):
-    return {k: options[k] for k in _ADAPTER_KW
-            if k in options and options[k] is not None}
+    return {
+        k: options[k] for k in _ADAPTER_KW if k in options and options[k] is not None
+    }
 
 
 class _Ctx:
@@ -613,87 +692,136 @@ class _Ctx:
 
     __slots__ = ("conditional", "force_trim_min_length", "force_anywhere")
 
-    def __init__(self, conditional=True, force_trim_min_length=50, force_anywhere=False):
+    def __init__(
+        self, conditional=True, force_trim_min_length=50, force_anywhere=False
+    ):
         self.conditional = conditional
         self.force_trim_min_length = force_trim_min_length
         self.force_anywhere = force_anywhere
 
 
-def _emit_adp_five(tok, ctx):
+def _emit_adp_five(tok, ctx, prev=None):
     kw = {"max_errors": 0.2, "min_overlap": 10, **_adapter_kw(tok.options)}
     return _mods.AdapterCutter([RightmostFrontAdapter(tok.value, **kw)])
 
 
-def _emit_adp_three(tok, ctx):
-    kw = {"max_errors": 0.2, "min_overlap": 3,
-          "force_anywhere": ctx.force_anywhere, **_adapter_kw(tok.options)}
+def _emit_adp_three(tok, ctx, prev=None):
+    kw = {
+        "max_errors": 0.2,
+        "min_overlap": 3,
+        "force_anywhere": ctx.force_anywhere,
+        **_adapter_kw(tok.options),
+    }
     return _mods.AdapterCutter([BackAdapter(tok.value, **kw)])
 
 
-def _emit_back_five(tok, ctx):
+def _emit_back_five(tok, ctx, prev=None):
     return _mods.AdapterCutter([BackAdapter(tok.value, **_adapter_kw(tok.options))])
 
 
-def _emit_inline_five(tok, ctx):
+def _emit_inline_five(tok, ctx, prev=None):
     kw = {"max_errors": 0.2, **_adapter_kw(tok.options)}
     mod = _mods.AdapterCutter([PrefixAdapter(tok.value, **kw)])
     return _wrap_inline_capture(mod, tok)
 
 
-def _emit_inline_three(tok, ctx):
-    return _ConditionalCutter(-len(tok.value), ctx.force_trim_min_length,
-                              conditional=False)
+def _emit_inline_three(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        -len(tok.value), ctx.force_trim_min_length, conditional=False
+    )
 
 
-def _emit_inline_se_three(tok, ctx):
+def _emit_inline_se_three(tok, ctx, prev=None):
     mod = _mods.AdapterCutter([SuffixAdapter(tok.value, max_errors=0.2)])
     return _wrap_inline_capture(mod, tok, three_prime=True)
 
 
-def _emit_capture_five(tok, ctx):
-    return _ConditionalCutter(tok.value, ctx.force_trim_min_length,
-                              conditional=False, capture=True, label=tok.label)
+def _emit_capture_five(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        tok.value,
+        ctx.force_trim_min_length,
+        conditional=prev is not None,
+        capture=True,
+        label=tok.label,
+        requires_adapter=prev,
+    )
 
 
-def _emit_capture_three(tok, ctx):
-    return _ConditionalCutter(-tok.value, ctx.force_trim_min_length,
-                              conditional=ctx.conditional, capture=True,
-                              label=tok.label)
+def _emit_capture_three(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        -tok.value,
+        ctx.force_trim_min_length,
+        conditional=ctx.conditional,
+        capture=True,
+        label=tok.label,
+        requires_adapter=prev,
+    )
 
 
-def _emit_capture_se_three(tok, ctx):
-    return _ConditionalCutter(-tok.value, ctx.force_trim_min_length,
-                              conditional=False, capture=True, label=tok.label)
+def _emit_capture_se_three(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        -tok.value,
+        ctx.force_trim_min_length,
+        conditional=False,
+        capture=True,
+        label=tok.label,
+    )
 
 
-def _emit_mask_five(tok, ctx):
-    return _ConditionalCutter(tok.value, ctx.force_trim_min_length,
-                              conditional=False, label=tok.label)
+def _emit_mask_five(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        tok.value,
+        ctx.force_trim_min_length,
+        conditional=prev is not None,
+        label=tok.label,
+        requires_adapter=prev,
+    )
 
 
-def _emit_mask_three(tok, ctx):
-    return _ConditionalCutter(-tok.value, ctx.force_trim_min_length,
-                              conditional=ctx.conditional, label=tok.label)
+def _emit_mask_three(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        -tok.value,
+        ctx.force_trim_min_length,
+        conditional=ctx.conditional,
+        label=tok.label,
+        requires_adapter=prev,
+    )
 
 
-def _emit_mask_se_three(tok, ctx):
-    return _ConditionalCutter(-tok.value, ctx.force_trim_min_length,
-                              conditional=False, label=tok.label)
+def _emit_mask_se_three(tok, ctx, prev=None):
+    return _ConditionalCutter(
+        -tok.value, ctx.force_trim_min_length, conditional=False, label=tok.label
+    )
 
 
-def _emit_polytail_five(tok, ctx):
-    # direction auto-detected from scheme position: a leading run (start of
-    # the arm / right after the outer adapter) trims the read 5', anything
-    # else trims the 3' (trailing tail / read-through).
-    min_len = tok.options.get("min_len") or MIN_POLY_LEN
-    if tok.options.get("five"):
-        return Poly5TailModifier(tok.value, min_len)
-    return PolyTailModifier(tok.value, min_len)
+def _emit_polytail_five(tok, ctx, prev=None):
+    base = tok.value
+    kw = {"max_errors": 0.2, "min_overlap": 3, **_adapter_kw(tok.options)}
+    # run-anchored, not a global rightmost search: don't over-trim the insert
+    return _PolyRunTrim(base, **kw)
 
 
-def _emit_polytail_three(tok, ctx):
-    # the read-through mirror is always a 3' tail trim
-    return PolyTailModifier(tok.value, tok.options.get("min_len") or MIN_POLY_LEN)
+def _emit_polytail_r2_five(tok, ctx, prev=None):
+    """R2-mirrored poly tail (e.g. the RT-primer poly-T after the UMI on the
+    spatial barcode cassette): the run sits at the current read 5' once the
+    cassette is trimmed, so it is a variable-length head. ``PolyATrimmer``
+    trims that head natively; a fixed ``TTT`` adapter cannot (variable run
+    length) and a rightmost search over-trims T-rich inserts."""
+    return _mods.PolyATrimmer(revcomp=True)
+
+
+def _emit_polytail_three(tok, ctx, prev=None):
+    return _mods.AdapterCutter(
+        [
+            BackAdapter(
+                _poly_seq(tok),
+                read_wildcards=True,
+                max_errors=0.2,
+                min_overlap=3,
+                force_anywhere=ctx.force_anywhere,
+            )
+        ]
+    )
 
 
 # Token-kind registry: kind -> (five_emitter, three_emitter, se_three_emitter).
@@ -727,25 +855,75 @@ _PAIRED_PHASES = (
 _SINGLE_KINDS = ("adp", "back", "inline", "capture", "mask", "polytail")
 
 
-def _mark_polytail_direction(tokens):
-    """Auto-detect 5' vs 3' for dot-delimited homopolymer runs (``B...B``)
-    straight from the scheme layout: a run at the arm's read-start (the first
-    token, or immediately after the outer adapter/primer) is a *leading* 5'
-    run; any other placement (middle / toward the insert, after captures or
-    inner linkers) is a *trailing* run and trims the 3' end instead."""
-    for i, t in enumerate(tokens):
-        if t.kind == "polytail":
-            leading = (i == 0) or (i == 1 and tokens[0].kind == "adp")
-            if leading:
-                t.options = {**(t.options or {}), "five": True}
+def _poly_seq(tok):
+    return tok.value * max(tok.options.get("min_len") or MIN_POLY_LEN, 1)
+
+
+def _poly_head_trim_index(seq, base):
+    """Index where a 5' run of *base* on *seq* ends (0 = no run to trim).
+
+    Reuses cutadapt's C ``poly_a_trim_index(revcomp=True)`` — the native 5'
+    poly-T-head trimmer — by mapping *base*<->T so the run of interest becomes
+    a T-head (the mapping is length-preserving, so the returned index applies
+    verbatim to the original sequence). C-speed, no Python scan.
+    """
+    if base == "T":
+        return poly_a_trim_index(seq, revcomp=True)
+    return poly_a_trim_index(
+        seq.translate(str.maketrans(base + "T", "T" + base)), revcomp=True
+    )
+
+
+def _mark_poly_front(tokens):
+    """Tag the leading 5' homopolymer run (first token, or directly after the
+    outer adapter) with ``front`` so it trims anchored (mirrors how ``adp``
+    positions its 5' adapter). Any later 5'-side poly run is the 3'-capture
+    poly-A after the scaffold and trims rightmost instead."""
+    if tokens and tokens[0].kind != "polytail":
+        i = 1 if len(tokens) > 1 and tokens[0].kind == "adp" else None
+    else:
+        i = 0 if tokens and tokens[0].kind == "polytail" else None
+    if i is not None and i < len(tokens) and tokens[i].kind == "polytail":
+        tokens[i].options = {**tokens[i].options, "front": True}
 
 
 def _side(tokens, kind):
     return [t for t in tokens if t.kind == kind]
 
 
-def compile_tokens(orientation, left, right, paired=True, conditional_cutter=True,
-                   force_trim_min_length=50, force_anywhere=False):
+def _chain_emit(items, ctx, r2=False):
+    """Emit a chain of modifiers, threading the immediately-preceding adapter
+    (identity) into each following emitter so captures/masks can gate on the
+    walk having reached them (used by ``--require-cassette`` and the strict
+    read-through trimming fix). ``items`` is ``(token, emitter)`` pairs."""
+    mods = []
+    prev = None
+    for t, em in items:
+        tok = _for_r2(t) if r2 else t
+        m = em(tok, ctx, prev)
+        adps = getattr(m, "adapters", ())
+        if isinstance(adps, (list, tuple)):
+            if adps:
+                prev = adps[0]
+        else:
+            it = iter(adps)
+            try:
+                prev = next(it)
+            except StopIteration:
+                pass
+        mods.append(m)
+    return mods
+
+
+def compile_tokens(
+    orientation,
+    left,
+    right,
+    paired=True,
+    conditional_cutter=True,
+    force_trim_min_length=50,
+    force_anywhere=False,
+):
     """Compile the parsed token graph into ``(r1_mods, r2_mods)``.
 
     Each token describes one physical end of the molecule, so it applies to
@@ -758,8 +936,8 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
     R1's side, read out-to-in (standard Illumina paired-end).
     """
     ctx = _Ctx(conditional_cutter, force_trim_min_length, force_anywhere)
-    _mark_polytail_direction(left)
-    _mark_polytail_direction(right)
+    _mark_poly_front(left)
+    _mark_poly_front(right)
     rev_right = list(reversed(right))
 
     if not paired or orientation is None:
@@ -771,44 +949,35 @@ def compile_tokens(orientation, left, right, paired=True, conditional_cutter=Tru
         # interleaved (e.g. spatial/DBiT schemes), and each token uses its
         # 5' / single-end-3' emitter.
         r1 = []
-        for t in left:
-            five = _EMITTERS[t.kind][0]
-            if five is not None:
-                r1.append(five(t, ctx))
-        for t in rev_right:
-            se_three = _EMITTERS[t.kind][2]
-            if se_three is not None:
-                r1.append(se_three(t, ctx))
+        r1.extend(_chain_emit([(t, _EMITTERS[t.kind][0]) for t in left], ctx))
+        r1.extend(_chain_emit([(t, _EMITTERS[t.kind][2]) for t in rev_right], ctx))
         return r1, []
 
-    mods1, mods2 = [], []
-    # R1 5' arm: left tokens in written order, so interleaved adapter /
-    # capture / mask arms (e.g. a handle -> BCB -> linker -> BCA -> UMI
-    # barcode arm) are walked in the right order.
+    mods1 = _chain_emit([(t, _EMITTERS[t.kind][0]) for t in left], ctx)
+    mods1.extend(_chain_emit([(t, _EMITTERS[t.kind][1]) for t in rev_right], ctx))
+    mods2 = _chain_emit(
+        [(t, (_r2_five_emitter(t.kind))) for t in rev_right], ctx, r2=True
+    )
+    # Non-front left poly-A mirrors to the RT-primer poly-T head on R2 (after UMI).
     for t in left:
-        five = _EMITTERS[t.kind][0]
-        if five is not None:
-            mods1.append(five(t, ctx))
-    # R1 3' read-through: the right side, read out-to-in (reversed) with the
-    # 3' (BackAdapter/negative) emitters.
-    for t in rev_right:
-        three = _EMITTERS[t.kind][1]
-        if three is not None:
-            mods1.append(three(t, ctx))
-    # R2 5' arm: the right side read out-to-in (reversed) and reverse
-    # complemented -- R2 is the reverse complement of R1's side.
-    for t in rev_right:
-        five = _EMITTERS[t.kind][0]
-        if five is not None:
-            mods2.append(five(_for_r2(t), ctx))
-    # R2 3' read-through: the left side (rc of R1's 5' arm), walked in R1's
-    # 5' written order (outermost p5 read-through first, then the capture
-    # mirror region).
-    for t in left:
-        three = _EMITTERS[t.kind][1]
-        if three is not None:
-            mods2.append(three(_for_r2(t), ctx))
+        if t.kind == "polytail" and not t.options.get("front") and t.value == "A":
+            mods2.append(_emit_polytail_r2_five(t, ctx))
+    mods2.extend(_chain_emit([(t, _EMITTERS[t.kind][1]) for t in left], ctx, r2=True))
     return mods1, mods2
+
+
+def _r2_five_emitter(kind):
+    """Five-emitter selection for the R2 (reverse-complement) 5' chain.
+
+    A poly-T on the written right side is the RT-primer/T-cell poly-T that sits
+    between the UMI and the insert in the R2 read. After the cassette is
+    trimmed the run is the read's (current) 5' head, so it is trimmed through
+    the run by cutadapt's native ``PolyATrimmer`` rather than a fixed-length
+    adapter (which cannot consume a variable-length run) or a rightmost-search
+    adapter (which over-trims T-rich inserts)."""
+    if kind == "polytail":
+        return _emit_polytail_r2_five
+    return _EMITTERS[kind][0]
 
 
 def _se_id_name(read, info):
@@ -833,10 +1002,12 @@ def _make_fast_renamer(paired, has_captures, name_format):
     if not has_captures:
         tpl = "{id}"
         if paired:
+
             def _rename(read1, read2, info1, info2):
                 read1.name = read1.name.split(maxsplit=1)[0]
                 read2.name = read2.name.split(maxsplit=1)[0]
                 return read1, read2
+
             _rename._template = tpl
             return _rename
         _se_id_name._template = tpl
@@ -852,6 +1023,7 @@ def _make_fast_renamer(paired, has_captures, name_format):
             read1.name = f"{id1}_{p1}{p2}"
             read2.name = f"{id2}_{p1}{p2}"
             return read1, read2
+
         _rename._template = tpl
         return _rename
     tpl = "{id}_{cut_prefix}{cut_suffix}"
@@ -861,6 +1033,7 @@ def _make_fast_renamer(paired, has_captures, name_format):
         s = info.cut_suffix if info.cut_suffix else ""
         read.name = f"{read.name.split(maxsplit=1)[0]}_{p}{s}"
         return read
+
     _rename._template = tpl
     return _rename
 
@@ -914,14 +1087,29 @@ class _FastPairedEndRenamer(_mods.PairedEndModifier):
 #   slice(x, a, b) 1-based INCLUSIVE range (Python-style negative allowed)
 # All names are case-insensitive and calls may nest: upper(RC({1})).
 _FUNCS = {
-    "rc": 0, "rev": 0, "comp": 0, "canon": 0,
-    "upper": 0, "lower": 0, "len": 0,
-    "left": 1, "right": 1, "slice": 2,
+    "rc": 0,
+    "rev": 0,
+    "comp": 0,
+    "canon": 0,
+    "upper": 0,
+    "lower": 0,
+    "len": 0,
+    "left": 1,
+    "right": 1,
+    "slice": 2,
 }
-_NATIVE_VARS = frozenset({
-    "id", "header", "comment", "cut_prefix", "cut_suffix",
-    "adapter_name", "match_sequence", "rc",
-})
+_NATIVE_VARS = frozenset(
+    {
+        "id",
+        "header",
+        "comment",
+        "cut_prefix",
+        "cut_suffix",
+        "adapter_name",
+        "match_sequence",
+        "rc",
+    }
+)
 
 
 def _capture_meta(left, right):
@@ -957,11 +1145,11 @@ def _parse_nodes(s):
         if ch == "{":
             j = s.index("}", i)
             flush()
-            nodes.append(("ref", s[i + 1:j].strip()))
+            nodes.append(("ref", s[i + 1 : j].strip()))
             i = j + 1
             continue
         # function names are matched case-insensitively (rc / RC / Rc ...)
-        low = s[i:i + 16].lower()
+        low = s[i : i + 16].lower()
         fn = next((f for f in _FUNCS if low.startswith(f + "(")), None)
         if fn is not None:
             open_p = s.index("(", i)
@@ -978,7 +1166,7 @@ def _parse_nodes(s):
             if j >= n:
                 raise ValueError("cutseq: unbalanced '(' in --rename template")
             flush()
-            nodes.append(("apply", fn, s[open_p + 1:j].strip()))
+            nodes.append(("apply", fn, s[open_p + 1 : j].strip()))
             i = j + 1
             continue
         lit.append(ch)
@@ -987,8 +1175,7 @@ def _parse_nodes(s):
     return nodes
 
 
-def _ref_field(varname, xforms, labels, anchors, anchor_label, n_caps,
-               is_paired):
+def _ref_field(varname, xforms, labels, anchors, anchor_label, n_caps, is_paired):
     """Compile one ``{...}`` reference into an internal field.
 
     Recognizes ``{1}``-style positional captures, capture labels, native
@@ -1000,7 +1187,7 @@ def _ref_field(varname, xforms, labels, anchors, anchor_label, n_caps,
     v = varname
     for pre, s in (("r1.", 0), ("r2.", 1)):
         if v.startswith(pre):
-            side, v = s, v[len(pre):]
+            side, v = s, v[len(pre) :]
             break
     if v.isdigit():
         n = int(v) - 1
@@ -1043,11 +1230,13 @@ def _compile_apply(node, labels, anchors, anchor_label, n_caps, is_paired):
     first_nodes = _parse_nodes(parts[0])
     if len(first_nodes) == 1 and first_nodes[0][0] == "apply":
         # nested transform: inner(fn) -> compose it, then apply this fn outside
-        field = _compile_apply(first_nodes[0], labels, anchors,
-                               anchor_label, n_caps, is_paired)
+        field = _compile_apply(
+            first_nodes[0], labels, anchors, anchor_label, n_caps, is_paired
+        )
     elif len(first_nodes) == 1 and first_nodes[0][0] == "ref":
-        field = _ref_field(first_nodes[0][1], [], labels, anchors,
-                           anchor_label, n_caps, is_paired)
+        field = _ref_field(
+            first_nodes[0][1], [], labels, anchors, anchor_label, n_caps, is_paired
+        )
     else:
         raise ValueError(
             f"cutseq: '{fn}({inner})' first argument must be a single capture "
@@ -1080,11 +1269,11 @@ def _compile_nodes(nodes, labels, anchors, anchor_label, n_caps, is_paired):
             fields.append(("lit", node[1]))
             continue
         if node[0] == "ref":
-            f = _ref_field(node[1], (), labels, anchors,
-                           anchor_label, n_caps, is_paired)
+            f = _ref_field(
+                node[1], (), labels, anchors, anchor_label, n_caps, is_paired
+            )
         else:
-            f = _compile_apply(node, labels, anchors, anchor_label,
-                               n_caps, is_paired)
+            f = _compile_apply(node, labels, anchors, anchor_label, n_caps, is_paired)
         kind, side, key, xforms = f
         fields.append(("ref", kind, side, key, tuple(xforms)))
         uses = uses or kind == "capture"
@@ -1102,8 +1291,12 @@ def _compile_template(template, is_paired, left, right):
     labels, anchors = _capture_meta(left, right)
     anchor_label = dict(zip(labels, anchors))
     return _compile_nodes(
-        _parse_nodes(template), labels, anchors,
-        anchor_label, len(labels), is_paired,
+        _parse_nodes(template),
+        labels,
+        anchors,
+        anchor_label,
+        len(labels),
+        is_paired,
     )
 
 
@@ -1143,9 +1336,11 @@ _XFORM_FUNCS = {
     "upper": lambda v, args: v.upper(),
     "lower": lambda v, args: v.lower(),
     "len": lambda v, args: str(len(v)),
-    "left": lambda v, args: v[:args[0]] if args[0] else "",
-    "right": lambda v, args: v[-args[0]:] if args[0] else "",
-    "slice": lambda v, args: v[args[0] - 1:args[1]] if args[0] > 0 else v[args[0]:args[1]],
+    "left": lambda v, args: v[: args[0]] if args[0] else "",
+    "right": lambda v, args: v[-args[0] :] if args[0] else "",
+    "slice": lambda v, args: (
+        v[args[0] - 1 : args[1]] if args[0] > 0 else v[args[0] : args[1]]
+    ),
 }
 
 
@@ -1186,6 +1381,7 @@ class _LabeledRenamer:
         read.name = "".join(parts)
         return read
 
+
 class _LabeledPairedEndRenamer(_mods.PairedEndModifier):
     """Paired-end renamer that resolves a parsed template per read."""
 
@@ -1221,8 +1417,7 @@ class _LabeledPairedEndRenamer(_mods.PairedEndModifier):
         return read1, read2
 
 
-def make_renamer(paired, has_captures=False, name_format=None,
-                 left=None, right=None):
+def make_renamer(paired, has_captures=False, name_format=None, left=None, right=None):
     """Native cutadapt renamer. Appends captured ``N`` UMIs to the read name
     only when the scheme declares capture tokens (legacy naming). Single-end
     UMIs sit at the 3' end, so both cut_prefix and cut_suffix are appended.
@@ -1238,12 +1433,14 @@ def make_renamer(paired, has_captures=False, name_format=None,
     if name_format is not None:
         if not name_format.strip():
             raise ValueError("cutseq: --rename template cannot be empty")
-        fields, uses_captures = _compile_template(
-            name_format, paired, left, right)
+        fields, uses_captures = _compile_template(name_format, paired, left, right)
         if not uses_captures:
             _RENAME_NEEDS_CAPTURES = False
-            return _mods.PairedEndRenamer(name_format) if paired \
+            return (
+                _mods.PairedEndRenamer(name_format)
+                if paired
                 else _mods.Renamer(name_format)
+            )
         _RENAME_NEEDS_CAPTURES = True
         if paired:
             return _LabeledPairedEndRenamer(fields, name_format)
@@ -1274,8 +1471,15 @@ class CompiledScheme:
     plus one phase entry — no changes needed here.
     """
 
-    def __init__(self, orientation, left, right, conditional_cutter=True,
-                 force_trim_min_length=50, force_anywhere=False):
+    def __init__(
+        self,
+        orientation,
+        left,
+        right,
+        conditional_cutter=True,
+        force_trim_min_length=50,
+        force_anywhere=False,
+    ):
         self.orientation = orientation
         self.left = left
         self.right = right
@@ -1312,7 +1516,10 @@ class CompiledScheme:
         if paired in cache:
             return cache[paired]
         mods1, mods2 = compile_tokens(
-            self.orientation, self.left, self.right, paired=paired,
+            self.orientation,
+            self.left,
+            self.right,
+            paired=paired,
             conditional_cutter=self.conditional_cutter,
             force_trim_min_length=self.force_trim_min_length,
             force_anywhere=self.force_anywhere,
@@ -1340,8 +1547,9 @@ class CompiledScheme:
     def renamer(self, paired=True, name_format=None):
         """Return a renamer (see ``make_renamer``). ``name_format`` may
         reference individual captures such as ``{1}`` / ``rc({1})``."""
-        return make_renamer(paired, self.has_captures, name_format,
-                            left=self.left, right=self.right)
+        return make_renamer(
+            paired, self.has_captures, name_format, left=self.left, right=self.right
+        )
 
     def inline_adapters(self, paired=True):
         """Return ``(r1_adps, r2_adps)`` — the inline-barcode Adapter objects
@@ -1353,6 +1561,28 @@ class CompiledScheme:
         if paired not in cache:
             self.modifiers(paired)
         return cache[paired]
+
+    def r2_arm_adapters(self, paired=True):
+        """The Adapter objects of the R2 5' arm (the spatial barcode cassette:
+        for DBiT-style schemes, handle -> barcode -> linker -> barcode ->
+        linker -> UMI, read out on R2). Taken from the *same* cached compile
+        the pipeline uses, so identity-based ``info.matches`` checks work.
+        Returns ``[]`` for single-end (no R2)."""
+        if not paired or not self.right:
+            return []
+        mods1, mods2 = self.modifiers(paired)
+        out = []
+        for m in mods2[: len(self.right)]:
+            adps = getattr(m, "adapters", ())
+            if isinstance(adps, (list, tuple)):
+                if adps:
+                    out.append(adps[0])
+            else:
+                try:
+                    out.append(next(iter(adps)))
+                except StopIteration:
+                    pass
+        return out
 
 
 def rc(seq):
@@ -1379,69 +1609,34 @@ def _rc(seq):
     return str(seq).translate(_COMP_TABLE)[::-1]
 
 
-class PolyTailModifier(_mods.SingleEndModifier):
-    """Trim a 3' homopolymer run of *base* if it is at least *min_len* long."""
-
-    def __init__(self, base, min_len=MIN_POLY_LEN):
-        self.base = base
-        self.min_len = min_len
-
-    def __call__(self, read, info):
-        seq = read.sequence
-        i = len(seq)
-        while i > 0 and seq[i - 1] == self.base:
-            i -= 1
-        if len(seq) - i >= self.min_len:
-            return read[:i]
-        return read
-
-    def __repr__(self):
-        return f"PolyTail({self.base},min={self.min_len})"
-
-
-class Poly5TailModifier(_mods.SingleEndModifier):
-    """Trim a 5' homopolymer run of *base* if it is at least *min_len* long.
-
-    Matching is **leftmost and anchored at the read 5'** (position 0): only a
-    run that actually begins the read is trimmed, and internal homopolymers
-    are never touched. Mirrors cutadapt's own ``PolyATrimmer`` design.
-    """
-
-    def __init__(self, base, min_len=MIN_POLY_LEN):
-        self.base = base
-        self.min_len = min_len
-        self.five = True  # marker: trims the read 5' (for graph / dry-run labels)
-
-    def __call__(self, read, info):
-        seq = read.sequence
-        i = 0
-        while i < len(seq) and seq[i] == self.base:
-            i += 1
-        if i >= self.min_len:
-            return read[i:]
-        return read
-
-    def __repr__(self):
-        return f"Poly5Tail({self.base},min={self.min_len})"
-
-
-def build_modifiers(scheme, paired=True, conditional_cutter=True,
-                    force_trim_min_length=50):
+def build_modifiers(
+    scheme, paired=True, conditional_cutter=True, force_trim_min_length=50
+):
     """Compile a library-grammar scheme into ``(r1_mods, r2_mods, orientation)``."""
     orientation, left, right = parse_scheme(scheme)
     return build_modifiers_from_parts(
-        orientation, left, right, paired, conditional_cutter,
+        orientation,
+        left,
+        right,
+        paired,
+        conditional_cutter,
         force_trim_min_length,
     )
 
 
-def build_modifiers_from_parts(orientation, left, right, paired=True,
-                               conditional_cutter=True,
-                               force_trim_min_length=50):
+def build_modifiers_from_parts(
+    orientation,
+    left,
+    right,
+    paired=True,
+    conditional_cutter=True,
+    force_trim_min_length=50,
+):
     """Compile parsed part tokens into ``(r1_mods, r2_mods, orientation)``."""
     assign_labels(left + right)
-    r1, r2 = compile_tokens(orientation, left, right, paired,
-                            conditional_cutter, force_trim_min_length)
+    r1, r2 = compile_tokens(
+        orientation, left, right, paired, conditional_cutter, force_trim_min_length
+    )
     return r1, r2, orientation
 
 
@@ -1453,7 +1648,7 @@ def load_scheme_file(path):
     """
     p = path if isinstance(path, (str, bytes)) else ""
     low = str(p).lower()
-    if low.endswith((".yaml", ".yml")) or (isinstance(p, str) and Path(p).exists()):
+    if low.endswith((".yaml", ".yml")):
         if not Path(p).exists():
             raise ValueError(f"cutseq: YAML scheme file not found: {p}")
         try:
@@ -1463,4 +1658,17 @@ def load_scheme_file(path):
         with open(p, "r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         return True, parse_scheme_parts(data)
+    if isinstance(p, str):
+        try:
+            existing = Path(p).exists()
+        except OSError:
+            existing = False
+        if existing:
+            try:
+                import yaml
+            except ImportError:  # pragma: no cover
+                raise ValueError("cutseq: YAML scheme files require 'pyyaml'")
+            with open(p, "r", encoding="utf-8") as fh:
+                data = yaml.safe_load(fh)
+            return True, parse_scheme_parts(data)
     return False, path
