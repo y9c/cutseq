@@ -1,21 +1,34 @@
-LOCUS       ILLUMINARNA           68 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       ILLUMINARNA          137 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: ILLUMINARNA ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..68
+     source          1..137
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq ILLUMINARNA library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..19
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    20..49
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..56
+                     /label="Nextera read (5')"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    57..86
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    50..68
-                     /label="adapter / primer"
+     misc_feature    87..105
+                     /label="Nextera read (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    106..113
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    114..137
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 AGATGTGTAT AAGAGACAGN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNC TGTCTCTTAT
-       60 ACACATCT
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNAGA TGTGTATAAG AGACAGNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNCTGT CTCTTATACA CATCTNNNNN NNNCAAGCAG
+      120 AAGACGGCAT ACGAGAT
 //

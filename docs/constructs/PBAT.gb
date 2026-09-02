@@ -1,27 +1,40 @@
-LOCUS       PBAT                  82 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       PBAT                 151 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: PBAT ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..82
+     source          1..151
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq PBAT library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..20
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    21..26
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    27..56
+     misc_feature    38..57
+                     /label="TruSeq p5 (read)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    58..63
+                     /label="mask X6"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    64..93
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    57..62
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    94..99
+                     /label="mask X6"
                      /note="cutseq role: mask; arm: R2"
-     misc_feature    63..82
-                     /label="adapter / primer"
+     misc_feature    100..119
+                     /label="TruSeq p7 (read)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    120..127
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    128..151
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNAGATCGGA AGAGCACACG TC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CGACGCTCTT CCGATCTNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNA GATCGGAAGA GCACACGTCN
+      120 NNNNNNNCAA GCAGAAGACG GCATACGAGA T
 //

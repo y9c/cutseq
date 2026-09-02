@@ -1,31 +1,44 @@
-LOCUS       10X_RNA_5PRIME       136 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       10X_RNA_5PRIME       205 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: 10X_RNA_5PRIME ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..136
+     source          1..205
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq 10X_RNA_5PRIME library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..33
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    34..49
-                     /label="UMI/capture N16 (renamed to {1})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    50..59
-                     /label="UMI/capture N10 (renamed to {2})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    60..72
-                     /label="adapter / primer"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..70
+                     /label="TruSeq R1 (5')"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    73..102
+     misc_feature    71..86
+                     /label="UMI/capture N16 (rename {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    87..96
+                     /label="UMI/capture N10 (rename {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    97..109
+                     /label="5' primer/adapter (R1)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    110..139
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    103..136
-                     /label="adapter / primer"
+     misc_feature    140..173
+                     /label="TruSeq 3' adapter"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    174..181
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    182..205
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACTCTTTC CCTACACGAC GCTCTTCCGA TCTNNNNNNN NNNNNNNNNN NNNNNNNNNT
-       60 TTCTTATATG GGNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNAGATCGGA AGAGCACACG
-      120 TCTGAACTCC AGTCAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CTCTTTCCCT ACACGACGCT
+       60 CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNTTTC TTATATGGGN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNA GATCGGAAGA GCACACGTCT GAACTCCAGT CACNNNNNNN
+      180 NCAAGCAGAA GACGGCATAC GAGAT
 //

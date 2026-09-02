@@ -1,49 +1,62 @@
-LOCUS       SURECELL             164 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SURECELL             233 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SURECELL ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..164
+     source          1..233
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SURECELL library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..37
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    38..43
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    44..58
-                     /label="adapter / primer"
+     misc_feature    38..74
+                     /label="5' primer/adapter (R1)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    59..64
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    75..80
+                     /label="mask X6"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    65..79
-                     /label="adapter / primer"
+     misc_feature    81..95
+                     /label="5' primer/adapter (R1)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    80..85
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    96..101
+                     /label="mask X6"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    86..88
-                     /label="adapter / primer"
+     misc_feature    102..116
+                     /label="5' primer/adapter (R1)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    89..96
-                     /label="UMI/capture N8 (renamed to {1})"
+     misc_feature    117..122
+                     /label="mask X6"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    123..125
+                     /label="5' primer/adapter (R1)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    126..133
+                     /label="UMI/capture N8 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    97..99
-                     /label="adapter / primer"
+     misc_feature    134..136
+                     /label="5' primer/adapter (R1)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    100..100
-                     /label="mask X1 (trimmed, not kept)"
+     misc_feature    137..137
+                     /label="mask X1"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    101..130
+     misc_feature    138..167
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    131..164
-                     /label="adapter / primer"
+     misc_feature    168..201
+                     /label="Nextera read (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    202..209
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    210..233
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 GCCTGTCCGC GGAAGCAGTG GTATCAACGC AGAGTACNNN NNNTAGCCAT CGCATTGCNN
-       60 NNNNTACCTC TGAGCTGAAN NNNNNACGNN NNNNNNGACN NNNNNNNNNN NNNNNNNNNN
-      120 NNNNNNNNNN CTGTCTCTTA TACACATCTC CGAGCCCACG AGAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNGCC TGTCCGCGGA AGCAGTGGTA
+       60 TCAACGCAGA GTACNNNNNN TAGCCATCGC ATTGCNNNNN NTACCTCTGA GCTGAANNNN
+      120 NNACGNNNNN NNNGACNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNCTG TCTCTTATAC
+      180 ACATCTCCGA GCCCACGAGA CNNNNNNNNC AAGCAGAAGA CGGCATACGA GAT
 //

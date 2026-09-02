@@ -1,27 +1,40 @@
-LOCUS       STRANDED              74 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       STRANDED             143 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: STRANDED ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..74
+     source          1..143
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq STRANDED library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..20
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    21..21
-                     /label="mask X1 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    22..51
+     misc_feature    38..57
+                     /label="TruSeq p5 (read)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    58..58
+                     /label="mask X1"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    59..88
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    52..54
-                     /label="mask X3 (trimmed, not kept)"
+     misc_feature    89..91
+                     /label="mask X3"
                      /note="cutseq role: mask; arm: R2"
-     misc_feature    55..74
-                     /label="adapter / primer"
+     misc_feature    92..111
+                     /label="TruSeq p7 (read)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    112..119
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    120..143
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNAGATCG
-       60 GAAGAGCACA CGTC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CGACGCTCTT CCGATCTNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NAGATCGGAA GAGCACACGT CNNNNNNNNC
+      120 AAGCAGAAGA CGGCATACGA GAT
 //

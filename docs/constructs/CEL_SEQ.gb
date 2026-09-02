@@ -1,27 +1,40 @@
-LOCUS       CEL_SEQ              105 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       CEL_SEQ              174 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: CEL_SEQ ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..105
+     source          1..174
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq CEL_SEQ library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..26
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    27..34
-                     /label="UMI/capture N8 (renamed to {1})"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..63
+                     /label="TruSeq sRNA RA5 (5')"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    64..71
+                     /label="UMI/capture N8 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    35..42
+     misc_feature    72..79
                      /label="poly-T tail"
                      /note="cutseq role: polytail; arm: R1"
-     misc_feature    43..72
+     misc_feature    80..109
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    73..105
-                     /label="adapter / primer"
+     misc_feature    110..142
+                     /label="TruSeq sRNA RA3 (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    143..150
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    151..174
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 GTTCAGAGTT CTACAGTCCG ACGATCNNNN NNNNTTTTTT TTNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NNTGGAATTC TCGGGTGCCA AGGAACTCCA GTCAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNGTT CAGAGTTCTA CAGTCCGACG
+       60 ATCNNNNNNN NTTTTTTTTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNT GGAATTCTCG
+      120 GGTGCCAAGG AACTCCAGTC ACNNNNNNNN CAAGCAGAAG ACGGCATACG AGAT
 //

@@ -1,30 +1,44 @@
-LOCUS       SUGARSEQ             114 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SUGARSEQ             183 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SUGARSEQ ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..114
+     source          1..183
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SUGARSEQ library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..16
-                     /label="UMI/capture N16 (renamed to {1})"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..53
+                     /label="UMI/capture N16 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    17..28
-                     /label="UMI/capture N12 (renamed to {2})"
+     misc_feature    54..65
+                     /label="UMI/capture N12 (rename {2})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    29..58
+     misc_feature    66..95
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    59..74
-                     /label="UMI/capture N16 (renamed to {3})"
+     misc_feature    96..111
+                     /label="UMI/capture N16 (rename {3})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    75..86
-                     /label="UMI/capture N12 (renamed to {4})"
+     misc_feature    112..123
+                     /label="UMI/capture N12 (rename {4})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    87..114
-                     /label="adapter / primer"
+     misc_feature    124..151
+                     /label="3' primer/adapter (R2)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    152..159
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    160..183
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NNNNNNNNNN NNNNNNATGA TGGCTCACCT ATTAGCGGCT AAGG
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNATGATGG CTCACCTATT AGCGGCTAAG GNNNNNNNNC AAGCAGAAGA CGGCATACGA
+      180 GAT
 //

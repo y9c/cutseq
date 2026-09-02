@@ -1,33 +1,47 @@
-LOCUS       PARSE_WT_V2          116 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       PARSE_WT_V2          185 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: PARSE_WT_V2 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..116
+     source          1..185
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq PARSE_WT_V2 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..30
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..67
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    31..40
-                     /label="UMI/capture N10 (renamed to {1})"
+     misc_feature    68..77
+                     /label="UMI/capture N10 (rename {1})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    41..48
-                     /label="UMI/capture N8 (renamed to {2})"
+     misc_feature    78..85
+                     /label="UMI/capture N8 (rename {2})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    49..78
-                     /label="adapter / primer"
+     misc_feature    86..115
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    79..86
-                     /label="UMI/capture N8 (renamed to {3})"
+     misc_feature    116..123
+                     /label="UMI/capture N8 (rename {3})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    87..108
-                     /label="adapter / primer"
+     misc_feature    124..145
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    109..116
-                     /label="UMI/capture N8 (renamed to {4})"
+     misc_feature    146..153
+                     /label="UMI/capture N8 (rename {4})"
                      /note="cutseq role: capture; arm: R2"
+     misc_feature    154..161
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    162..185
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNGT GGCCGATGTT
-       60 TCGCATCGGC GTACGACTNN NNNNNNATCC ACGTGCTTGA GACTGTGGNN NNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNGTGGC CGATGTTTCG CATCGGCGTA CGACTNNNNN
+      120 NNNATCCACG TGCTTGAGAC TGTGGNNNNN NNNNNNNNNN NCAAGCAGAA GACGGCATAC
+      180 GAGAT
 //

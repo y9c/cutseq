@@ -1,27 +1,40 @@
-LOCUS       XGENSNMC              91 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       XGENSNMC             160 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: XGENSNMC ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..91
+     source          1..160
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq XGENSNMC library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..20
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    21..26
-                     /label="mask X6 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    27..56
+     misc_feature    38..57
+                     /label="TruSeq p5 (read)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    58..63
+                     /label="mask X6"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    64..93
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    57..71
-                     /label="mask X15 (trimmed, not kept)"
+     misc_feature    94..108
+                     /label="mask X15"
                      /note="cutseq role: mask; arm: R2"
-     misc_feature    72..91
-                     /label="adapter / primer"
+     misc_feature    109..128
+                     /label="TruSeq p7 (read)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    129..136
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    137..160
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NAGATCGGAA GAGCACACGT C
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CGACGCTCTT CCGATCTNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNAG ATCGGAAGAG
+      120 CACACGTCNN NNNNNNCAAG CAGAAGACGG CATACGAGAT
 //

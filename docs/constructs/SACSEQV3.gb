@@ -1,33 +1,46 @@
-LOCUS       SACSEQV3              89 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SACSEQV3             158 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SACSEQV3 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..89
+     source          1..158
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SACSEQV3 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..20
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    21..28
-                     /label="UMI/capture N8 (renamed to {1})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    29..29
-                     /label="mask X1 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    30..59
+     misc_feature    38..57
+                     /label="TruSeq p5 (read)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    58..65
+                     /label="UMI/capture N8 (rename {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    66..66
+                     /label="mask X1"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    67..96
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    60..61
-                     /label="mask X2 (trimmed, not kept)"
+     misc_feature    97..98
+                     /label="mask X2"
                      /note="cutseq role: mask; arm: R2"
-     misc_feature    62..69
-                     /label="UMI/capture N8 (renamed to {2})"
+     misc_feature    99..106
+                     /label="UMI/capture N8 (rename {2})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    70..89
-                     /label="adapter / primer"
+     misc_feature    107..126
+                     /label="TruSeq p7 (read)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    127..134
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    135..158
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNA GATCGGAAGA GCACACGTC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CGACGCTCTT CCGATCTNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNAGAT CGGAAGAGCA
+      120 CACGTCNNNN NNNNCAAGCA GAAGACGGCA TACGAGAT
 //

@@ -1,30 +1,43 @@
-LOCUS       CEL_SEQ2             109 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       CEL_SEQ2             178 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: CEL_SEQ2 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..109
+     source          1..178
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq CEL_SEQ2 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..26
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    27..32
-                     /label="UMI/capture N6 (renamed to {1})"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..63
+                     /label="TruSeq sRNA RA5 (5')"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    64..69
+                     /label="UMI/capture N6 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    33..38
-                     /label="UMI/capture N6 (renamed to {2})"
+     misc_feature    70..75
+                     /label="UMI/capture N6 (rename {2})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    39..46
+     misc_feature    76..83
                      /label="poly-T tail"
                      /note="cutseq role: polytail; arm: R1"
-     misc_feature    47..76
+     misc_feature    84..113
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    77..109
-                     /label="adapter / primer"
+     misc_feature    114..146
+                     /label="TruSeq sRNA RA3 (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    147..154
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    155..178
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 GTTCAGAGTT CTACAGTCCG ACGATCNNNN NNNNNNNNTT TTTTTTNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NNNNNNTGGA ATTCTCGGGT GCCAAGGAAC TCCAGTCAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNGTT CAGAGTTCTA CAGTCCGACG
+       60 ATCNNNNNNN NNNNNTTTTT TTTNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNTGGAATT
+      120 CTCGGGTGCC AAGGAACTCC AGTCACNNNN NNNNCAAGCA GAAGACGGCA TACGAGAT
 //

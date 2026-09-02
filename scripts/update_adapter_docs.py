@@ -53,18 +53,64 @@ def _display_len(kind, value):
     return ch * min(value, 96)
 
 
-def _token_json(tok, ordinal):
-    """A token -> {k, s, n} for the viewer (k=kind, s=display text, n=capture ord)."""
+# --- name each scheme token by its real role / known primer ----------------
+try:
+    from cutseq.primers import SEQUENCING_PRIMERS as _SP, _norm as _norm_seq
+    _PRI_EXACT = {_norm_seq(v): k for k, v in _SP.items()}
+    _P5 = _SP.get("P5 (flowcell)", "AATGATACGGCGACCACCGAGATCTACAC")
+    _P7 = _SP.get("P7 (flowcell)", "CAAGCAGAAGACGGCATACGAGAT")
+except Exception:
+    _PRI_EXACT = {}
+    _P5 = "AATGATACGGCGACCACCGAGATCTACAC"
+    _P7 = "CAAGCAGAAGACGGCATACGAGAT"
+
+
+def _tok_name(tok, side):
+    """A human name for a scheme token (role-aware, known-primer aware)."""
     kind = tok.kind
     if kind == "capture":
-        return {"k": kind, "s": _display_len(kind, tok.value), "n": ordinal}
+        return f"UMI/capture N{int(tok.value)}" + (f" (rename {{{tok.index}}})" if tok.index else "")
     if kind == "mask":
-        return {"k": kind, "s": _display_len(kind, tok.value), "n": None}
+        return f"mask X{int(tok.value)}"
     if kind == "insert":
-        return {"k": kind, "s": tok.value, "n": None}
+        return f"insert marker ({_INSERT.get(tok.value, tok.value)})"
+    if kind == "inline":
+        return "inline barcode"
     if kind == "polytail":
-        return {"k": kind, "s": f"{tok.value}...{tok.value}", "n": None}
-    return {"k": kind, "s": tok.value, "n": None}
+        return f"poly-{tok.value} tail"
+    if kind == "back":
+        return "3' read-through adapter"
+    # adapter / primer: match a known sequencing primer (exact, then terminal fragment)
+    if tok.kind == "adp":
+        if _PRI_EXACT:
+            name = _PRI_EXACT.get(_norm_seq(tok.value))
+            if name:
+                return name
+        try:
+            from cutseq.primers import _terminal_match
+            for k, v in sorted(_SP.items(), key=lambda kv: -len(kv[1])):
+                if len(tok.value) >= 15 and _terminal_match(tok.value, v):
+                    return k
+        except Exception:
+            pass
+    return "5' primer/adapter (R1)" if side == "R1" else "3' primer/adapter (R2)"
+
+
+def _token_json(tok, ordinal, name):
+    """A token -> {k, s, n, nm} for the viewer (k=kind, s=display, n=capture ord, nm=name)."""
+    kind = tok.kind
+    base = {"k": kind, "nm": name}
+    if kind == "capture":
+        base.update({"s": _display_len(kind, tok.value), "n": ordinal})
+    elif kind == "mask":
+        base.update({"s": _display_len(kind, tok.value), "n": None})
+    elif kind == "insert":
+        base.update({"s": tok.value, "n": None})
+    elif kind == "polytail":
+        base.update({"s": f"{tok.value}...{tok.value}", "n": None})
+    else:
+        base.update({"s": tok.value, "n": None})
+    return base
 
 
 INSERT_PH = 30     # nominal length of the (unknown) library insert placeholder
@@ -84,73 +130,46 @@ def _scheme_json(name, info, tokens, construct):
     }
 
 
-def _build_construct(tokens):
-    """Assemble the top-strand molecule 5'->3' = R1-side + insert + R2-side.
+def _build_construct(tokens, names):
+    """Assemble the FULL top-strand molecule 5'->3'.
 
-    The R2-side of a scheme is already written top-strand 5'->3', so appending
-    tokens in order (with an insert placeholder at the marker) yields the full
-    construct. Each token becomes an annotated feature with 1-based coords.
+    = [P5 flowcell][i5 index] + R1-side + insert + R2-side + [i7 index][P7 flowcell]
+    Every token becomes an annotated feature with 1-based coords; the flowcell
+    anchors and index placeholders are added so the construct is full length.
     """
     side = "R1"
-    parts = []
-    feats = []
-    cursor = 0
-    for tok in tokens:
+    specs = []  # (name, text, role, strand, side)
+    specs.append(("P5 (flowcell)", _P5, "adp", "+", "R1"))
+    specs.append(("i5 index (8N)", "N" * 8, "mask", "+", "R1"))
+    for i, tok in enumerate(tokens):
         kind = tok.kind
+        nm = names[i] if i < len(names) else None
         if kind == "insert":
-            length = INSERT_PH
-            text = "N" * length
-            name = "library insert (placeholder)"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "capture":
-            length = int(tok.value)
-            text = "N" * length
-            name = f"UMI/capture N{length} (renamed to {tok.label or ('{' + str(tok.index) + '}')})" if tok.index else f"UMI/capture N{length}"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "mask":
-            length = int(tok.value)
-            text = "N" * length
-            name = f"mask X{length} (trimmed, not kept)"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "adp":
-            text = tok.value
-            length = len(text)
-            name = "adapter / primer"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "inline":
-            text = tok.value
-            length = len(text)
-            name = "inline barcode"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "polytail":
-            length = POLY_RUN
-            text = tok.value * length
-            name = f"poly-{tok.value} tail"
-            ftype = "misc_feature"
-            strand = "+"
-        elif kind == "back":
-            text = tok.value
-            length = len(text)
-            name = "3' read-through adapter"
-            ftype = "misc_feature"
-            strand = "-"
-        else:
-            continue
-        start = cursor + 1
-        end = cursor + length
-        feats.append({"name": name, "type": ftype, "role": kind, "strand": strand,
-                      "side": side, "start": start, "end": end, "len": length,
-                      "seq": text})
-        parts.append(text)
-        cursor += length
-        # switch the read side snapshot once we pass the insert marker
-        if kind == "insert":
+            specs.append(("library insert (placeholder)", "N" * INSERT_PH, "insert", "+", side))
             side = "R2"
+            continue
+        if kind == "capture":
+            specs.append((nm or f"UMI/capture N{int(tok.value)}", "N" * int(tok.value), "capture", "+", side))
+        elif kind == "mask":
+            specs.append((nm or f"mask X{int(tok.value)}", "N" * int(tok.value), "mask", "+", side))
+        elif kind == "adp":
+            specs.append((nm or ("5' primer/adapter (R1)" if side == "R1" else "3' primer/adapter (R2)"), tok.value, "adp", "+", side))
+        elif kind == "inline":
+            specs.append((nm or "inline barcode", tok.value, "inline", "+", side))
+        elif kind == "polytail":
+            specs.append((nm or f"poly-{tok.value} tail", tok.value * POLY_RUN, "polytail", "+", side))
+        elif kind == "back":
+            specs.append((nm or "3' read-through adapter", tok.value, "back", "-", side))
+    specs.append(("i7 index (8N)", "N" * 8, "mask", "+", "R2"))
+    specs.append(("P7 (flowcell)", _P7, "adp", "+", "R2"))
+
+    parts, feats, cursor = [], [], 0
+    for nm, text, role, strand, sd in specs:
+        start, end = cursor + 1, cursor + len(text)
+        feats.append({"name": nm, "type": "misc_feature", "role": role, "strand": strand,
+                      "side": sd, "start": start, "end": end, "len": len(text), "seq": text})
+        parts.append(text)
+        cursor += len(text)
     return {"seq": "".join(parts), "size": cursor, "features": feats}
 
 
@@ -166,19 +185,19 @@ def _load_schemes():
         ordinal = 0
         raw_tokens = tokenize(info["scheme"])
         tokens = []
+        names = []
+        side = "R1"
         for tok in raw_tokens:
-            tok_ord = None
             if tok.kind in ("capture", "inline"):
                 ordinal += 1
-                tok_ord = ordinal
-            tokens.append(_token_json(tok, tok_ord))
-        # annotate capture ordinals back onto the raw tokens for the construct
-        idx = 0
-        for tok in raw_tokens:
-            if tok.kind in ("capture", "inline"):
-                idx += 1
-                tok.index = idx
-        construct = _build_construct(raw_tokens)
+                tok.index = ordinal
+            names.append(_tok_name(tok, side))
+            if tok.kind == "insert":
+                side = "R2"
+        for i, tok in enumerate(raw_tokens):
+            tok_ord = tok.index if tok.kind in ("capture", "inline") else None
+            tokens.append(_token_json(tok, tok_ord, names[i]))
+        construct = _build_construct(raw_tokens, names)
         schemes.append(_scheme_json(name, info, tokens, construct))
     return schemes
 
@@ -248,8 +267,8 @@ _JS = """
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function title(t){
-    var label = D.roles[t.k] || t.k;
-    if (t.k === 'insert'){ var m={'+':'sense','-':'antisense',':':'unstranded'}; return 'insert marker ' + t.s + ' (' + (m[t.s]||t.s) + ')'; }
+    var label = t.nm || (D.roles[t.k] || t.k);
+    if (t.k === 'insert'){ var m={'+':'sense','-':'antisense',':':'unstranded'}; return label + ' — ' + t.s + ' (' + (m[t.s]||t.s) + ')'; }
     var len = (t.s || '').length;
     var txt = label + ' (len ' + len + ')';
     if (t.n){ txt += ' -> rename tag {' + t.n + '}'; }

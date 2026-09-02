@@ -1,29 +1,42 @@
-LOCUS       SMART_SEQ3           186 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SMART_SEQ3           255 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SMART_SEQ3 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..186
+     source          1..255
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SMART_SEQ3 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..44
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    45..52
-                     /label="UMI/capture N8 (renamed to {1})"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..81
+                     /label="Nextera R1"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    82..89
+                     /label="UMI/capture N8 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    53..55
-                     /label="adapter / primer"
+     misc_feature    90..92
+                     /label="5' primer/adapter (R1)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    56..85
+     misc_feature    93..122
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    86..186
-                     /label="adapter / primer"
+     misc_feature    123..223
+                     /label="Nextera read (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    224..231
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    232..255
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 TCGTCGGCAG CGTCAGATGT GTATAAGAGA CAGATTGCGC AATGNNNNNN NNGGGNNNNN
-       60 NNNNNNNNNN NNNNNNNNNN NNNNNCTGTC TCTTATACAC ATCTCCGAGC CCACGAGACT
-      120 CGTCGGCAGC GTCAGATGTG TATAAGAGAC AGCTGTCTCT TATACACATC TCCGAGCCCA
-      180 CGAGAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNTCG TCGGCAGCGT CAGATGTGTA
+       60 TAAGAGACAG ATTGCGCAAT GNNNNNNNNG GGNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNCTGTCTCT TATACACATC TCCGAGCCCA CGAGACTCGT CGGCAGCGTC AGATGTGTAT
+      180 AAGAGACAGC TGTCTCTTAT ACACATCTCC GAGCCCACGA GACNNNNNNN NCAAGCAGAA
+      240 GACGGCATAC GAGAT
 //

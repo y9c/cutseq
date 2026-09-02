@@ -1,40 +1,53 @@
-LOCUS       SCI_RNA_SEQ3         139 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SCI_RNA_SEQ3         208 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SCI_RNA_SEQ3 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..139
+     source          1..208
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SCI_RNA_SEQ3 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..33
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    34..42
-                     /label="mask X9 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    43..48
-                     /label="adapter / primer"
+     misc_feature    38..70
+                     /label="TruSeq R1 (5')"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    49..56
-                     /label="UMI/capture N8 (renamed to {1})"
+     misc_feature    71..79
+                     /label="mask X9"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    80..85
+                     /label="5' primer/adapter (R1)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    86..93
+                     /label="UMI/capture N8 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    57..66
-                     /label="mask X10 (trimmed, not kept)"
+     misc_feature    94..103
+                     /label="mask X10"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    67..74
+     misc_feature    104..111
                      /label="poly-T tail"
                      /note="cutseq role: polytail; arm: R1"
-     misc_feature    75..75
-                     /label="mask X1 (trimmed, not kept)"
+     misc_feature    112..112
+                     /label="mask X1"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    76..109
-                     /label="adapter / primer"
+     misc_feature    113..146
+                     /label="Nextera read (3')"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    110..139
+     misc_feature    147..176
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
+     misc_feature    177..184
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    185..208
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACTCTTTC CCTACACGAC GCTCTTCCGA TCTNNNNNNN NNCAGAGCNN NNNNNNNNNN
-       60 NNNNNNTTTT TTTTNCTGTC TCTTATACAC ATCTCCGAGC CCACGAGACN NNNNNNNNNN
-      120 NNNNNNNNNN NNNNNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CTCTTTCCCT ACACGACGCT
+       60 CTTCCGATCT NNNNNNNNNC AGAGCNNNNN NNNNNNNNNN NNNTTTTTTT TNCTGTCTCT
+      120 TATACACATC TCCGAGCCCA CGAGACNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      180 NNNNCAAGCA GAAGACGGCA TACGAGAT
 //

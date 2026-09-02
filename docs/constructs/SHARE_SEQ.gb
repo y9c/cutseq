@@ -1,60 +1,73 @@
-LOCUS       SHARE_SEQ            246 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SHARE_SEQ            315 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SHARE_SEQ ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..246
+     source          1..315
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SHARE_SEQ library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..30
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..67
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    31..45
-                     /label="adapter / primer"
+     misc_feature    68..82
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    46..53
-                     /label="UMI/capture N8 (renamed to {1})"
+     misc_feature    83..90
+                     /label="UMI/capture N8 (rename {1})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    54..83
-                     /label="adapter / primer"
+     misc_feature    91..120
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    84..91
-                     /label="UMI/capture N8 (renamed to {2})"
+     misc_feature    121..128
+                     /label="UMI/capture N8 (rename {2})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    92..121
-                     /label="adapter / primer"
+     misc_feature    129..158
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    122..129
-                     /label="UMI/capture N8 (renamed to {3})"
+     misc_feature    159..166
+                     /label="UMI/capture N8 (rename {3})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    130..139
-                     /label="UMI/capture N10 (renamed to {4})"
+     misc_feature    167..176
+                     /label="UMI/capture N10 (rename {4})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    140..147
+     misc_feature    177..184
                      /label="poly-A tail"
                      /note="cutseq role: polytail; arm: R2"
-     misc_feature    148..162
-                     /label="adapter / primer"
+     misc_feature    185..199
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    163..170
-                     /label="UMI/capture N8 (renamed to {5})"
+     misc_feature    200..207
+                     /label="UMI/capture N8 (rename {5})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    171..200
-                     /label="adapter / primer"
+     misc_feature    208..237
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    201..208
-                     /label="UMI/capture N8 (renamed to {6})"
+     misc_feature    238..245
+                     /label="UMI/capture N8 (rename {6})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    209..238
-                     /label="adapter / primer"
+     misc_feature    246..275
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    239..246
-                     /label="UMI/capture N8 (renamed to {7})"
+     misc_feature    276..283
+                     /label="UMI/capture N8 (rename {7})"
                      /note="cutseq role: capture; arm: R2"
+     misc_feature    284..291
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    292..315
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN TCGGACGATC ATGGGNNNNN NNNCAAGTAT
-       60 GCAGCGCGCT CAAGCACGTG GATNNNNNNN NAGTCGTACG CCGATGCGAA ACATCGGCCA
-      120 CNNNNNNNNN NNNNNNNNNA AAAAAAATCG GACGATCATG GGNNNNNNNN CAAGTATGCA
-      180 GCGCGCTCAA GCACGTGGAT NNNNNNNNAG TCGTACGCCG ATGCGAAACA TCGGCCACNN
-      240 NNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNTCG GACGATCATG GGNNNNNNNN CAAGTATGCA GCGCGCTCAA GCACGTGGAT
+      120 NNNNNNNNAG TCGTACGCCG ATGCGAAACA TCGGCCACNN NNNNNNNNNN NNNNNNAAAA
+      180 AAAATCGGAC GATCATGGGN NNNNNNNCAA GTATGCAGCG CGCTCAAGCA CGTGGATNNN
+      240 NNNNNAGTCG TACGCCGATG CGAAACATCG GCCACNNNNN NNNNNNNNNN NCAAGCAGAA
+      300 GACGGCATAC GAGAT
 //

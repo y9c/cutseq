@@ -1,33 +1,47 @@
-LOCUS       DOGMASEQ_LLL         117 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       DOGMASEQ_LLL         186 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: DOGMASEQ_LLL ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..117
+     source          1..186
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq DOGMASEQ_LLL library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..16
-                     /label="UMI/capture N16 (renamed to {1})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    17..28
-                     /label="UMI/capture N12 (renamed to {2})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    29..43
-                     /label="mask X15 (trimmed, not kept)"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    44..59
-                     /label="UMI/capture N16 (renamed to {3})"
+     misc_feature    38..53
+                     /label="UMI/capture N16 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    60..71
-                     /label="UMI/capture N12 (renamed to {4})"
+     misc_feature    54..65
+                     /label="UMI/capture N12 (rename {2})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    72..101
+     misc_feature    66..80
+                     /label="mask X15"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    81..96
+                     /label="UMI/capture N16 (rename {3})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    97..108
+                     /label="UMI/capture N12 (rename {4})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    109..138
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    102..117
-                     /label="UMI/capture N16 (renamed to {5})"
+     misc_feature    139..154
+                     /label="UMI/capture N16 (rename {5})"
                      /note="cutseq role: capture; arm: R2"
+     misc_feature    155..162
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    163..186
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNCAAGCAGA AGACGGCATA
+      180 CGAGAT
 //

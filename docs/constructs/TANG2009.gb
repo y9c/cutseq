@@ -1,21 +1,35 @@
-LOCUS       TANG2009             113 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       TANG2009             182 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: TANG2009 ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..113
+     source          1..182
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq TANG2009 library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..41
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    42..71
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..78
+                     /label="5' primer/adapter (R1)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    79..108
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    72..113
-                     /label="adapter / primer"
+     misc_feature    109..150
+                     /label="3' primer/adapter (R2)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    151..158
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    159..182
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 CCACTACGCC TCCGCTTTCC TCTCTATGGG CAGTCGGTGA TNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NCGCCTTGGC CGTACAGCAG AGAGAATGAG GAACCCGGGG CAG
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNCCA CTACGCCTCC GCTTTCCTCT
+       60 CTATGGGCAG TCGGTGATNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNCG CCTTGGCCGT
+      120 ACAGCAGAGA GAATGAGGAA CCCGGGGCAG NNNNNNNNCA AGCAGAAGAC GGCATACGAG
+      180 AT
 //

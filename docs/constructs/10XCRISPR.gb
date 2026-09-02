@@ -1,56 +1,69 @@
-LOCUS       10XCRISPR            392 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       10XCRISPR            461 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: 10XCRISPR ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..392
+     source          1..461
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq 10XCRISPR library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..33
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    34..49
-                     /label="UMI/capture N16 (renamed to {1})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    50..61
-                     /label="UMI/capture N12 (renamed to {2})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    62..169
-                     /label="adapter / primer"
-                     /note="cutseq role: adp; arm: R1"
-     misc_feature    170..186
-                     /label="mask X17 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    187..194
+     misc_feature    38..70
+                     /label="Nextera R1"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    71..86
+                     /label="UMI/capture N16 (rename {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    87..98
+                     /label="UMI/capture N12 (rename {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    99..206
+                     /label="5' primer/adapter (R1)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    207..223
+                     /label="mask X17"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    224..231
                      /label="poly-C tail"
                      /note="cutseq role: polytail; arm: R1"
-     misc_feature    195..284
-                     /label="adapter / primer"
+     misc_feature    232..321
+                     /label="TruSeq p5 (read)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    285..300
-                     /label="UMI/capture N16 (renamed to {3})"
+     misc_feature    322..337
+                     /label="UMI/capture N16 (rename {3})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    301..312
-                     /label="UMI/capture N12 (renamed to {4})"
+     misc_feature    338..349
+                     /label="UMI/capture N12 (rename {4})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    313..320
+     misc_feature    350..357
                      /label="poly-T tail"
                      /note="cutseq role: polytail; arm: R1"
-     misc_feature    321..350
+     misc_feature    358..387
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    351..384
-                     /label="adapter / primer"
+     misc_feature    388..421
+                     /label="TruSeq 3' adapter"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    385..392
-                     /label="UMI/capture N8 (renamed to {5})"
+     misc_feature    422..429
+                     /label="UMI/capture N8 (rename {5})"
                      /note="cutseq role: capture; arm: R2"
+     misc_feature    430..437
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    438..461
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 TCGTCGGCAG CGTCAGATGT GTATAAGAGA CAGNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NTTGCTAGGA CCGGCCTTAA AGCGCACCGA CTCGGTGCCA CTTTTTCAAG TTGATAACGG
-      120 ACTAGCCTTA TTTAAACTTG CTATGCTGTT TCCAGCTTAG CTCTTAAACN NNNNNNNNNN
-      180 NNNNNNCCCC CCCCATGTAC TCTGCGTTGA TACCACTGCT TAGATCGGAA GAGCACACGT
-      240 CTGAACTCCA GTCACTCTTT CCCTACACGA CGCTCTTCCG ATCTNNNNNN NNNNNNNNNN
-      300 NNNNNNNNNN NNTTTTTTTT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN AGATCGGAAG
-      360 AGCACACGTC TGAACTCCAG TCACNNNNNN NN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNTCG TCGGCAGCGT CAGATGTGTA
+       60 TAAGAGACAG NNNNNNNNNN NNNNNNNNNN NNNNNNNNTT GCTAGGACCG GCCTTAAAGC
+      120 GCACCGACTC GGTGCCACTT TTTCAAGTTG ATAACGGACT AGCCTTATTT AAACTTGCTA
+      180 TGCTGTTTCC AGCTTAGCTC TTAAACNNNN NNNNNNNNNN NNNCCCCCCC CATGTACTCT
+      240 GCGTTGATAC CACTGCTTAG ATCGGAAGAG CACACGTCTG AACTCCAGTC ACTCTTTCCC
+      300 TACACGACGC TCTTCCGATC TNNNNNNNNN NNNNNNNNNN NNNNNNNNNT TTTTTTTNNN
+      360 NNNNNNNNNN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC ACACGTCTGA ACTCCAGTCA
+      420 CNNNNNNNNN NNNNNNNCAA GCAGAAGACG GCATACGAGA T
 //

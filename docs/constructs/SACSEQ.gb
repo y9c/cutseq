@@ -1,27 +1,40 @@
-LOCUS       SACSEQ                80 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       SACSEQ               149 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: SACSEQ ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..80
+     source          1..149
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq SACSEQ library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..20
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    21..50
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..57
+                     /label="TruSeq p5 (read)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    58..87
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    51..54
-                     /label="mask X4 (trimmed, not kept)"
+     misc_feature    88..91
+                     /label="mask X4"
                      /note="cutseq role: mask; arm: R2"
-     misc_feature    55..60
-                     /label="UMI/capture N6 (renamed to {1})"
+     misc_feature    92..97
+                     /label="UMI/capture N6 (rename {1})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    61..80
-                     /label="adapter / primer"
+     misc_feature    98..117
+                     /label="TruSeq p7 (read)"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    118..125
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    126..149
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 AGATCGGAAG AGCACACGTC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNACA CGACGCTCTT CCGATCTNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC ACACGTCNNN
+      120 NNNNNCAAGC AGAAGACGGC ATACGAGAT
 //

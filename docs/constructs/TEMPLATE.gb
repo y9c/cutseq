@@ -1,14 +1,27 @@
-LOCUS       TEMPLATE              30 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       TEMPLATE              99 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: TEMPLATE ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..30
+     source          1..99
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq TEMPLATE library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..30
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..67
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
+     misc_feature    68..75
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    76..99
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNCAAGC AGAAGACGGC ATACGAGAT
 //

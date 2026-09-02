@@ -1,24 +1,37 @@
-LOCUS       10XV3_SCRNASEQ_ELEMENT_ADEPT_TRUSEQ_DUAL        94 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       10XV3_SCRNASEQ_ELEMENT_ADEPT_TRUSEQ_DUAL       163 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: 10XV3_SCRNASEQ_ELEMENT_ADEPT_TRUSEQ_DUAL ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..94
+     source          1..163
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq 10XV3_SCRNASEQ_ELEMENT_ADEPT_TRUSEQ_DUAL library scheme; adapter/barcode/UMI structure"
      misc_feature    1..29
-                     /label="adapter / primer"
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    30..30
-                     /label="mask X1 (trimmed, not kept)"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    31..64
-                     /label="adapter / primer"
+     misc_feature    38..66
+                     /label="TruSeq universal adapter"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    65..94
+     misc_feature    67..67
+                     /label="mask X1"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    68..101
+                     /label="TruSeq 3' adapter"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    102..131
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
+     misc_feature    132..139
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    140..163
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN AGATCGGAAG AGCACACGTC TGAACTCCAG
-       60 TCACNNNNNN NNNNNNNNNN NNNNNNNNNN NNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNTCT TTCCCTACAC GACGCTCTTC
+       60 CGATCTNAGA TCGGAAGAGC ACACGTCTGA ACTCCAGTCA CNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNC AAGCAGAAGA CGGCATACGA GAT
 //

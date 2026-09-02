@@ -1,21 +1,34 @@
-LOCUS       PI_ATAC_SEQ           97 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       PI_ATAC_SEQ          166 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: PI_ATAC_SEQ ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..97
+     source          1..166
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq PI_ATAC_SEQ library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..33
-                     /label="adapter / primer"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    34..63
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..70
+                     /label="Nextera R1"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    71..100
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    64..97
-                     /label="adapter / primer"
+     misc_feature    101..134
+                     /label="Nextera read (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    135..142
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    143..166
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 TCGTCGGCAG CGTCAGATGT GTATAAGAGA CAGNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNCTGTCTC TTATACACAT CTCCGAGCCC ACGAGAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNTCG TCGGCAGCGT CAGATGTGTA
+       60 TAAGAGACAG NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN CTGTCTCTTA TACACATCTC
+      120 CGAGCCCACG AGACNNNNNN NNCAAGCAGA AGACGGCATA CGAGAT
 //

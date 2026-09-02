@@ -1,46 +1,59 @@
-LOCUS       DOGMASEQ_DIG         168 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       DOGMASEQ_DIG         237 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: DOGMASEQ_DIG ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..168
+     source          1..237
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq DOGMASEQ_DIG library scheme; adapter/barcode/UMI structure"
-     misc_feature    1..16
-                     /label="UMI/capture N16 (renamed to {1})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    17..28
-                     /label="UMI/capture N12 (renamed to {2})"
-                     /note="cutseq role: capture; arm: R1"
-     misc_feature    29..43
-                     /label="mask X15 (trimmed, not kept)"
+     misc_feature    1..29
+                     /label="P5 (flowcell)"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    44..59
-                     /label="UMI/capture N16 (renamed to {3})"
+     misc_feature    38..53
+                     /label="UMI/capture N16 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    60..71
-                     /label="UMI/capture N12 (renamed to {4})"
+     misc_feature    54..65
+                     /label="UMI/capture N12 (rename {2})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    72..86
-                     /label="mask X15 (trimmed, not kept)"
+     misc_feature    66..80
+                     /label="mask X15"
                      /note="cutseq role: mask; arm: R1"
-     misc_feature    87..102
-                     /label="UMI/capture N16 (renamed to {5})"
+     misc_feature    81..96
+                     /label="UMI/capture N16 (rename {3})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    103..114
-                     /label="UMI/capture N12 (renamed to {6})"
+     misc_feature    97..108
+                     /label="UMI/capture N12 (rename {4})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    115..144
+     misc_feature    109..123
+                     /label="mask X15"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    124..139
+                     /label="UMI/capture N16 (rename {5})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    140..151
+                     /label="UMI/capture N12 (rename {6})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    152..181
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    145..152
-                     /label="adapter / primer"
+     misc_feature    182..189
+                     /label="3' primer/adapter (R2)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    153..168
-                     /label="UMI/capture N16 (renamed to {7})"
+     misc_feature    190..205
+                     /label="UMI/capture N16 (rename {7})"
                      /note="cutseq role: capture; arm: R2"
+     misc_feature    206..213
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    214..237
+                     /label="P7 (flowcell)"
+                     /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
        60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-      120 NNNNNNNNNN NNNNNNNNNN NNNNCAGACG CGNNNNNNNN NNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      180 NCAGACGCGN NNNNNNNNNN NNNNNNNNNN NNNCAAGCAG AAGACGGCAT ACGAGAT
 //

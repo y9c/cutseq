@@ -1,49 +1,62 @@
-LOCUS       10X_RNA_ATAC_MULTI       310 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       10X_RNA_ATAC_MULTI       379 bp    DNA     linear   03-SEP-2026 SYN
 // cutseq built-in scheme: 10X_RNA_ATAC_MULTI ()
 // grammar: 
 FEATURES             Location/Qualifiers
-     source          1..310
+     source          1..379
                      /organism="synthetic construct"
                      /mol_type="genomic DNA"
                      /note="cutseq 10X_RNA_ATAC_MULTI library scheme; adapter/barcode/UMI structure"
      misc_feature    1..29
-                     /label="adapter / primer"
+                     /label="P5 (flowcell)"
                      /note="cutseq role: adp; arm: R1"
-     misc_feature    30..45
-                     /label="UMI/capture N16 (renamed to {1})"
+     misc_feature    30..37
+                     /label="i5 index (8N)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    38..66
+                     /label="TruSeq universal adapter"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    67..82
+                     /label="UMI/capture N16 (rename {1})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    46..57
-                     /label="UMI/capture N12 (renamed to {2})"
+     misc_feature    83..94
+                     /label="UMI/capture N12 (rename {2})"
                      /note="cutseq role: capture; arm: R1"
-     misc_feature    58..87
+     misc_feature    95..124
                      /label="library insert (placeholder)"
                      /note="cutseq role: insert; arm: R1"
-     misc_feature    88..121
-                     /label="adapter / primer"
+     misc_feature    125..158
+                     /label="TruSeq 3' adapter"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    122..137
-                     /label="UMI/capture N16 (renamed to {3})"
+     misc_feature    159..174
+                     /label="UMI/capture N16 (rename {3})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    138..241
-                     /label="adapter / primer"
+     misc_feature    175..278
+                     /label="TruSeq p5 (read)"
                      /note="cutseq role: adp; arm: R2"
-     misc_feature    242..257
-                     /label="UMI/capture N16 (renamed to {4})"
+     misc_feature    279..294
+                     /label="UMI/capture N16 (rename {4})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    258..269
-                     /label="UMI/capture N12 (renamed to {5})"
+     misc_feature    295..306
+                     /label="UMI/capture N12 (rename {5})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    270..277
-                     /label="UMI/capture N8 (renamed to {6})"
+     misc_feature    307..314
+                     /label="UMI/capture N8 (rename {6})"
                      /note="cutseq role: capture; arm: R2"
-     misc_feature    278..310
-                     /label="adapter / primer"
+     misc_feature    315..347
+                     /label="TruSeq sRNA RA3 (3')"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    348..355
+                     /label="i7 index (8N)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    356..379
+                     /label="P7 (flowcell)"
                      /note="cutseq role: adp; arm: R2"
 ORIGIN
-        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
-       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC ACACGTCTGA ACTCCAGTCA
-      120 CNNNNNNNNN NNNNNNNCGC GTCTGTCGTC GGCAGCGTCA GATGTGTATA AGAGACAGCT
-      180 GTCTCTTATA CACATCTCCG AGCCCACGAG ACTCTTTCCC TACACGACGC TCTTCCGATC
-      240 TNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNTGG AATTCTCGGG TGCCAAGGAA
-      300 CTCCAGTCAC
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNNNNTCT TTCCCTACAC GACGCTCTTC
+       60 CGATCTNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNAGATCG GAAGAGCACA CGTCTGAACT CCAGTCACNN NNNNNNNNNN NNNNCGCGTC
+      180 TGTCGTCGGC AGCGTCAGAT GTGTATAAGA GACAGCTGTC TCTTATACAC ATCTCCGAGC
+      240 CCACGAGACT CTTTCCCTAC ACGACGCTCT TCCGATCTNN NNNNNNNNNN NNNNNNNNNN
+      300 NNNNNNNNNN NNNNTGGAAT TCTCGGGTGC CAAGGAACTC CAGTCACNNN NNNNNCAAGC
+      360 AGAAGACGGC ATACGAGAT
 //
