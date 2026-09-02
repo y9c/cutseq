@@ -1,9 +1,29 @@
 remote_theme: just-the-docs/just-the-docs@v0.12.0
+
+title: cutseq
+description: "Automatically cut adapter / barcode / UMI from NGS data."
+
+# color_scheme: nil enables the light/dark toggle in the theme
+color_scheme: nil
 ga_tracking: G-EFHY8WFMHK
 ga_tracking_anonymize_ip: true
-color_scheme: light
 favicon_ico: '/favicon.ico'
 footer_content: 'Copyright &copy; 2021-2026, Chang Ye'
+
+back_to_top: true
+back_to_top_text: "Back to top"
+
+aux_links:
+  "View on GitHub": "https://github.com/y9c/cutseq"
+aux_links_new_tab: true
+
+# GitHub "edit this page" links
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub"
+gh_edit_repository: "https://github.com/y9c/cutseq"
+gh_edit_branch: "main"
+gh_edit_view_mode: "tree"
+gh_edit_source: "docs"
 
 callouts:
   warning:
@@ -18,5 +38,8 @@ plugins:
   - jekyll-optional-front-matter
 
 nav:
-  - Home: index.md
-  - Adapter Schemes: adapters.md
+  - index.md
+  - quickstart.md
+  - adapters.md
+  - rename.md
+  - spatial.md
