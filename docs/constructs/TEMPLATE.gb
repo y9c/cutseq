@@ -1,0 +1,14 @@
+LOCUS       TEMPLATE              30 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: TEMPLATE ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..30
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq TEMPLATE library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..30
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+ORIGIN
+        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+//

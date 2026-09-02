@@ -1,0 +1,27 @@
+LOCUS       TAKARAV2              76 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: TAKARAV2 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..76
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq TAKARAV2 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..23
+                     /label="mask X3 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    24..53
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    54..56
+                     /label="mask X3 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    57..76
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNAGAT
+       60 CGGAAGAGCA CACGTC
+//

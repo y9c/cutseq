@@ -1,0 +1,42 @@
+LOCUS       10XFB_3PRIME         246 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: 10XFB_3PRIME ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..246
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq 10XFB_3PRIME library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..45
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    46..57
+                     /label="UMI/capture N12 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    58..65
+                     /label="poly-T tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    66..95
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    96..162
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    163..178
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    179..190
+                     /label="UMI/capture N12 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    191..246
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNTTT
+       60 TTTTTNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNAGATC GGAAGAGCAC ACGTCTGAAC
+      120 TCCAGTCACT CGTCGGCAGC GTCAGATGTG TATAAGAGAC AGNNNNNNNN NNNNNNNNNN
+      180 NNNNNNNNNN TTGCTAGGAC CGGCCTTAAA GCAGATCGGA AGAGCACACG TCTGAACTCC
+      240 AGTCAC
+//

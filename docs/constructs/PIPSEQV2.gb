@@ -1,0 +1,41 @@
+LOCUS       PIPSEQV2             186 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: PIPSEQV2 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..186
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq PIPSEQV2 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..72
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    73..80
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    81..87
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    88..95
+                     /label="UMI/capture N8 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    96..102
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    103..110
+                     /label="UMI/capture N8 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    111..122
+                     /label="UMI/capture N12 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    123..152
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    153..186
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GCCTGTCCGC GGAAGCAGTG GTATCAACGC AGAGTACGAC TCCTCTTTCC CTACACGACG
+       60 CTCTTCCGAT CTNNNNNNNN ATGCATCNNN NNNNNCCTCG AGNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNCTGTCTCT TATACACATC TCCGAGCCCA
+      180 CGAGAC
+//

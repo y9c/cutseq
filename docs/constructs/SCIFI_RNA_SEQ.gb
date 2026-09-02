@@ -1,0 +1,34 @@
+LOCUS       SCIFI_RNA_SEQ        149 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SCIFI_RNA_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..149
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SCIFI_RNA_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..16
+                     /label="mask X16 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    17..63
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    64..71
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    72..84
+                     /label="mask X13 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    85..85
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    86..115
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    116..149
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 NNNNNNNNNN NNNNNNTCGT CGGCAGCGTC ACACTCTTTC CCTACACGAC GCTCTTCCGA
+       60 TCTNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNCTGTC
+      120 TCTTATACAC ATCTCCGAGC CCACGAGAC
+//

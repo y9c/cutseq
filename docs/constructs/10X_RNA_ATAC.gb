@@ -1,0 +1,35 @@
+LOCUS       10X_RNA_ATAC         212 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: 10X_RNA_ATAC ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..212
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq 10X_RNA_ATAC library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..45
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    46..57
+                     /label="UMI/capture N12 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    58..87
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    88..121
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    122..137
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    138..212
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC ACACGTCTGA ACTCCAGTCA
+      120 CNNNNNNNNN NNNNNNNCGC GTCTGTCGTC GGCAGCGTCA GATGTGTATA AGAGACAGCT
+      180 GTCTCTTATA CACATCTCCG AGCCCACGAG AC
+//

@@ -1,0 +1,27 @@
+LOCUS       MARS_SEQ             104 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: MARS_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..104
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq MARS_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..36
+                     /label="mask X7 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    37..66
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    67..70
+                     /label="UMI/capture N4 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    71..104
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN AGATCGGAAG AGCACACGTC TGAACTCCAG TCAC
+//

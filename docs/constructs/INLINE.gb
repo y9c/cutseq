@@ -1,0 +1,30 @@
+LOCUS       INLINE                86 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: INLINE ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..86
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq INLINE library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..25
+                     /label="UMI/capture N5 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    26..55
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    56..60
+                     /label="UMI/capture N5 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    61..66
+                     /label="inline barcode"
+                     /note="cutseq role: inline; arm: R2"
+     misc_feature    67..86
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AGTTCTACAG TCCGACGATC NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 ATCACGAGAT CGGAAGAGCA CACGTC
+//

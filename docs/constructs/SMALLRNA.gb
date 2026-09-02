@@ -1,0 +1,21 @@
+LOCUS       SMALLRNA              70 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SMALLRNA ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..70
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SMALLRNA library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..50
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    51..70
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AGTTCTACAG TCCGACGATC NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN AGATCGGAAG
+       60 AGCACACGTC
+//

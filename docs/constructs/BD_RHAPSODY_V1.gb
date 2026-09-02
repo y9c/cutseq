@@ -1,0 +1,43 @@
+LOCUS       BD_RHAPSODY_V1       161 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: BD_RHAPSODY_V1 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..161
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq BD_RHAPSODY_V1 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..38
+                     /label="UMI/capture N9 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    39..50
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    51..59
+                     /label="UMI/capture N9 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    60..72
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    73..81
+                     /label="UMI/capture N9 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    82..89
+                     /label="UMI/capture N8 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    90..97
+                     /label="poly-T tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    98..127
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    128..161
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNAC TGGCCTGCGA NNNNNNNNNG
+       60 GTAGCGGTGA CANNNNNNNN NNNNNNNNNT TTTTTTTNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNAGA TCGGAAGAGC ACACGTCTGA ACTCCAGTCA C
+//

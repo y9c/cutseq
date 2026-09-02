@@ -1,0 +1,21 @@
+LOCUS       QUARTZ_SEQ            93 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: QUARTZ_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..93
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq QUARTZ_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..59
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    60..93
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNA
+       60 GATCGGAAGA GCACACGTCT GAACTCCAGT CAC
+//

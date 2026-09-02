@@ -1,0 +1,30 @@
+LOCUS       CEL_SEQ2             109 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: CEL_SEQ2 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..109
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq CEL_SEQ2 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..26
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    27..32
+                     /label="UMI/capture N6 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    33..38
+                     /label="UMI/capture N6 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    39..46
+                     /label="poly-T tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    47..76
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    77..109
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GTTCAGAGTT CTACAGTCCG ACGATCNNNN NNNNNNNNTT TTTTTTNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNTGGA ATTCTCGGGT GCCAAGGAAC TCCAGTCAC
+//

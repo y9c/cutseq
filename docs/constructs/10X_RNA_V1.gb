@@ -1,0 +1,28 @@
+LOCUS       10X_RNA_V1           121 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: 10X_RNA_V1 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..121
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq 10X_RNA_V1 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..33
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    34..63
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    64..73
+                     /label="UMI/capture N10 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    74..107
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    108..121
+                     /label="UMI/capture N14 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+ORIGIN
+        0 ACACTCTTTC CCTACACGAC GCTCTTCCGA TCTNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNAGATCGG AAGAGCACAC GTCTGAACTC CAGTCACNNN NNNNNNNNNN
+      120 N
+//

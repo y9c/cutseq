@@ -1,0 +1,34 @@
+LOCUS       STRT_SEQ_2I          140 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: STRT_SEQ_2I ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..140
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq STRT_SEQ_2I library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..34
+                     /label="mask X5 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    35..56
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    57..62
+                     /label="UMI/capture N6 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    63..65
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    66..95
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    96..140
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AATGATACGG CGACCACCGA GATCTACACN NNNNCTACAC GACGCTCTTC CGATCTNNNN
+       60 NNGGGNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNCTGTC TCTTATACAC ATCTGACGCT
+      120 CGTATGCCGT CTTCTGCTTG
+//

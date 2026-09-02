@@ -1,0 +1,27 @@
+LOCUS       STRANDED              74 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: STRANDED ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..74
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq STRANDED library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..21
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    22..51
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    52..54
+                     /label="mask X3 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    55..74
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNAGATCG
+       60 GAAGAGCACA CGTC
+//

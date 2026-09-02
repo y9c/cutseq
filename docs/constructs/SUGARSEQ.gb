@@ -1,0 +1,30 @@
+LOCUS       SUGARSEQ             114 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SUGARSEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..114
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SUGARSEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..16
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    17..28
+                     /label="UMI/capture N12 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    29..58
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    59..74
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    75..86
+                     /label="UMI/capture N12 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    87..114
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNATGA TGGCTCACCT ATTAGCGGCT AAGG
+//

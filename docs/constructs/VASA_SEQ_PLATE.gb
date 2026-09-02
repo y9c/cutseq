@@ -1,0 +1,32 @@
+LOCUS       VASA_SEQ_PLATE       194 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: VASA_SEQ_PLATE ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..194
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq VASA_SEQ_PLATE library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..26
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    27..124
+                     /label="UMI/capture N98 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    125..130
+                     /label="mask X6 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    131..131
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    132..161
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    162..194
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GTTCAGAGTT CTACAGTCCG ACGATCNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NTGGAATTCT CGGGTGCCAA
+      180 GGAACTCCAG TCAC
+//

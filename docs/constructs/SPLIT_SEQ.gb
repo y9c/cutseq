@@ -1,0 +1,41 @@
+LOCUS       SPLIT_SEQ            191 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SPLIT_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..191
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SPLIT_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..33
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    34..63
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    64..71
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    72..101
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    102..109
+                     /label="UMI/capture N8 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    110..139
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    140..147
+                     /label="UMI/capture N8 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    148..157
+                     /label="UMI/capture N10 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    158..191
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCGTCGGCAG CGTCAGATGT GTATAAGAGA CAGNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NCGAATGCTC TGGCCTCTCA AGCACGTGGA TNNNNNNNNA GTCGTACGCC
+      120 GATGCGAAAC ATCGGCCACN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC ACACGTCTGA
+      180 ACTCCAGTCA C
+//

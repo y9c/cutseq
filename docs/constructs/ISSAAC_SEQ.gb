@@ -1,0 +1,38 @@
+LOCUS       ISSAAC_SEQ           214 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: ISSAAC_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..214
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq ISSAAC_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..16
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    17..49
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    50..79
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    80..87
+                     /label="poly-A tail"
+                     /note="cutseq role: polytail; arm: R2"
+     misc_feature    88..97
+                     /label="UMI/capture N10 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    98..131
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    132..147
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    148..214
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 NNNNNNNNNN NNNNNNTCGT CGGCAGCGTC AGATGTGTAT AAGAGACAGN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNA AAAAAAANNN NNNNNNNAGA TCGGAAGAGC ACACGTCTGA
+      120 ACTCCAGTCA CNNNNNNNNN NNNNNNNTCG TCGGCAGCGT CAGATGTGTA TAAGAGACAG
+      180 CTGTCTCTTA TACACATCTC CGAGCCCACG AGAC
+//

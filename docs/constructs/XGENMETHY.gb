@@ -1,0 +1,27 @@
+LOCUS       XGENMETHY             82 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: XGENMETHY ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..82
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq XGENMETHY library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..22
+                     /label="mask X2 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    23..52
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    53..62
+                     /label="mask X10 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    63..82
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNAGATCGGA AGAGCACACG TC
+//

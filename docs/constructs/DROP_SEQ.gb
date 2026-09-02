@@ -1,0 +1,31 @@
+LOCUS       DROP_SEQ             131 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: DROP_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..131
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq DROP_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..39
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    40..51
+                     /label="UMI/capture N12 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    52..59
+                     /label="UMI/capture N8 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    60..67
+                     /label="poly-T tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    68..97
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    98..131
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GCCTGTCCGC GGAAGCAGTG GTATCAACGC AGAGTACGTN NNNNNNNNNN NNNNNNNNNT
+       60 TTTTTTTNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNCTG TCTCTTATAC ACATCTCCGA
+      120 GCCCACGAGA C
+//

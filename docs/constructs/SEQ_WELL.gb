@@ -1,0 +1,31 @@
+LOCUS       SEQ_WELL             122 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SEQ_WELL ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..122
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SEQ_WELL library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..37
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    38..49
+                     /label="mask X12 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    50..57
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    58..58
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    59..88
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    89..122
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GCCTGTCCGC GGAAGCAGTG GTATCAACGC AGAGTACNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNCT GTCTCTTATA CACATCTCCG AGCCCACGAG
+      120 AC
+//

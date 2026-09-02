@@ -1,0 +1,50 @@
+LOCUS       SNMCTSEQ             211 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SNMCTSEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..211
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SNMCTSEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..33
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    34..41
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    42..50
+                     /label="mask X9 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    51..51
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    52..52
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    53..86
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    87..96
+                     /label="UMI/capture N10 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    97..129
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    130..137
+                     /label="UMI/capture N8 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    138..167
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    168..201
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    202..211
+                     /label="UMI/capture N10 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R2"
+ORIGIN
+        0 ACACTCTTTC CCTACACGAC GCTCTTCCGA TCTNNNNNNN NNNNNNNNNN NNAGATCGGA
+       60 AGAGCACACG TCTGAACTCC AGTCACNNNN NNNNNNACAC TCTTTCCCTA CACGACGCTC
+      120 TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNAGA TCGGAAGAGC
+      180 ACACGTCTGA ACTCCAGTCA CNNNNNNNNN N
+//

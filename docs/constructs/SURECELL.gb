@@ -1,0 +1,49 @@
+LOCUS       SURECELL             164 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SURECELL ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..164
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SURECELL library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..37
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    38..43
+                     /label="mask X6 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    44..58
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    59..64
+                     /label="mask X6 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    65..79
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    80..85
+                     /label="mask X6 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    86..88
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    89..96
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    97..99
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    100..100
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    101..130
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    131..164
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 GCCTGTCCGC GGAAGCAGTG GTATCAACGC AGAGTACNNN NNNTAGCCAT CGCATTGCNN
+       60 NNNNTACCTC TGAGCTGAAN NNNNNACGNN NNNNNNGACN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN CTGTCTCTTA TACACATCTC CGAGCCCACG AGAC
+//

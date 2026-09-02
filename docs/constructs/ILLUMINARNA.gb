@@ -1,0 +1,21 @@
+LOCUS       ILLUMINARNA           68 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: ILLUMINARNA ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..68
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq ILLUMINARNA library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..19
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    20..49
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    50..68
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AGATGTGTAT AAGAGACAGN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNC TGTCTCTTAT
+       60 ACACATCT
+//

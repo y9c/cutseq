@@ -1,0 +1,40 @@
+LOCUS       DBITSEQ              175 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: DBITSEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..175
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq DBITSEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..27
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    28..35
+                     /label="poly-G tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    36..65
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    66..77
+                     /label="UMI/capture N12 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    78..107
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    108..115
+                     /label="UMI/capture N8 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    116..145
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    146..153
+                     /label="UMI/capture N8 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    154..175
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AAGCAGTGGT ATCAACGCAG AGTGAATGGG GGGGGNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNAGT CGTACGCCGA TGCGAAACAT CGGCCACNNN NNNNNCGAAT
+      120 GCTCTGGCCT CTCAAGCACG TGGATNNNNN NNNAGATGCG AGAAGCCAAC GCTTG
+//

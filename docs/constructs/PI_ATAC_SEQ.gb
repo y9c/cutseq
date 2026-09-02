@@ -1,0 +1,21 @@
+LOCUS       PI_ATAC_SEQ           97 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: PI_ATAC_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..97
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq PI_ATAC_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..33
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    34..63
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    64..97
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCGTCGGCAG CGTCAGATGT GTATAAGAGA CAGNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNCTGTCTC TTATACACAT CTCCGAGCCC ACGAGAC
+//

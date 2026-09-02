@@ -1,0 +1,46 @@
+LOCUS       DOGMASEQ_DIG         168 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: DOGMASEQ_DIG ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..168
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq DOGMASEQ_DIG library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..16
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    17..28
+                     /label="UMI/capture N12 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    29..43
+                     /label="mask X15 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    44..59
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    60..71
+                     /label="UMI/capture N12 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    72..86
+                     /label="mask X15 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    87..102
+                     /label="UMI/capture N16 (renamed to {5})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    103..114
+                     /label="UMI/capture N12 (renamed to {6})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    115..144
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    145..152
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    153..168
+                     /label="UMI/capture N16 (renamed to {7})"
+                     /note="cutseq role: capture; arm: R2"
+ORIGIN
+        0 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+      120 NNNNNNNNNN NNNNNNNNNN NNNNCAGACG CGNNNNNNNN NNNNNNNN
+//

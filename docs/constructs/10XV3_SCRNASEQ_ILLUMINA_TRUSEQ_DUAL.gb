@@ -1,0 +1,24 @@
+LOCUS       10XV3_SCRNASEQ_ILLUMINA_TRUSEQ_DUAL        94 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: 10XV3_SCRNASEQ_ILLUMINA_TRUSEQ_DUAL ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..94
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq 10XV3_SCRNASEQ_ILLUMINA_TRUSEQ_DUAL library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..30
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    31..64
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    65..94
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN AGATCGGAAG AGCACACGTC TGAACTCCAG
+       60 TCACNNNNNN NNNNNNNNNN NNNNNNNNNN NNNN
+//

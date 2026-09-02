@@ -1,0 +1,27 @@
+LOCUS       SACSEQ                80 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: SACSEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..80
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq SACSEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..20
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    21..50
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    51..54
+                     /label="mask X4 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R2"
+     misc_feature    55..60
+                     /label="UMI/capture N6 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    61..80
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 ACACGACGCT CTTCCGATCT NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 AGATCGGAAG AGCACACGTC
+//

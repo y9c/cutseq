@@ -1,0 +1,41 @@
+LOCUS       10XFB_VDJ_5PRIME       238 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: 10XFB_VDJ_5PRIME ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..238
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq 10XFB_VDJ_5PRIME library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..45
+                     /label="UMI/capture N16 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    46..55
+                     /label="UMI/capture N10 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    56..68
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    69..98
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    99..165
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    166..181
+                     /label="UMI/capture N16 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    182..191
+                     /label="UMI/capture N10 (renamed to {4})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    192..238
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TCTTTCCCTA CACGACGCTC TTCCGATCTN NNNNNNNNNN NNNNNNNNNN NNNNNTTTCT
+       60 TATATGGGNN NNNNNNNNNN NNNNNNNNNN NNNNNNNNAG ATCGGAAGAG CACACGTCTG
+      120 AACTCCAGTC ACACACTCTT TCCCTACACG ACGCTCTTCC GATCTNNNNN NNNNNNNNNN
+      180 NNNNNNNNNN NTTTCTTATA TGGGCTGTCT CTTATACACA TCTCCGAGCC CACGAGAC
+//

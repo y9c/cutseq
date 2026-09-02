@@ -1,0 +1,27 @@
+LOCUS       STRT_SEQ_C1          104 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: STRT_SEQ_C1 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..104
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq STRT_SEQ_C1 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..21
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    22..26
+                     /label="UMI/capture N5 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    27..29
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    30..59
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    60..104
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AATGATACGG CGACCACCGA TNNNNNGGGN NNNNNNNNNN NNNNNNNNNN NNNNNNNNNC
+       60 TGTCTCTTAT ACACATCTGA CGCTCGTATG CCGTCTTCTG CTTG
+//

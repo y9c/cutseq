@@ -1,0 +1,44 @@
+LOCUS       M6AARTR              181 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: M6AARTR ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..181
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq M6AARTR library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..27
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    28..35
+                     /label="poly-G tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    36..43
+                     /label="poly-A tail"
+                     /note="cutseq role: polytail; arm: R1"
+     misc_feature    44..73
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    74..83
+                     /label="UMI/capture N10 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    84..113
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    114..121
+                     /label="UMI/capture N8 (renamed to {2})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    122..151
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+     misc_feature    152..159
+                     /label="UMI/capture N8 (renamed to {3})"
+                     /note="cutseq role: capture; arm: R2"
+     misc_feature    160..181
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AAGCAGTGGT ATCAACGCAG AGTGAATGGG GGGGGAAAAA AAANNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNAGTCGTA CGCCGATGCG AAACATCGGC CACNNNNNNN
+      120 NCGAATGCTC TGGCCTCTCA AGCACGTGGA TNNNNNNNNA GATGCGAGAA GCCAACGCTT
+      180 G
+//

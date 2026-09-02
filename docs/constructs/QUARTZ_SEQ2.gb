@@ -1,0 +1,30 @@
+LOCUS       QUARTZ_SEQ2          118 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: QUARTZ_SEQ2 ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..118
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq QUARTZ_SEQ2 library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..30
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    31..45
+                     /label="mask X15 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    46..53
+                     /label="UMI/capture N8 (renamed to {1})"
+                     /note="cutseq role: capture; arm: R1"
+     misc_feature    54..54
+                     /label="mask X1 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    55..84
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    85..118
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 TTGTATAGAA TTCGCGGCCG CTCGCGATAC NNNNNNNNNN NNNNNNNNNN NNNNNNNNNN
+       60 NNNNNNNNNN NNNNNNNNNN NNNNAGATCG GAAGAGCACA CGTCTGAACT CCAGTCAC
+//

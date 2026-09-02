@@ -1,0 +1,28 @@
+LOCUS       STRT_SEQ             129 bp    DNA     linear   03-SEP-2026 SYN
+// cutseq built-in scheme: STRT_SEQ ()
+// grammar: 
+FEATURES             Location/Qualifiers
+     source          1..129
+                     /organism="synthetic construct"
+                     /mol_type="genomic DNA"
+                     /note="cutseq STRT_SEQ library scheme; adapter/barcode/UMI structure"
+     misc_feature    1..56
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    57..62
+                     /label="mask X6 (trimmed, not kept)"
+                     /note="cutseq role: mask; arm: R1"
+     misc_feature    63..65
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R1"
+     misc_feature    66..95
+                     /label="library insert (placeholder)"
+                     /note="cutseq role: insert; arm: R1"
+     misc_feature    96..129
+                     /label="adapter / primer"
+                     /note="cutseq role: adp; arm: R2"
+ORIGIN
+        0 AATGATACGG CGACCACCGA GATCTAAGCA GTGGTATCAA CGCAGAGTGC AGTGCTNNNN
+       60 NNGGGNNNNN NNNNNNNNNN NNNNNNNNNN NNNNNAGATC GGAAGAGCTC GTATGCCGTC
+      120 TTCTGCTTG
+//
