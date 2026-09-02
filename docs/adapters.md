@@ -56,7 +56,27 @@ This page is a live viewer: **search** to filter, **hover** a colored segment to
 .pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:.7rem;font-weight:600}
 .pill-R1{background:#dcfce7;color:#166534}.pill-R2{background:#ede9fe;color:#5b21b6}.pill-ADP{background:#d1fae5;color:#065f46}.pill-CAP{background:#cffafe;color:#155e75}.pill-MASK{background:#e2e8f0;color:#334155}.pill-INL{background:#fef9c3;color:#713f12}.pill-POLY{background:#ffe4e6;color:#9f1239}.pill-BACK{background:#ede9fe;color:#5b21b6}.pill-INS{background:#ffedd5;color:#9a3412}
 </style>
-<script>
+<style>
+@media (prefers-color-scheme: dark) {
+  .ad-toolbar{background:#1e293b;border-color:#334155}
+  .ad-search{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .ad-count{color:#94a3b8}
+  .ad-legend{background:#0f172a;border-color:#334155}
+  .adleg{color:#cbd5e1}
+  .adapter-card{background:#0f172a;border-color:#334155}
+  .card-name{color:#e2e8f0}
+  .card-desc{color:#94a3b8}
+  .card-points{color:#cbd5e1}
+  .sg-struct{background:#0f172a;border-color:#334155}
+  .sg-head{color:#cbd5e1}
+  .sg-map-svg{background:#0f172a;border-color:#334155}
+  .sg-seq{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .sg-table th{background:#1e293b;color:#cbd5e1}
+  .sg-table th,.sg-table td{border-color:#334155}
+  .copy-btn{background:#1e293b;color:#e2e8f0;border-color:#334155}
+  .copy-btn:hover{background:#1e293b;border-color:#60a5fa;color:#e2e8f0}
+}
+</style><script>
 (function(){
   var D = JSON.parse(document.getElementById('adapdata').textContent);
   var host = document.getElementById('adapp');

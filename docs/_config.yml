@@ -1,6 +1,7 @@
 remote_theme: just-the-docs/just-the-docs@v0.12.0
 
 title: cutseq
+logo: "/logo.svg"
 description: "Automatically cut adapter / barcode / UMI from NGS data."
 
 # color_scheme: nil enables the light/dark toggle in the theme
