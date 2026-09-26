@@ -980,73 +980,51 @@ def _r2_five_emitter(kind):
     return _EMITTERS[kind][0]
 
 
-def _se_id_name(read, info):
-    """``{id}``: strip any trailing comment (identical to cutadapt Renamer)."""
-    read.name = read.name.split(maxsplit=1)[0]
-    return read
+class _FastSingleEndRenamer:
+    """Fast, picklable single-end renamer for the default cutseq templates.
 
-
-def _make_fast_renamer(paired, has_captures, name_format):
-    """Build a lean renamer that computes only the variables its template needs.
-
-    cutadapt's generic ``Renamer``/``PairedEndRenamer`` builds a full variable
-    dict (comment, header, adapter_name, match_sequence, ...) plus a
-    ``SimpleNamespace`` per read on every call even when the template uses just
+    cutadapt's generic ``Renamer`` builds a full variable dict (comment,
+    header, adapter_name, match_sequence, ...) plus a ``SimpleNamespace`` per
+    read on every call even when the template uses just
     ``id``/``cut_prefix``/``cut_suffix``. The default cutseq templates only use
-    those, so we special-case them and fall back to the native renamer for any
-    custom ``--name-format`` template. Output is byte-identical to the native
-    renamer for the same template.
+    those, so we compute them directly. This is a module-level class (not a
+    closure) so it pickles for cutadapt's multiprocessing runner.
     """
-    if name_format is not None:
-        return None
-    if not has_captures:
-        tpl = "{id}"
-        if paired:
 
-            def _rename(read1, read2, info1, info2):
-                read1.name = read1.name.split(maxsplit=1)[0]
-                read2.name = read2.name.split(maxsplit=1)[0]
-                return read1, read2
+    def __init__(self, has_captures):
+        self.has_captures = bool(has_captures)
+        self._template = "{id}_{cut_prefix}{cut_suffix}" if has_captures else "{id}"
 
-            _rename._template = tpl
-            return _rename
-        _se_id_name._template = tpl
-        return _se_id_name
-    if paired:
-        tpl = "{id}_{r1.cut_prefix}{r2.cut_prefix}"
+    def __call__(self, read, info):
+        read.name = read.name.split(maxsplit=1)[0]
+        if self.has_captures:
+            p = info.cut_prefix if info.cut_prefix else ""
+            s = info.cut_suffix if info.cut_suffix else ""
+            read.name = f"{read.name}_{p}{s}"
+        return read
 
-        def _rename(read1, read2, info1, info2):
-            id1 = read1.name.split(maxsplit=1)[0]
-            id2 = read2.name.split(maxsplit=1)[0]
+
+class _FastPairedEndRenamer(_mods.PairedEndModifier):
+    """Fast, picklable paired-end renamer for the default cutseq templates."""
+
+    def __init__(self, has_captures):
+        self.has_captures = bool(has_captures)
+        self._template = (
+            "{id}_{r1.cut_prefix}{r2.cut_prefix}" if has_captures else "{id}"
+        )
+
+    def __call__(self, read1, read2, info1, info2):
+        id1 = read1.name.split(maxsplit=1)[0]
+        id2 = read2.name.split(maxsplit=1)[0]
+        if not self.has_captures:
+            read1.name = id1
+            read2.name = id2
+        else:
             p1 = info1.cut_prefix if info1.cut_prefix else ""
             p2 = info2.cut_prefix if info2.cut_prefix else ""
             read1.name = f"{id1}_{p1}{p2}"
             read2.name = f"{id2}_{p1}{p2}"
-            return read1, read2
-
-        _rename._template = tpl
-        return _rename
-    tpl = "{id}_{cut_prefix}{cut_suffix}"
-
-    def _rename(read, info):
-        p = info.cut_prefix if info.cut_prefix else ""
-        s = info.cut_suffix if info.cut_suffix else ""
-        read.name = f"{read.name.split(maxsplit=1)[0]}_{p}{s}"
-        return read
-
-    _rename._template = tpl
-    return _rename
-
-
-class _FastPairedEndRenamer(_mods.PairedEndModifier):
-    """Wraps a fast paired rename callable so it plugs into the pipeline."""
-
-    def __init__(self, fn):
-        self._fn = fn
-        self._template = fn._template
-
-    def __call__(self, read1, read2, info1, info2):
-        return self._fn(read1, read2, info1, info2)
+        return read1, read2
 
 
 # --- labeled-capture template engine ----------------------------------------
@@ -1447,18 +1425,9 @@ def make_renamer(paired, has_captures=False, name_format=None, left=None, right=
         return _LabeledRenamer(fields, name_format)
 
     _RENAME_NEEDS_CAPTURES = False
-    if not has_captures:
-        tpl = "{id}"
-    elif paired:
-        tpl = "{id}_{r1.cut_prefix}{r2.cut_prefix}"
-    else:
-        tpl = "{id}_{cut_prefix}{cut_suffix}"
-    fast = _make_fast_renamer(paired, has_captures, name_format)
-    if fast is not None:
-        if paired:
-            return _FastPairedEndRenamer(fast)
-        return fast
-    return _mods.PairedEndRenamer(tpl) if paired else _mods.Renamer(tpl)
+    if paired:
+        return _FastPairedEndRenamer(has_captures)
+    return _FastSingleEndRenamer(has_captures)
 
 
 class CompiledScheme:

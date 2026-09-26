@@ -222,6 +222,31 @@ def test_threaded_rename_deterministic():
         assert a and a == b
 
 
+def test_default_renamer_picklable():
+    """The default fast renamers (no --rename) must pickle so cutadapt's
+    ``ParallelPipelineRunner`` (multiprocessing) can ship the pipeline to
+    workers. They are module-level classes, not local closures, because
+    closures raise on spawn-based platforms (macOS/Windows) where
+    ``-t N`` broke. ``--rename '{id}'`` hid the bug by swapping in the
+    native picklable renamer.
+    """
+    import pickle
+
+    for paired in (False, True):
+        for has_captures in (False, True):
+            pickle.dumps(grammar.make_renamer(paired, has_captures, None))
+
+    s = CutadaptConfig()
+    cs = _build_scheme(
+        "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:"
+        "N12AGTCGTACGCCGATGCGAAACATCGGCCAC"
+        "N8CGAATGCTCTGGCCTCTCAAGCACGTGGAT"
+        "N8AGATGCGAGAAGCCAACGCTTG",
+        s,
+    )
+    pickle.dumps(_scheme_modifiers(cs, paired=True, settings=s))
+
+
 # --- spatial (DBiT) interleaved 3' structure ---------------------------------
 #
 # m6A-ARTR-DBiT / Glori style, Read 1 (single-end):
