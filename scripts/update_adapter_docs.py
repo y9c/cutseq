@@ -462,7 +462,6 @@ def _write_exports(name, construct, constructs_dir):
 
 
 def main():
-    adapters_toml = project_root / "cutseq" / "adapters.toml"
     out_md = project_root / "docs" / "adapters.md"
     schemes = _load_schemes()
     if not schemes:

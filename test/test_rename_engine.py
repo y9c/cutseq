@@ -400,9 +400,8 @@ def test_polytail_direction_auto_detected():
     from the current position (never a global rightmost search, which would
     over-trim real insert). The read-through mirror is a back adapter. ``N``s
     in the run count as the base."""
-    from cutseq.grammar import (RightmostFrontAdapter,
-                                BackAdapter, _poly_seq, _mark_poly_front,
-                                _poly_head_trim_index, tokenize)
+    from cutseq.grammar import (_mark_poly_front, _poly_seq, BackAdapter,
+                                tokenize)
     from cutseq.grammar import _PolyRunTrim, _Token
     from cutadapt.modifiers import AdapterCutter
     from cutadapt.info import ModificationInfo
