@@ -1077,7 +1077,8 @@ def main():
         "--min-length after trimming), 'too_many_n' (exceeds --max-n), "
         "'low_quality' (mean Phred quality below --min-avg-quality), or "
         "'no_barcode' (missing an expected inline barcode, only with "
-        "--ensure-inline-barcode). Must match number of input files.",
+        "--ensure-inline-barcode). Must match number of input files. If omitted "
+        "(and no --output-prefix is given) discarded reads are NOT written.",
     )
     parser.add_argument(
         "--head",
@@ -1332,8 +1333,19 @@ def main():
             f"interpreting as grammar scheme."
         )
 
-    def validate_output_file(output_files, input_files, output_prefix, output_suffix):
-        """Helper function to determine output file names."""
+    def validate_output_file(
+        output_files, input_files, output_prefix, output_suffix, default_to_input=False
+    ):
+        """Helper function to determine output file names.
+
+        ``output_files`` are explicit paths (e.g. ``-o`` / ``-d``),
+        ``output_prefix`` is a prefix (``-O``). When neither is given, the
+        ``trimmed`` outputs fall back to ``<input>_trimmed_R1.fastq.gz`` next
+        to the input (legacy default) unless ``default_to_input`` is False, in
+        which case the output is disabled (``None``). Discard output is
+        opt-in: it is only written when the user passes ``-d`` or ``-O``, so a
+        read-only input directory is never written to by default.
+        """
         default_format = ".fastq.gz"
         r1_suffix = "_" + output_suffix + "_R1" + default_format
         r2_suffix = "_" + output_suffix + "_R2" + default_format
@@ -1350,7 +1362,7 @@ def main():
                 return [output_prefix + r1_suffix]
             else:
                 return [output_prefix + r1_suffix, output_prefix + r2_suffix]
-        else:  # Derive from input file names
+        elif default_to_input:  # Derive from input file names
             if len(input_files) == 1:
                 return [remove_fq_suffix(input_files[0]) + r1_suffix]
             else:
@@ -1358,15 +1370,21 @@ def main():
                     remove_fq_suffix(input_files[0]) + r1_suffix,
                     remove_fq_suffix(input_files[1]) + r2_suffix,
                 ]
+        # No explicit output or prefix: disable this output stream (None).
         # This line should not be reached given the logic above.
         # However, to satisfy linters or for extreme edge cases:
         return [None] * len(input_files)
 
     args.output_file = validate_output_file(
-        args.output_file, args.input_file, args.output_prefix, "trimmed"
+        args.output_file, args.input_file, args.output_prefix, "trimmed",
+        default_to_input=True,
     )
+    # Discard output is opt-in: only written when -d/--discard-file or
+    # -O/--output-prefix is given. Otherwise it is disabled so cutseq never
+    # writes "<input>_discard_*.fastq.gz" into a (possibly read-only) input dir.
     args.discard_file = validate_output_file(
-        args.discard_file, args.input_file, args.output_prefix, "discard"
+        args.discard_file, args.input_file, args.output_prefix, "discard",
+        default_to_input=False,
     )
     if args.ensure_inline_barcode and args.discard_file[0] is None:
         logging.warning(
