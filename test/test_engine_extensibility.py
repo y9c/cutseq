@@ -12,6 +12,10 @@ sys.path.insert(0, str(ROOT / "cutseq"))
 from cutseq import grammar  # noqa: E402
 
 
+def _rc(seq):
+    return seq.translate(str.maketrans("ACGTacgt", "TGCAtgca"))[::-1]
+
+
 def test_compiled_scheme_has_captures():
     cs = grammar.CompiledScheme("+", [], [grammar._Token("capture", 8)])
     assert cs.has_captures is True
@@ -20,6 +24,10 @@ def test_compiled_scheme_has_captures():
 
 
 def test_compiled_scheme_modifiers_single():
+    """Structural/API contract of ``CompiledScheme.modifiers(paired=False)``: a
+    single-end scheme yields a 5' front-adapter modifier plus a 3' UMI-capture
+    modifier (and no R2 column).  This is introspection of the compiled chain,
+    not a run of the pipeline."""
     cs = grammar.CompiledScheme(None, grammar.parse_scheme("ACGT+N8")[1],
                                 grammar.parse_scheme("ACGT+N8")[2])
     mods, r2 = cs.modifiers(paired=False)
@@ -30,11 +38,51 @@ def test_compiled_scheme_modifiers_single():
 
 
 def test_compiled_scheme_modifiers_paired():
+    """A primer-boundary scheme (ECLIP10-style) compiles to per-read plans that
+    actually trim the UMI/masks and preserve the insert.
+
+    The outer p5/p7 adapters are genuine sequencing-site binders (upstream,
+    absent from the reads), so each read starts inside them.  Verified by
+    running the compiled R1/R2 modifiers on a hand-built read pair and checking
+    the trimmed sequences and the captured UMI literal — NOT by counting
+    internal executor steps (which is an implementation detail, not behavior).
+    """
+    import random
+
+    from dnaio import SequenceRecord
+    from cutadapt.info import ModificationInfo
+
     _, left, right = grammar.parse_scheme("ACACGACGCTCTTCCGATCTXX-XNNNNNNNNNNAGATCGGAAGAGCACACGTC")
     cs = grammar.CompiledScheme("-", left, right)
     m1, m2 = cs.modifiers(paired=True)
-    # front adapter + read-through back adapter + umi + mask5 + mask3
-    assert len(m1) == 5 and len(m2) == 5
+    ren = cs.renamer(paired=True, name_format="{id}_r1:{r1.1}_r2:{r2.1}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        rnd = random.Random(4)
+        rnd_nt = lambda n: "".join(rnd.choice("ACGT") for _ in range(n))
+        x2, ins, x1, n10 = rnd_nt(2), rnd_nt(30), rnd_nt(1), rnd_nt(10)
+        r1p = "ACACGACGCTCTTCCGATCT"
+        p7 = "AGATCGGAAGAGCACACGTC"
+        # R1 starts after the p5 (r1p) site: mask + insert + mask + UMI + p7
+        # read-through; R2 starts after the p7 site on the bottom strand.
+        r1_seq = x2 + ins + x1 + n10 + p7
+        r2_seq = _rc(n10) + _rc(x1) + _rc(ins) + _rc(x2) + _rc(r1p)
+        r1 = SequenceRecord("x/1", r1_seq, "I" * len(r1_seq))
+        r2 = SequenceRecord("x/2", r2_seq, "I" * len(r2_seq))
+        i1, i2 = ModificationInfo(r1), ModificationInfo(r2)
+        for mm in m1:
+            out = mm(r1, i1)
+            r1 = out or r1
+        for mm in m2:
+            out = mm(r2, i2)
+            r2 = out or r2
+        ren(r1, r2, i1, i2)
+        assert r1.sequence == ins
+        assert r2.sequence == _rc(ins)
+        assert r1.name == f"x/1_r1:{n10}_r2:{_rc(n10)}"
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        grammar._capture_registry.clear()
 
 
 def test_make_renamer_custom_format():

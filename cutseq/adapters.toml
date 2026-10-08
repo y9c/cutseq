@@ -209,6 +209,10 @@ points = [
   "Full construct (5'->3'): P5 | i5(8) | R1-primer(34) | TSO(22) | insert |",
   "polyA/T | UMI(12) | rc(L1) | barcodeA(8) | rc(L2) | barcodeB(8) | rc(handle) |",
   "rc(R2-primer) | i7(8) | rc(P7).",
+  "UNVERIFIED-paper pending: this method is NOT in teichlab scg_lib_structs;",
+  "the R2 arm order here is transcribed only from the Liu et al. 2020 paper and",
+  "has not been cross-checked against an authoritative machine-readable catalog.",
+  "Treat the exact R2 barcode/linker order as provisional until verified.",
 ]
 
 # m6A-ARTR-DBiT spatial (Nature Methods 2026 implementation). Same barcode
@@ -230,6 +234,10 @@ points = [
   "  (--require-cassette discards pairs whose R2 lacks the barcode cassette;",
   "  the scheme trims the R1 poly-A region natively so empty py-A reads fall",
   "  under --min-length and are dropped, no extra filter needed).",
+  "UNVERIFIED-paper pending: this method is NOT in teichlab scg_lib_structs;",
+  "the R2 arm order is transcribed only from the Nature Methods 2026 paper and",
+  "has not been cross-checked against an authoritative machine-readable catalog.",
+  "Treat the exact R2 barcode/linker order as provisional until verified.",
 ]
 
 # ------------------------------------------------------------------
@@ -259,24 +267,36 @@ points = [
 recommended_rename = "{id}_cell_bc:{1}_umi:{2}"
 
 [10X_RNA_ATAC]
-scheme = "TCTTTCCCTACACGACGCTCTTCCGATCTN16N12:AGATCGGAAGAGCACACGTCTGAACTCCAGTCACN16CGCGTCTGTCGTCGGCAGCGTCAGATGTGTATAAGAGACAGCTGTCTCTTATACACATCTCCGAGCCCACGAGAC"
-description_name = "10x-ATAC-RNA"
+scheme = "TCTTTCCCTACACGACGCTCTTCCGATCTN16N12:AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
+description_name = "10x Multiome GEX (RNA) half — ATAC is a separate library"
 auto_inline = false
 points = [
   "Migrated from seqspec: 10x-ATAC-RNA",
   "Sequence protocol: Illumina NovaSeq 6000",
+  "10x Multiome generates the ATAC and GEX libraries as TWO SEPARATE libraries,",
+  "sequenced in separate runs. They are NOT a single concatenated molecule.",
+  "This scheme is the GEX (RNA) half: it is identical to 10X_RNA_V3",
+  "(TruSeq R1 + 16-nt cell barcode + 12-nt UMI + insert ; TruSeq R2).",
+  "Run -A 10X_RNA_ATAC for the GEX library and -A 10X_ATAC for the ATAC library;",
+  "they should never be combined into one -A scheme.",
 ]
-recommended_rename = "{id}_rna-cell_barcode:{1}_rna-umi:{2}_atac-cell_barcode:{3}"
+recommended_rename = "{id}_rna-cell_barcode:{1}_rna-umi:{2}"
 
 [10X_RNA_ATAC_MULTI]
-scheme = "TCTTTCCCTACACGACGCTCTTCCGATCTN16N12:AGATCGGAAGAGCACACGTCTGAACTCCAGTCACN16CGCGTCTGTCGTCGGCAGCGTCAGATGTGTATAAGAGACAGCTGTCTCTTATACACATCTCCGAGCCCACGAGACTCTTTCCCTACACGACGCTCTTCCGATCTN16N12N8TGGAATTCTCGGGTGCCAAGGAACTCCAGTCAC"
-description_name = "10x-ATAC-RNA-MULTI/Illumina"
+scheme = "TCTTTCCCTACACGACGCTCTTCCGATCTN16N12:AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
+description_name = "10x Multiome + MULTI-seq (RNA/ATAC/MULTI are separate libraries)"
 auto_inline = false
 points = [
   "Migrated from seqspec: 10x-ATAC-RNA-MULTI/Illumina",
   "Sequence protocol: Illumina NovaSeq 6000",
+  "10x Multiome (ATAC + GEX) plus a MULTI-seq hashtag library are THREE SEPARATE",
+  "libraries, each sequenced separately. They are NOT one concatenated molecule.",
+  "This scheme is the RNA (GEX) half: it equals 10X_RNA_V3",
+  "(TruSeq R1 + 16-nt cell barcode + 12-nt UMI + insert ; TruSeq R2).",
+  "Run -A 10X_RNA_ATAC_MULTI for the GEX library; use -A 10X_ATAC for the ATAC and",
+  "a MULTI-seq scheme for the hashtag library. Do not combine them.",
 ]
-recommended_rename = "{id}_rna-cell_barcode:{1}_rna-umi:{2}_atac-cell_barcode:{3}_barcode:{4}_umi:{5}_MULTI-seq barcode:{6}"
+recommended_rename = "{id}_rna-cell_barcode:{1}_rna-umi:{2}"
 
 [10X_RNA_V1]
 scheme = "ACACTCTTTCCCTACACGACGCTCTTCCGATCT:N10AGATCGGAAGAGCACACGTCTGAACTCCAGTCACN14"
@@ -609,14 +629,37 @@ points = [
 recommended_rename = "{id}_umi:{1}"
 
 [SHARE_SEQ]
-scheme = ":TCGGACGATCATGGGN8CAAGTATGCAGCGCGCTCAAGCACGTGGATN8AGTCGTACGCCGATGCGAAACATCGGCCACN8N10AAA...ATCGGACGATCATGGGN8CAAGTATGCAGCGCGCTCAAGCACGTGGATN8AGTCGTACGCCGATGCGAAACATCGGCCACN8"
-description_name = "SHARE-Seq"
+scheme = "AGATGTGTATAAGAGACAG:N10TCGGACGATCATGGGN8CAAGTATGCAGCGCGCTCAAGCACGTGGATN8AGTCGTACGCCGATGCGAAACATCGGCCACN8CTGTCTCTTATACACATCTCCGAGCCCACGAGAC"
+description_name = "SHARE-Seq (RNA cassette, mRNA-only 10-nt UMI)"
 auto_inline = false
 points = [
   "Migrated from seqspec: SHARE-Seq",
   "Sequence protocol: Illumina",
+  "SHARE-Seq mRNA (RNA) cassette. Top strand 5'->3': i5 | s5 ME",
+  "(AGATGTGTATAAGAGACAG) | cDNA (insert) | 10-nt mRNA-only UMI | 3-round cell",
+  "barcode cassette (3 x 8-nt barcodes interleaved with fixed linkers) | ME R2 + s7",
+  "(outermost read-2 site CTGTCTCTTATACACATCTCCGAGCCCACGAGAC) | P7.",
+  "R1 reads the s5 ME + insert; the UMI and the 3 cell barcodes are captured on R2",
+  "(the bottom strand, so the captured values are the reverse complements of the",
+  "top-strand literal barcodes). The RNA cassette carries the UMI; the ATAC library",
+  "does NOT (see SHARE_SEQ_ATAC). R2 reads the barcode cassette then the insert.",
 ]
-recommended_rename = "{id}_atac-cell-barcode1:{1}_atac-cell-barcode2:{2}_atac-cell-barcode3:{3}_umi:{4}_rna-cell-barcode1:{5}_rna-cell-barcode2:{6}_rna-cell-barcode3:{7}"
+recommended_rename = "{id}_umi:{1}_cell-barcode-1:{2}_cell-barcode-2:{3}_cell-barcode-3:{4}"
+
+[SHARE_SEQ_ATAC]
+scheme = "AGATGTGTATAAGAGACAG:TCGGACGATCATGGGN8CAAGTATGCAGCGCGCTCAAGCACGTGGATN8AGTCGTACGCCGATGCGAAACATCGGCCACN8CTGTCTCTTATACACATCTCCGAGCCCACGAGAC"
+description_name = "SHARE-Seq ATAC cassette (no UMI)"
+auto_inline = false
+points = [
+  "Migrated from seqspec: SHARE-Seq",
+  "Sequence protocol: Illumina",
+  "SHARE-Seq ATAC cassette: same 5' s5 ME + 3-round cell-barcode cassette as",
+  "SHARE_SEQ, but NO UMI (ATAC reads are not transcribed, so there is no UMI).",
+  "R1 reads the s5 ME + insert; the 3 cell barcodes are captured on R2 (bottom",
+  "strand, so the captured values are the reverse complements of the top-strand",
+  "literals).",
+]
+recommended_rename = "{id}_cell-barcode-1:{1}_cell-barcode-2:{2}_cell-barcode-3:{3}"
 
 [SMART_SEQ2]
 scheme = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG:CTGTCTCTTATACACATCTCCGAGCCCACGAGAC"
@@ -629,14 +672,31 @@ points = [
 recommended_rename = "{id}"
 
 [SMART_SEQ3]
-scheme = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAGATTGCGCAATGN8GGG:CTGTCTCTTATACACATCTCCGAGCCCACGAGACTCGTCGGCAGCGTCAGATGTGTATAAGAGACAGCTGTCTCTTATACACATCTCCGAGCCCACGAGAC"
+scheme = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAGATTGCGCAATGN8GGG:AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
 description_name = "Smart-seq3"
 auto_inline = false
 points = [
   "Migrated from seqspec: Smart-seq3",
   "Sequence protocol: n/a",
+  "R1: TruSeq R1 (TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG) + t7-tag (ATTGCGCAATG)",
+  "    + 8-nt UMI + poly-G (template-switch) run + insert.",
+  "R2: TruSeq R2 site (AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC).",
+  "For fragments without the t7-tag / UMI / poly-G (internal pieces), use",
+  "SMART_SEQ3_INTERNAL.",
 ]
 recommended_rename = "{id}_umi:{1}"
+
+[SMART_SEQ3_INTERNAL]
+scheme = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG:AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
+description_name = "Smart-seq3 internal fragment (no t7-tag/UMI/poly-G)"
+auto_inline = false
+points = [
+  "Smart-seq3 internal fragments: the insert is flanked directly by the TruSeq R1",
+  "site and the TruSeq R2 site, with no t7-tag, UMI or poly-G run.",
+  "Use -A SMART_SEQ3_INTERNAL when the read lacks the C1-tag / template-switch",
+  "scaffold.",
+]
+recommended_rename = "{id}"
 
 [SN_M3C_SEQ]
 scheme = "ACACTCTTTCCCTACACGACGCTCTTCCGATCTN8X9X1X1AGATCGGAAGAGCACACGTCTGAACTCCAGTCACN10ACACTCTTTCCCTACACGACGCTCTTCCGATCTN8X9X1X1AGATCGGAAGAGCACACGTCTGAACTCCAGTCACN10:"

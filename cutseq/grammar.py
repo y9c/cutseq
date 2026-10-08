@@ -56,8 +56,9 @@ from cutadapt.qualtrim import poly_a_trim_index
 
 # --- parsing ---------------------------------------------------------------
 
-# unanchored poly-tail form so a poly tail may be followed by further tokens
-_POLY_RUN_RE = re.compile(r"([ACGT])\1*\.\.\.\1*")
+# unanchored poly-tail form so a poly tail may be followed by further tokens.
+# Accept the canonical ``B...B`` (3-dot) form and the ``B..B`` (2-dot) alias.
+_POLY_RUN_RE = re.compile(r"([ACGT])\1*\.{2,}\1*")
 
 MIN_POLY_LEN = 3  # minimum run length a dot-form poly tail (``B...B``) expands to
 
@@ -366,16 +367,33 @@ def assign_labels(tokens):
     """Assign a capture label and written ordinal to each capture/inline token.
 
     Labels already set at parse time (e.g. a YAML part's ``label:`` field) are
-    preserved; unlabeled parts get the ``barcode{n}`` default. These labels
-    drive position resolution in ``--rename`` templates (``{1}`` -> first) and
-    show up in dry-run / JSON output.
+    preserved; unlabeled parts get the deterministic ``barcode{n}`` default
+    (``n`` is the 1-based written capture index). These labels drive position
+    resolution in ``--rename`` templates (``{1}`` -> first) and show up in
+    dry-run / JSON output.
+
+    Every capture/inline label must be unique across the whole scheme (both
+    arms). A duplicate — whether two explicit labels, an auto default that
+    collides with an explicit ``barcode{n}``, or two auto defaults — raises an
+    actionable ``ValueError`` naming the two positions, so a captured segment is
+    never silently overwritten by another. The written ordinal (``index``) is
+    preserved positionally so ``{N}`` references stay unaffected.
     """
+    used = {}
     n = 0
     for t in tokens:
         if t.kind in ("capture", "inline"):
             t.index = n
-            if t.label is None:
-                t.label = f"barcode{n + 1}"
+            label = t.label if t.label is not None else f"barcode{n + 1}"
+            if label in used:
+                raise ValueError(
+                    f"cutseq: duplicate capture/UMI label '{label}' is used by "
+                    f"capture/inline parts at positions {used[label] + 1} and "
+                    f"{n + 1}; give each captured N/inline part a unique "
+                    f"'label:' in the scheme."
+                )
+            used[label] = n
+            t.label = label
             n += 1
 
 
@@ -874,6 +892,18 @@ def _poly_head_trim_index(seq, base):
     )
 
 
+def _poly_tail_trim_index(seq, base):
+    """Index where the 3'-terminal run of *base* on *seq* begins (``len(seq)``
+    when there is no 3' run). Mirrors ``_poly_head_trim_index`` but for the 3'
+    end: cutadapt's ``poly_a_trim_index(revcomp=False)`` finds a 3' poly-A
+    tail, so we map *base*<->A first (length-preserving)."""
+    if base == "A":
+        return poly_a_trim_index(seq, revcomp=False)
+    return poly_a_trim_index(
+        seq.translate(str.maketrans(base + "A", "A" + base)), revcomp=False
+    )
+
+
 def _mark_poly_front(tokens):
     """Tag the leading 5' homopolymer run (first token, or directly after the
     outer adapter) with ``front`` so it trims anchored (mirrors how ``adp``
@@ -923,6 +953,8 @@ def compile_tokens(
     conditional_cutter=True,
     force_trim_min_length=50,
     force_anywhere=False,
+    r1_primer=None,
+    r2_primer=None,
 ):
     """Compile the parsed token graph into ``(r1_mods, r2_mods)``.
 
@@ -934,8 +966,37 @@ def compile_tokens(
     masks — with written-side (left) tokens before mirrored (right) tokens
     inside the inline/capture/mask phases. R2 is the reverse complement of
     R1's side, read out-to-in (standard Illumina paired-end).
+
+    When BOTH outer adapters are genuine sequencing-site records (a read-plan
+    scheme) the per-token both-ends emission is REPLACED by the read-plan
+    engine (``readplan.compile_read_plan``): each read starts at the binding
+    boundary, read-start cuts are unconditional, and read-through cuts are
+    gated on the far binder matching — never on ``len >= 50``.
     """
     ctx = _Ctx(conditional_cutter, force_trim_min_length, force_anywhere)
+
+    if paired and orientation is not None:
+        from .readplan import compile_read_plan
+
+        built = compile_read_plan(orientation, left, right, ctx,
+                                  r1_primer=r1_primer, r2_primer=r2_primer)
+        if built is not None:
+            r1_mods, r2_mods, plan = built
+            # Build the legacy per-token chain for any side that was NOT a read
+            # plan (one recognised side coexists with a read-visible other side),
+            # so the two mix correctly in the final paired modifier list.
+            legacy1 = _compile_legacy_read1(left, right, ctx)
+            legacy2 = _compile_legacy_read2(left, right, ctx)
+            if plan.r1_is_plan:
+                m1 = r1_mods
+            else:
+                m1 = legacy1
+            if plan.r2_is_plan:
+                m2 = r2_mods
+            else:
+                m2 = legacy2
+            return m1, m2
+
     _mark_poly_front(left)
     _mark_poly_front(right)
     rev_right = list(reversed(right))
@@ -944,10 +1005,18 @@ def compile_tokens(
         # Single-end: the scheme is a top-strand molecular map of the single
         # read. Left-side tokens are applied 5' -> 3' in written order; the
         # right-side tokens are the molecule's 3' continuation, so they are
-        # read from the 3' end inward -- i.e. in REVERSED written order. This
-        # preserves the physical order when masks / captures / poly-tails are
-        # interleaved (e.g. spatial/DBiT schemes), and each token uses its
-        # 5' / single-end-3' emitter.
+        # read from the 3' end inward -- i.e. in REVERSED written order.
+        # A recognised R1 site at the left ALSO starts the read downstream, so
+        # single-end routing honours a read plan for R1 when present.
+        from .readplan import compile_read_plan
+
+        built_se = compile_read_plan(orientation, left, right, ctx,
+                                     r1_primer=r1_primer, r2_primer=r2_primer)
+        # A read plan needs an insert marker to locate the read start; a flat
+        # single-end scheme (orientation None, e.g. a legacy TSO primer + barcode
+        # read) stays on the legacy per-token path.
+        if built_se is not None and orientation is not None and built_se[2].r1_is_plan:
+            return built_se[0], []
         r1 = []
         r1.extend(_chain_emit([(t, _EMITTERS[t.kind][0]) for t in left], ctx))
         r1.extend(_chain_emit([(t, _EMITTERS[t.kind][2]) for t in rev_right], ctx))
@@ -964,6 +1033,41 @@ def compile_tokens(
             mods2.append(_emit_polytail_r2_five(t, ctx))
     mods2.extend(_chain_emit([(t, _EMITTERS[t.kind][1]) for t in left], ctx, r2=True))
     return mods1, mods2
+
+
+def _scheme_has_readplan(orientation, left, right, ctx=None, r1_primer=None,
+                         r2_primer=None):
+    """True if the scheme resolves to a read plan with at least one recognised
+    primer side (used by :meth:`CompiledScheme.r2_arm_adapters` and the
+    dry-run / summary reporting)."""
+    from .readplan import compile_read_plan
+
+    if ctx is None:
+        ctx = _Ctx(True, 50, False)
+    built = compile_read_plan(orientation, left, right, ctx,
+                              r1_primer=r1_primer, r2_primer=r2_primer)
+    return built is not None and (built[2].r1_is_plan or built[2].r2_is_plan)
+
+
+def _compile_legacy_read1(left, right, ctx):
+    """Legacy per-token modifier chain for R1 (used when R1 is NOT a read plan)."""
+    rev_right = list(reversed(right))
+    mods = _chain_emit([(t, _EMITTERS[t.kind][0]) for t in left], ctx)
+    mods.extend(_chain_emit([(t, _EMITTERS[t.kind][1]) for t in rev_right], ctx))
+    return mods
+
+
+def _compile_legacy_read2(left, right, ctx):
+    """Legacy per-token modifier chain for R2 (used when R2 is NOT a read plan)."""
+    rev_right = list(reversed(right))
+    mods = _chain_emit(
+        [(t, (_r2_five_emitter(t.kind))) for t in rev_right], ctx, r2=True
+    )
+    for t in left:
+        if t.kind == "polytail" and not t.options.get("front") and t.value == "A":
+            mods.append(_emit_polytail_r2_five(t, ctx))
+    mods.extend(_chain_emit([(t, _EMITTERS[t.kind][1]) for t in left], ctx, r2=True))
+    return mods
 
 
 def _r2_five_emitter(kind):
@@ -1091,10 +1195,29 @@ _NATIVE_VARS = frozenset(
 
 
 def _capture_meta(left, right):
-    """Return ``(labels, anchors)`` for the scheme's capture/inline parts."""
+    """Return ``(labels, anchors)`` for the scheme's capture/inline parts.
+
+    ``labels`` are the effective capture labels in scheme WRITTEN order (left /
+    R1 arm parts first, then right / R2 arm parts). ``anchors`` is ``0`` for a
+    part whose anchor read is R1 (left side) and ``1`` for R2 (right side).
+
+    Duplicate labels — explicit or an auto default that collides with an
+    explicit one when ``assign_labels`` was bypassed — raise an actionable
+    ``ValueError``, so a ``--rename`` template or the default renamer never
+    silently overwrites one captured segment with another.
+    """
     parts = (left or []) + (right or [])
     caps = [t for t in parts if t.kind in ("capture", "inline")]
     labels = [t.label or f"barcode{i + 1}" for i, t in enumerate(caps)]
+    seen = {}
+    for i, lb in enumerate(labels):
+        if lb in seen:
+            raise ValueError(
+                f"cutseq: duplicate capture/UMI label '{lb}' at scheme capture "
+                f"positions {seen[lb] + 1} and {i + 1}; give each captured "
+                f"N/inline part a unique 'label:' in the scheme."
+            )
+        seen[lb] = i
     left_set = set(left or [])
     anchors = [0 if t in left_set else 1 for t in caps]
     return labels, anchors
@@ -1395,6 +1518,97 @@ class _LabeledPairedEndRenamer(_mods.PairedEndModifier):
         return read1, read2
 
 
+# --- default (no --rename) multisegment renamer ------------------------------
+#
+# Without ``--rename`` the default must concatenate EVERY captured segment
+# (``N`` UMIs + inline barcodes) in scheme WRITTEN order — not the physical
+# R2-execution ``cut_prefix``/``cut_suffix`` order that the legacy fast path
+# uses. The legacy ``cut_*`` attributes aggregate every trimmed segment in
+# whichever order cutadapt walked the arm, which differs from the scheme's
+# written order and, for paired libraries, only reflects each mate's 5' trim.
+#
+# Instead these renamers read the per-read capture registry (see
+# ``_record_capture`` / ``_consume_captures``) and assemble it in written order
+# using each part's ANCHOR read (left -> R1, right -> R2), so a logical capture
+# appears exactly ONCE, never as a read-through mirror duplicate.
+#
+# Completeness policy (default, all-or-nothing): if ANY required anchor capture
+# is missing/incomplete the ENTIRE combined suffix is empty (``id_``) — never a
+# partial, plausible-looking concat. This matches the legacy single-capture
+# contract (missing -> ``id_``) and keeps a partial barcode from being mistaken
+# for a full one. (Explicit ``--rename`` templates keep the ordinary per-slot
+# empty-on-missing behaviour.)
+#
+# Both are module-level classes (not closures) with plain tuple state so they
+# pickle for cutadapt's multiprocessing runner.
+
+
+def _capture_join_template(labels):
+    """Human-introspectable template that mirrors the default written-order join."""
+    if not labels:
+        return "{id}"
+    return "{id}_" + "".join("{" + str(i + 1) + "}" for i in range(len(labels)))
+
+
+class _DefaultMetadataSingleEndRenamer:
+    """Single-end default renamer: join every capture in scheme written order."""
+
+    def __init__(self, labels):
+        self._labels = tuple(labels)
+        self._template = _capture_join_template(labels)
+
+    def __call__(self, read, info):
+        id_ = read.name.split(maxsplit=1)[0]
+        caps = _consume_captures(info)
+        if not self._labels:
+            read.name = id_
+            return read
+        parts = []
+        complete = True
+        for label in self._labels:
+            value = caps.get(label)
+            if not value:
+                complete = False
+                break
+            parts.append(value)
+        read.name = f"{id_}_{''.join(parts) if complete else ''}"
+        return read
+
+
+class _DefaultMetadataPairedEndRenamer(_mods.PairedEndModifier):
+    """Paired-end default renamer: join every capture in written order, taking
+    each value from its anchor read (left -> R1, right -> R2) so a logical
+    capture is written once, not as a read-through mirror duplicate."""
+
+    def __init__(self, labels, anchors):
+        self._labels = tuple(labels)
+        self._anchors = tuple(anchors)
+        self._template = _capture_join_template(labels)
+
+    def __call__(self, read1, read2, info1, info2):
+        id1 = read1.name.split(maxsplit=1)[0]
+        id2 = read2.name.split(maxsplit=1)[0]
+        caps1 = _consume_captures(info1)
+        caps2 = _consume_captures(info2)
+        if not self._labels:
+            read1.name = id1
+            read2.name = id2
+            return read1, read2
+        parts = []
+        complete = True
+        for label, anchor in zip(self._labels, self._anchors):
+            source = caps2 if anchor == 1 else caps1
+            value = source.get(label)
+            if not value:
+                complete = False
+                break
+            parts.append(value)
+        suffix = "".join(parts) if complete else ""
+        read1.name = f"{id1}_{suffix}"
+        read2.name = f"{id2}_{suffix}"
+        return read1, read2
+
+
 def make_renamer(paired, has_captures=False, name_format=None, left=None, right=None):
     """Native cutadapt renamer. Appends captured ``N`` UMIs to the read name
     only when the scheme declares capture tokens (legacy naming). Single-end
@@ -1405,7 +1619,15 @@ def make_renamer(paired, has_captures=False, name_format=None, left=None, right=
     functions (``rc()``, ``upper()``, ``slice()``, ... see the engine docs),
     e.g. ``--rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})'``. ``left``/``right``
     are the parsed scheme sides, used to resolve captures to their anchor
-    read. Defaults reproduce legacy naming exactly.
+    read and to build the default multisegment name below.
+
+    When ``left``/``right`` are supplied (the CompiledScheme / CLI path) the
+    DEFAULT concatenates ALL capture + inline segments in scheme WRITTEN order
+    via the per-read registry, subject to the all-or-nothing completeness
+    policy (any required anchor capture missing -> empty suffix, ``id_``). Only
+    when the parts are absent (``left is None and right is None``, the legacy
+    external API) is the historical ``cut_prefix``/``cut_suffix`` fast path
+    used, preserving the ``_template`` contract the existing tests rely on.
     """
     global _RENAME_NEEDS_CAPTURES
     if name_format is not None:
@@ -1424,6 +1646,21 @@ def make_renamer(paired, has_captures=False, name_format=None, left=None, right=
             return _LabeledPairedEndRenamer(fields, name_format)
         return _LabeledRenamer(fields, name_format)
 
+    # Scheme metadata supplied (CompiledScheme / CLI): default concatenates ALL
+    # captured segments (N + inline) in scheme written order. Metadata-free
+    # callers (legacy external API) fall through to the fast ``cut_*`` path.
+    if left is not None and right is not None:
+        labels, anchors = _capture_meta(left, right)
+        has_segments = bool(labels)
+        _RENAME_NEEDS_CAPTURES = has_segments
+        if has_segments:
+            if paired:
+                return _DefaultMetadataPairedEndRenamer(labels, anchors)
+            return _DefaultMetadataSingleEndRenamer(labels)
+        return _FastPairedEndRenamer(False) if paired else _FastSingleEndRenamer(False)
+
+    # Metadata-free legacy fallback (existing external API). Keeps the exact
+    # historical ``cut_prefix``/``cut_suffix`` fast path and ``_template``.
     _RENAME_NEEDS_CAPTURES = False
     if paired:
         return _FastPairedEndRenamer(has_captures)
@@ -1448,6 +1685,8 @@ class CompiledScheme:
         conditional_cutter=True,
         force_trim_min_length=50,
         force_anywhere=False,
+        r1_primer=None,
+        r2_primer=None,
     ):
         self.orientation = orientation
         self.left = left
@@ -1455,6 +1694,8 @@ class CompiledScheme:
         self.conditional_cutter = conditional_cutter
         self.force_trim_min_length = force_trim_min_length
         self.force_anywhere = force_anywhere
+        self.r1_primer = r1_primer
+        self.r2_primer = r2_primer
         # Assign capture labels eagerly so dry-run/JSON show what each capture
         # is and so {N} positional references can resolve (labels default to
         # barcode1, barcode2, ...; YAML `label:` fields are preserved).
@@ -1492,6 +1733,8 @@ class CompiledScheme:
             conditional_cutter=self.conditional_cutter,
             force_trim_min_length=self.force_trim_min_length,
             force_anywhere=self.force_anywhere,
+            r1_primer=self.r1_primer,
+            r2_primer=self.r2_primer,
         )
         # Cache the inline-barcode Adapter objects from THIS compile so a
         # subsequent inline_adapters() call returns the exact same instances
@@ -1500,6 +1743,19 @@ class CompiledScheme:
         cache[paired] = (mods1, mods2)
         self._inline_cache = getattr(self, "_inline_cache", {})
         self._inline_cache[paired] = self._collect_inline(mods1, mods2)
+        # Retain the ReadPlan (if any) so r2_arm_adapters / dry-run / summary
+        # report the SAME plan used to compile, instead of recompiling.
+        if paired and self.orientation is not None:
+            from .readplan import compile_read_plan
+
+            built = compile_read_plan(
+                self.orientation, self.left, self.right,
+                _Ctx(self.conditional_cutter, self.force_trim_min_length,
+                     self.force_anywhere),
+                r1_primer=self.r1_primer, r2_primer=self.r2_primer,
+            )
+            self._plan_cache = getattr(self, "_plan_cache", {})
+            self._plan_cache[paired] = built[2] if built else None
         return mods1, mods2
 
     @staticmethod
@@ -1536,10 +1792,24 @@ class CompiledScheme:
         for DBiT-style schemes, handle -> barcode -> linker -> barcode ->
         linker -> UMI, read out on R2). Taken from the *same* cached compile
         the pipeline uses, so identity-based ``info.matches`` checks work.
-        Returns ``[]`` for single-end (no R2)."""
+        Returns ``[]`` for single-end (no R2).
+
+        For a read-plan scheme this returns the R2 own-arm read-visible
+        milestone adapters (the insert-adjacent adapter/linker the R2 arm must
+        actually carry), so ``--require-cassette``/``NoCassette`` checks real
+        own-arm milestones rather than blankly assuming the cassette is absent.
+        """
         if not paired or not self.right:
             return []
         mods1, mods2 = self.modifiers(paired)
+        plan = getattr(self, "_plan_cache", {}).get(paired)
+        if plan is not None and plan.r2_is_plan:
+            # Return the EXACT cached executor own-arm (read-start) adapter
+            # objects the R2 read actually matches with, so NoCassette compares
+            # operation identity (a same-sequence read-through of the opposite
+            # arm must NOT satisfy a missing own scaffold).
+            out = list(getattr(plan, "r2_own_arm_adapters", []) or [])
+            return out
         out = []
         for m in mods2[: len(self.right)]:
             adps = getattr(m, "adapters", ())
@@ -1579,7 +1849,8 @@ def _rc(seq):
 
 
 def build_modifiers(
-    scheme, paired=True, conditional_cutter=True, force_trim_min_length=50
+    scheme, paired=True, conditional_cutter=True, force_trim_min_length=50,
+    r1_primer=None, r2_primer=None,
 ):
     """Compile a library-grammar scheme into ``(r1_mods, r2_mods, orientation)``."""
     orientation, left, right = parse_scheme(scheme)
@@ -1590,6 +1861,8 @@ def build_modifiers(
         paired,
         conditional_cutter,
         force_trim_min_length,
+        r1_primer=r1_primer,
+        r2_primer=r2_primer,
     )
 
 
@@ -1600,11 +1873,14 @@ def build_modifiers_from_parts(
     paired=True,
     conditional_cutter=True,
     force_trim_min_length=50,
+    r1_primer=None,
+    r2_primer=None,
 ):
     """Compile parsed part tokens into ``(r1_mods, r2_mods, orientation)``."""
     assign_labels(left + right)
     r1, r2 = compile_tokens(
-        orientation, left, right, paired, conditional_cutter, force_trim_min_length
+        orientation, left, right, paired, conditional_cutter, force_trim_min_length,
+        r1_primer=r1_primer, r2_primer=r2_primer,
     )
     return r1, r2, orientation
 

@@ -100,21 +100,26 @@ class LowAverageQuality(Predicate):
 
 class NoCassette(Predicate):
     """Select reads where not all of the given R2-arm (barcode cassette)
-    adapter sequences matched — used by ``--require-cassette`` to discard
-    pairs whose R2 lacks the spatial barcode cassette (reason=no_cassette).
-    Cutadapt rebuilds adapter objects per match, so comparison is by adapter
-    *sequence* against ``info.matches``.
+    own-arm milestone ADAPTERS matched — used by ``--require-cassette`` to
+    discard pairs whose R2 lacks the cassette (reason=no_cassette).
+
+    Comparison is by OPERATION IDENTITY (``m.adapter is ref``), so an
+    unrelated read-through that merely shares the same SEQUENCE cannot satisfy a
+    missing own-arm scaffold.  The ``ref_adapters`` are the exact adapter
+    objects the plan executor / legacy AdapterCutter match with.
     """
 
     def __init__(self, ref_adapters):
-        self.ref_seqs = [getattr(a, "sequence", None) for a in ref_adapters]
+        self.ref_adapters = list(ref_adapters)
 
     def __repr__(self):
-        return f"NoCassette(ref_seqs={self.ref_seqs})"
+        return f"NoCassette(ref_adapters={self.ref_adapters!r})"
 
     def test(self, read, info):
-        matched = {getattr(m.adapter, "sequence", None) for m in info.matches}
-        return not all(s in matched for s in self.ref_seqs)
+        matched = {m.adapter for m in info.matches}
+        # OPERATION identity: an unrelated read-through that shares the same
+        # SEQUENCE must NOT satisfy a missing own-arm scaffold.
+        return not all(a in matched for a in self.ref_adapters)
 
 
 class _TaggedSingleEndFilter(SingleEndFilter):
@@ -415,6 +420,10 @@ _ADAPTER_MATCH = {
 
 def _recap(mod):
     """The read end a modifier trims (5' left / 3' right)."""
+    if type(mod).__name__ == "_PlanExecutor":
+        # An arm-local read-plan executor trims both ends: unconditional 5'
+        # read-start cuts and (gated) 3' read-through cuts.
+        return "5'/3'"
     if isinstance(mod, AdapterCutter):
         from cutadapt.adapters import (
             BackAdapter,
@@ -445,7 +454,19 @@ def _recap(mod):
         return "5'"
     if back:
         return "3'"
+    # Read-plan modifiers declare their cut end explicitly (recording actual
+    # start/end) so the dry-run graph is accurate for the new routing.
+    hint = getattr(mod, "_cut_end", None)
+    if hint:
+        return hint
     if getattr(mod, "five", False):  # Poly5TailModifier trims the read 5'
+        return "5'"
+    # Read-plan poly-run modifier: ``_PolyRunTrim`` trims a 5'-anchored head
+    # run (read-start).  The read-plan executor consumes the mirrored 3' run
+    # internally (``_poly_tail_trim_index``), so it never emits a separate
+    # modifier class here.
+    cls = type(mod).__name__
+    if cls == "_PolyRunTrim":
         return "5'"
     if hasattr(mod, "base"):  # PolyTailModifier trims the 3' terminal run
         return "3'"
@@ -594,7 +615,7 @@ def _build_scheme(scheme, settings):
     orientation, left, right = _resolve_scheme(scheme, auto_inline=settings.auto_inline)
     # NOTE: --r1-primer / --r2-primer are sequencing PRIMERS: they anneal
     # upstream of where each read starts and are NOT part of the read, so they
-    # are never trimmed here (only informative / for future auto-detection).
+    # are never trimmed here — they identify the read-plan binding boundary.
     return CompiledScheme(
         orientation,
         left,
@@ -602,6 +623,8 @@ def _build_scheme(scheme, settings):
         conditional_cutter=settings.conditional_cutter,
         force_trim_min_length=settings.force_trim_min_length,
         force_anywhere=settings.force_anywhere,
+        r1_primer=settings.r1_primer,
+        r2_primer=settings.r2_primer,
     )
 
 
@@ -1151,16 +1174,24 @@ def main():
         "--r1-primer",
         type=str,
         default=None,
-        help="Read-1 sequencing primer (informational / for auto-detection; "
-        "never trimmed from reads, because reads start downstream of the "
-        "primer). Example: TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG.",
+        help="Read-1 sequencing primer oligo (5'->3'). It locates the read-plan "
+        "binding boundary: R1 starts DOWNSTREAM of this primer's 3' extension "
+        "end, and the primer itself is not part of the read (never trimmed from "
+        "it). Overrides the built-in sequencing-site table; supplying one that "
+        "is absent from the scheme, or that resolves to multiple distinct "
+        "boundaries, fails actionably. Example: "
+        "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG.",
     )
     parser.add_argument(
         "--r2-primer",
         type=str,
         default=None,
-        help="Read-2 sequencing primer (informational; never trimmed from "
-        "reads, because reads start downstream of the primer). Example: "
+        help="Read-2 sequencing primer oligo (5'->3', i.e. rc of the top-strand "
+        "right binding site). It locates the read-plan binding boundary: R2 "
+        "starts DOWNSTREAM of this primer and the primer is not part of the read "
+        "(never trimmed from it). Overrides the built-in sequencing-site table; "
+        "supplying one that is absent from the scheme, or that resolves to "
+        "multiple distinct boundaries, fails actionably. Example: "
         "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG.",
     )
     parser.add_argument(

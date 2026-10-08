@@ -330,7 +330,7 @@ _JS = """
     for (var i=0;i<feats.length;i++){
       var f = feats[i];
       var sq = f.seq;
-      if (f.role === 'insert'){ sq = 'N&#215;'+f.len; }
+      if (f.role === 'insert'){ sq = 'N\u00d7'+f.len; }
       s += '<tr><td>' + esc(f.name) + '</td><td>' + f.start + '..' + f.end + '</td><td>' + f.len + '</td><td><span class="sg-role" style="background:'+(ROLE_COLOR[f.role]||'#e0e0e0')+'"></span>' + ROLE_LBL[f.role] + '</td><td>' + (f.side||'&mdash;') + '</td><td style="font-family:monospace;max-width:220px;word-break:break-all">' + esc(sq.length > 40 ? sq.slice(0,40)+'…' : sq) + '</td></tr>';
     }
     s += '</tbody></table>';
@@ -461,6 +461,29 @@ def _write_exports(name, construct, constructs_dir):
     SgffWriter.to_file(obj, str(constructs_dir / f"{name}.dna"))
 
 
+
+_DARK_CSS = """
+@media (prefers-color-scheme: dark) {
+  .ad-toolbar{background:#1e293b;border-color:#334155}
+  .ad-search{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .ad-count{color:#94a3b8}
+  .ad-legend{background:#0f172a;border-color:#334155}
+  .adleg{color:#cbd5e1}
+  .adapter-card{background:#0f172a;border-color:#334155}
+  .card-name{color:#e2e8f0}
+  .card-desc{color:#94a3b8}
+  .card-points{color:#cbd5e1}
+  .sg-struct{background:#0f172a;border-color:#334155}
+  .sg-head{color:#cbd5e1}
+  .sg-map-svg{background:#0f172a;border-color:#334155}
+  .sg-seq{background:#0f172a;color:#e2e8f0;border-color:#334155}
+  .sg-table th{background:#1e293b;color:#cbd5e1}
+  .sg-table th,.sg-table td{border-color:#334155}
+  .copy-btn{background:#1e293b;color:#e2e8f0;border-color:#334155}
+  .copy-btn:hover{background:#1e293b;border-color:#60a5fa;color:#e2e8f0}
+}
+"""
+
 def main():
     out_md = project_root / "docs" / "adapters.md"
     schemes = _load_schemes()
@@ -499,6 +522,7 @@ def main():
     md.append('<div id="adapp"></div>\n')
     md.append(f'<script type="application/json" id="adapdata">{data_json}</script>\n')
     md.append('<style>' + _CSS + '</style>\n')
+    md.append('<style>' + _DARK_CSS + '</style>')
     md.append('<script>' + _JS + '</script>\n')
 
     md.append("\n## Inline-barcode auto-detection\n\n")

@@ -1,4 +1,4 @@
-LOCUS       PARSE_WT_V2          185 bp    DNA     linear   03-SEP-2026 SYN
+LOCUS       PARSE_WT_V2          185 bp    DNA     linear   09-OCT-2026 SYN
 // cutseq built-in scheme: PARSE_WT_V2 ()
 // grammar: 
 FEATURES             Location/Qualifiers

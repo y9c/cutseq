@@ -41,7 +41,9 @@ _SCHEME = BUILDIN_ADAPTERS["INLINE"]
 _P5, _P7 = "AGTTCTACAGTCCGACGATC", "AGATCGGAAGAGCACACGTC"
 _INS = "T" * 40
 _R1 = _P5 + "AAAAA" + _INS + "CCCCC" + "ATCACG" + _P7
-_R2 = _rc(_P7) + _rc("ATCACG") + _rc("CCCCC") + _rc(_INS) + _rc("AAAAA") + _rc(_P5)
+# ``_P7`` is the read-2 binding SITE (upstream, absent from the R2 read), so R2
+# begins inside it, at the inline/UMI: rc(P7) is NOT part of the R2 read.
+_R2 = _rc("ATCACG") + _rc("CCCCC") + _rc(_INS) + _rc("AAAAA") + _rc(_P5)
 
 
 def _run_paired(name_format):
@@ -499,22 +501,63 @@ def test_seq_primer2_single_end_trims_handle():
 
 def test_primers_are_not_trimmed_from_reads():
     """Sequencing primers anneal upstream of each read and are NOT part of
-    the read, so --r1-primer / --r2-primer must not inject any 5' trim."""
-    from cutseq.run import _describe
+    the read, so --r1-primer / --r2-primer identify the binding boundary and
+    must not inject any 5' trim into the read.
 
+    Verified by running the real pipeline on a read pair built to that geometry:
+    the primers are absent (upstream), the 5' UMI/masks are trimmed, and the
+    insert is preserved — rather than by asserting the internal modifier type.
+    """
+    import random
+
+    r1p = "ACACGACGCTCTTCCGATCT"
+    p7 = "AGATCGGAAGAGCACACGTC"
+    r2p = _rc(p7)
     s = CutadaptConfig()
-    s.r1_primer = "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG"
-    s.r2_primer = "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG"
-    cs = _build_scheme("ACGT:N8", s)
-    assert all(t.kind != "adp" or t.value not in (s.r1_primer, s.r2_primer)
-               for t in cs.left + cs.right)
+    s.r1_primer = r1p
+    s.r2_primer = r2p
+    cs = _build_scheme(r1p + "XXT...T-XXXXXXXXNNNNNNNN" + p7, s)
     mods = _scheme_modifiers(cs, paired=True, settings=s)
-    for m in mods:
-        if isinstance(m, tuple):
-            for mm, sub in ((m[0], "TCGTCGGCAGCGTC"),
-                            (m[1], "GTCTCGTGGGCTCGG")):
-                if mm:
-                    assert sub not in _describe(mm)
+    mods[-1] = cs.renamer(paired=True, name_format="{id}_umi:{1}")
+    grammar._RENAME_NEEDS_CAPTURES = True
+    try:
+        rnd = random.Random(9)
+        rnd_nt = lambda n: "".join(rnd.choice("ACGT") for _ in range(n))
+        x2 = rnd_nt(2)          # 5' mask (R1 read-start)
+        n8 = rnd_nt(8)          # UMI capture (R2 read-start, rc'd)
+        x8 = rnd_nt(8)          # R2 5' mask
+        ins = rnd_nt(30)
+        if ins[0] == "T":       # keep the R1 5' poly-T run-trim from eating insert
+            ins = "A" + ins[1:]
+
+        # R1 starts after the r1p site: mask + poly(A) tail + insert.
+        # R2 starts after the r2p site on the bottom strand: rc(UMI)+rc(mask)+rc(ins).
+        r1_seq = x2 + "T" * 15 + ins
+        r2_seq = _rc(n8) + _rc(x8) + _rc(ins)
+
+        r1 = SequenceRecord("x/1", r1_seq, "I" * len(r1_seq))
+        r2 = SequenceRecord("x/2", r2_seq, "I" * len(r2_seq))
+        i1, i2 = ModificationInfo(r1), ModificationInfo(r2)
+        for step in mods:
+            if isinstance(step, tuple):
+                m1, m2 = step
+                n1 = m1(r1, i1) if m1 else r1
+                n2 = m2(r2, i2) if m2 else r2
+                r1, r2 = n1 or r1, n2 or r2
+            else:
+                step(r1, r2, i1, i2)
+    finally:
+        grammar._RENAME_NEEDS_CAPTURES = False
+        grammar._capture_registry.clear()
+
+    # The primers are upstream, so they are never trimmed and never appear in the
+    # reads; the UMI (anchored to the R2 arm -> rc(n8)) is captured and the
+    # insert is preserved.
+    assert r1.sequence == ins
+    assert r2.sequence == _rc(ins)
+    assert r1.name == f"x/1_umi:{_rc(n8)}"
+    assert r1p not in r1.sequence and r1p not in r2.sequence
+    assert r2p not in r1.sequence and r2p not in r2.sequence
 
 
 def test_cli_rename_single_end():

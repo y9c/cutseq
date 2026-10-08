@@ -63,10 +63,15 @@ spaces:
 ## Customizing read names
 
 Captured UMIs/barcodes are appended to the read name with `_` by default
-(`@READID_CTATTAAAAA`, exactly like legacy output). Use `--rename` for full
-control — cutadapt's brace variables (`{id}`, `{header}`, `{cut_prefix}`,
-`{match_sequence}`, `{rc}`, …) plus **positional captures** `{1}`, `{2}`, …
-in scheme order:
+(`@READID_CTATTAAAAA`, exactly like legacy output). By default **every**
+captured segment — each `N` UMI plus each inline (lowercase) barcode, across
+both arms — is concatenated in **scheme written order** (left / R1-arm parts
+first, then right / R2-arm parts). If **any** required capture is missing or
+incomplete the whole appended suffix is dropped (`@READID_`, the legacy
+single-capture contract); a partial barcode is never silently padded. Use
+`--rename` for full control — cutadapt's brace variables (`{id}`, `{header}`,
+`{cut_prefix}`, `{match_sequence}`, `{rc}`, …) plus **positional captures**
+`{1}`, `{2}`, … in scheme order:
 
 ```bash
 cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' in_R1.fq.gz in_R2.fq.gz
@@ -81,8 +86,13 @@ Transform functions wrap any capture and nest (case-insensitive):
 
 In paired mode `{r1.1}` / `{r2.1}` force a specific read; an unprefixed capture
 resolves to its *anchor* read (left-side captures → R1, right-side → R2), so
-both mates carry the same value. Without `--rename`, output is byte-for-byte
-legacy-compatible.
+both mates carry the same value. Unlike an explicit `--rename` template (whose
+missing references are just empty for that slot), the default is all-or-nothing:
+it only emits the combined capture suffix when every required capture is
+complete on its anchor read, otherwise it emits just the read id. Explicit
+`label:` names must be unique across the whole scheme — a duplicate (or an
+auto `barcode{n}` that collides with an explicit label) is rejected with an
+actionable error rather than silently overwritten.
 
 ## Complex example: spatial barcode arm (DBiT-seq)
 
@@ -167,6 +177,34 @@ single-end emitter, and output is verified to match the legacy engine exactly
 across all built-in schemes, paired- and single-end.
 
 More details: <https://cutseq.yech.science>
+
+### Primer-boundary read plans (recognised sequencing sites)
+
+When a library's outer adapters are genuine **sequencing-primer binding sites**
+(e.g. the Illumina read-1 / read-2 primers), CutSeq recognises them as upstream
+and ABSENT from the read, so the read starts INSIDE the scheme rather than
+containing the primer.  Such a scheme is routed through a *read plan*: R1 begins
+downstream of the read-1 site (the first `N`/`X`/poly run after it is cut
+unconditionally), R2 begins at its read-2 site, and the mirrored read-through
+cuts (adapter gate → preceding UMI/masks, poly-T mirrored as an A-run) fire only
+when that arm really was sequenced — never because a read happens to be long.
+
+```bash
+# read-1 site ACACGACGCTCTTCCGATCT is upstream of R1; the read starts at XX2.
+# read-2 site AGATCGGAAGAGCACACGTC is upstream of R2; the read starts at the UMI.
+cutseq -A 'ACACGACGCTCTTCCGATCTXXT...T-XXXXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC' \
+  -R '{id}_umi:{r2.1}' R1.fq.gz R2.fq.gz
+```
+
+A library whose outer adapters are ordinary read-visible scaffolds (e.g. the
+legacy DBiT / INLINE schemes) is unchanged: those adapters stay in the read and
+are trimmed as normal.  The recognised R1/R2 sites are curated (`cutseq
+--list-primers`); genuine upstream sites are matched end-directed (R1 by the
+primer's 3′ extension end, R2 by the top-strand site's prefix), so a primer that
+is ambiguous or missing from the scheme fails actionably.  Explicit
+`--r1-primer` / `--r2-primer` (the actual sequencing oligo 5′→3′, R2 = rc of the
+top-strand site) overrides the curated table and lets custom primers be
+recognised.
 
 ## TODO
 
