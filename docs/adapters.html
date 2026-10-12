@@ -28,34 +28,35 @@
 .card-name{font-family:monospace;font-weight:700;color:#0f172a;font-size:.95rem;flex:none}
 .card-desc{color:#64748b;font-size:.83rem;margin-left:.2rem}
 .card-body{padding:.35rem .75rem .75rem}
-.seg-row{display:flex;flex-wrap:wrap;align-items:center;gap:3px;font-family:monospace;font-size:13px;padding:.4rem 0}
-.seg{cursor:pointer;padding:4px 7px;border-radius:4px;border:1px solid transparent;white-space:nowrap;position:relative}
-.seg:hover{border-color:#94a3b8;box-shadow:0 0 0 2px rgba(59,130,246,.25)}
 .seg-adp{background:#A8E6CF}.seg-capture{background:#B2EBF2}.seg-mask{background:#DCDCDC}.seg-inline{background:#FFD700}.seg-polytail{background:#FFB3BA}.seg-back{background:#C3B1E1}.seg-insert{background:#FF6F61;color:#fff;font-weight:700}
-.card-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin:.3rem 0 .5rem}
+.card-actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.4rem 0 .2rem}
 .copy-btn{border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;padding:.32rem .7rem;border-radius:6px;cursor:pointer;font-size:.8rem}
 .copy-btn:hover{background:#eef2ff;border-color:#2563eb}
 .card-points{margin:.2rem 0 0;padding-left:1.1rem;color:#334155;font-size:.86rem}
 .card-points li{margin:.14rem 0}
-.tooltiptext{position:absolute;bottom:110%;left:0;background:#0f172a;color:#e2e8f0;padding:3px 7px;border-radius:5px;font-size:11px;white-space:nowrap;display:none;z-index:20;font-family:sans-serif}
-.seg:hover .tooltiptext{display:block}
-.sg-struct{margin:.55rem 0 .15rem;border:1px solid #e7ecf3;border-radius:10px;padding:.5rem .6rem;background:#fbfdff}
-.sg-head{font-size:.82rem;font-weight:700;color:#334155;margin:.1rem 0 .4rem;text-transform:uppercase;letter-spacing:.03em}
-.sg-toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.2rem 0 .5rem}
+.sg-struct{margin:.35rem 0 .15rem;border:1px solid #e7ecf3;border-radius:10px;padding:.5rem .6rem;background:#fbfdff}
+.sg-caption{font-size:.8rem;color:#475569;margin:.1rem 0 .35rem}
 .sg-dl{display:inline-block;border:1px solid #2563eb;background:#eff6ff;color:#1d4ed8;padding:.3rem .7rem;border-radius:6px;text-decoration:none;font-size:.8rem;font-weight:600}
 .sg-dl:hover{background:#dbeafe}
 .sg-map-svg{width:100%;overflow-x:auto;border:1px solid #e7ecf3;border-radius:8px;background:#fff;padding:4px 0}
-.sg-map-svg svg{min-width:640px}
-.feat-band{cursor:pointer}
-.feat-band:hover{filter:brightness(1.06);stroke:#0f172a!important;stroke-width:1.6}
-.sg-seq{font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto;border:1px solid #e7ecf3;border-radius:8px;padding:8px 10px;background:#fff;color:#334155;margin-top:.4rem}
-.sg-seq b{font-weight:600}
+.sg-map-svg svg{width:100%;min-width:560px;height:auto;display:block}
+.feat-band{cursor:pointer;outline:none}
+.feat-band rect{transition:stroke-width .12s,filter .12s}
+.feat-band:hover rect,.feat-band:focus rect{stroke:#0f172a!important;stroke-width:1.8;filter:brightness(1.06)}
+.feat-band.copied rect{stroke:#2563eb!important;stroke-width:2.4}
+.feat-label{font-size:9px;fill:#334155;font-weight:600;pointer-events:none}
+.sg-tip{position:fixed;z-index:80;max-width:340px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.4;pointer-events:none;display:none;font-family:ui-sans-serif,system-ui,sans-serif}
+.sg-tip.show{display:block}
+.sg-tip h4{margin:0 0 2px;font-size:13px;color:#fff;font-weight:700}
+.sg-tip .tip-meta{color:#94a3b8;font-size:11px;margin:2px 0}
+.sg-tip .tip-seq{font-family:ui-monospace,Consolas,monospace;font-size:11px;word-break:break-all;background:#1e293b;border-radius:4px;padding:3px 5px;margin-top:3px;max-height:110px;overflow:auto;color:#e2e8f0}
+.card-details{margin:.5rem 0 0;font-size:.82rem}
+.card-details>summary{cursor:pointer;color:#2563eb;font-weight:600;font-size:.8rem;list-style:none}
+.card-details>summary::-webkit-details-marker{display:none}
 .sg-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:.5rem}
 .sg-table th,.sg-table td{border-bottom:1px solid #eef2f7;padding:.28rem .45rem;text-align:left;vertical-align:top}
 .sg-table th{color:#64748b;font-weight:600;background:#f8fafc}
 .sg-role{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
-.pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:.7rem;font-weight:600}
-.pill-R1{background:#dcfce7;color:#166534}.pill-R2{background:#ede9fe;color:#5b21b6}.pill-ADP{background:#d1fae5;color:#065f46}.pill-CAP{background:#cffafe;color:#155e75}.pill-MASK{background:#e2e8f0;color:#334155}.pill-INL{background:#fef9c3;color:#713f12}.pill-POLY{background:#ffe4e6;color:#9f1239}.pill-BACK{background:#ede9fe;color:#5b21b6}.pill-INS{background:#ffedd5;color:#9a3412}
 </style>
 <style>
 @media (prefers-color-scheme: dark) {
@@ -69,11 +70,11 @@
   .card-desc{color:#94a3b8}
   .card-points{color:#cbd5e1}
   .sg-struct{background:#0f172a;border-color:#334155}
-  .sg-head{color:#cbd5e1}
+  .sg-caption{color:#94a3b8}
   .sg-map-svg{background:#0f172a;border-color:#334155}
-  .sg-seq{background:#0f172a;color:#e2e8f0;border-color:#334155}
   .sg-table th{background:#1e293b;color:#cbd5e1}
   .sg-table th,.sg-table td{border-color:#334155}
+  .card-details>summary{color:#60a5fa}
   .copy-btn{background:#1e293b;color:#e2e8f0;border-color:#334155}
   .copy-btn:hover{background:#1e293b;border-color:#60a5fa;color:#e2e8f0}
 }
@@ -116,64 +117,82 @@
   var countEl = document.getElementById('adcount');
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function title(t){
-    var label = t.nm || (D.roles[t.k] || t.k);
-    if (t.k === 'insert'){ var m={'+':'sense','-':'antisense',':':'unstranded'}; return label + ' — ' + t.s + ' (' + (m[t.s]||t.s) + ')'; }
-    var len = (t.s || '').length;
-    var txt = label + ' (len ' + len + ')';
-    if (t.n){ txt += ' -> rename tag {' + t.n + '}'; }
-    return txt;
-  }
-  function seg(t, scheme){
-    var cls = 'seg seg-' + t.k;
-    var tip = title(t);
-    // Copy the WHOLE scheme (not just this token) so a click anywhere on the
-    // card yields the runnable scheme string, matching the "copy scheme" button.
-    var copy = (scheme || t.s);
-    return '<span class="'+cls+'" tabindex="0" data-copy="'+esc(copy)+'" data-tip="'+esc(tip)+'">'+esc(t.s)+'<span class="tooltiptext">'+esc(tip)+'</span></span>';
-  }
   var ROLE_COLOR = {adp:'#A8E6CF', capture:'#B2EBF2', mask:'#e2e8f0', inline:'#FFD700', polytail:'#FFB3BA', back:'#C3B1E1', insert:'#FF8A65'};
   var ROLE_LBL = {adp:'adapter', capture:'UMI', mask:'mask', inline:'barcode', polytail:'poly-tail', back:'read-through', insert:'insert'};
 
+  // One shared, floating detail tooltip for the whole viewer. Delegated over the
+  // SVG feature bands so a single element serves every card.
+  var tip = document.createElement('div');
+  tip.className = 'sg-tip';
+  document.body.appendChild(tip);
+  function featHtml(f){
+    return 'data-role="'+esc(f.role)+'" data-name="'+esc(f.name)+'" data-start="'+f.start+'" data-end="'+f.end+'" data-len="'+f.len+'" data-side="'+esc(f.side||'')+'" data-seq="'+esc(f.role==='insert' ? ('N'+f.len) : f.seq)+'"';
+  }
+  function tipText(f){
+    var loc = f.start + '..' + f.end;
+    var role = ROLE_LBL[f.role] || f.role;
+    return '<h4>'+esc(f.name)+'</h4>'
+      + '<div class="tip-meta">'+esc(role)+' &middot; '+loc+' &middot; '+f.len+' bp'+(f.side ? ' &middot; '+esc(f.side) : '')+'</div>'
+      + '<div class="tip-seq">'+(f.role==='insert' ? 'N'+f.len : esc(f.seq))+'</div>';
+  }
+  // Build a band-feature surrogate from the element's data-* attributes so the
+  // delegated handlers don't need the original object handy.
+  function bandFeat(el){
+    return {
+      role: el.getAttribute('data-role'),
+      name: el.getAttribute('data-name'),
+      start: el.getAttribute('data-start'),
+      end: el.getAttribute('data-end'),
+      len: el.getAttribute('data-len'),
+      side: el.getAttribute('data-side'),
+      seq: el.getAttribute('data-seq')
+    };
+  }
+  function showTip(el, evt){
+    tip.innerHTML = tipText(bandFeat(el));
+    tip.classList.add('show');
+    // keep the tooltip reasonably within the viewport
+    var r = el.getBoundingClientRect();
+    var tTop = r.bottom + 4;
+    var h = tip.offsetHeight;
+    if (tTop + h > window.innerHeight - 8){ tTop = r.top - h - 4; }
+    tip.style.left = Math.max(8, Math.min(r.left, window.innerWidth - tip.offsetWidth - 8)) + 'px';
+    tip.style.top = tTop + 'px';
+  }
+  function hideTip(){ tip.classList.remove('show'); }
+
   function mapSvg(c){
     var k = c.construct, size = k.size, feats = k.features;
-    var w = 920, h = 66, x0 = 8, x1 = w - 8;
+    var w = 920, h = 70, x0 = 8, x1 = w - 8;
     function sx(p){ return x0 + (x1 - x0) * (p - 1) / Math.max(1, size - 1); }
-    var s = '<div class="sg-map-svg"><svg viewBox="0 0 '+w+' '+h+'" width="100%">';
-    s += '<line x1="'+x0+'" y1="34" x2="'+x1+'" y2="34" stroke="#cbd5e1" stroke-width="14" stroke-linecap="round"/>';
-    s += '<text x="'+x0+'" y="14" font-size="10" fill="#94a3b8">5&prime;</text>';
-    s += '<text x="'+x1+'" y="14" font-size="10" fill="#94a3b8" text-anchor="end">3&prime;</text>';
+    var s = '<div class="sg-map-svg"><svg viewBox="0 0 '+w+' '+h+'" width="100%" role="list" aria-label="Structure diagram">';
+    s += '<line x1="'+x0+'" y1="34" x2="'+x1+'" y2="34" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round"/>';
+    s += '<text x="'+x0+'" y="64" font-size="10" fill="#94a3b8">5&prime;</text>';
+    s += '<text x="'+x1+'" y="64" font-size="10" fill="#94a3b8" text-anchor="end">3&prime;</text>';
     for (var i=0;i<feats.length;i++){
       var f = feats[i];
       var a = sx(f.start), b = sx(f.end);
       if (b - a < 6){ var mid=(a+b)/2; a=mid-3; b=mid+3; }
       var col = ROLE_COLOR[f.role] || '#e0e0e0';
-      s += '<g class="feat-band">';
+      // Each band is one feature: hovering/focusing shows its detail, clicking copies its sequence.
+      s += '<g class="feat-band" tabindex="0" role="listitem" data-copy="'+esc(f.role==='insert' ? ('N'+f.len) : f.seq)+'" '+featHtml(f)+'>';
       s += '<rect x="'+a+'" y="27" width="'+(b-a)+'" height="14" rx="3" fill="'+col+'" stroke="#94a3b8" stroke-width="1"/>';
-      if (f.strand === '-'){ s += '<path d="M '+(a+7)+' 27 L '+(a-1)+' 34 L '+(a+7)+' 41 z" fill="'+col+'" stroke="#64748b"/>'; }
-      else { s += '<path d="M '+(b-7)+' 27 L '+(b+1)+' 34 L '+(b-7)+' 41 z" fill="'+col+'" stroke="#64748b"/>'; }
+      if (f.strand === '-'){ s += '<path d="M '+(a+8)+' 27 L '+(a)+' 34 L '+(a+8)+' 41 z" fill="'+col+'" stroke="#64748b"/>'; }
+      else { s += '<path d="M '+(b-8)+' 27 L '+(b)+' 34 L '+(b-8)+' 41 z" fill="'+col+'" stroke="#64748b"/>'; }
+      // Inline role label when the band can carry one (colour is never the only cue).
+      if (b - a >= 52){ var lbl = (ROLE_LBL[f.role]||f.role).toUpperCase(); s += '<text class="feat-label" x="'+((a+b)/2)+'" y="38" text-anchor="middle">'+esc(lbl)+'</text>'; }
       s += '</g>';
     }
-    s += '<text x="'+(x0+x1)/2+'" y="60" font-size="10" fill="#64748b" text-anchor="middle">'+size+' bp &middot; linear</text>';
+    s += '<text x="'+(x0+x1)/2+'" y="62" font-size="10" fill="#64748b" text-anchor="middle">'+size+' bp &middot; linear</text>';
     s += '</svg></div>';
-    s += '<div class="sg-leg" style="display:none"></div>';
     return s;
   }
 
-  function seqView(c){
-    var k = c.construct, size = k.size, feats = k.features;
-    var colors = []; for (var i=0;i<size;i++) colors[i] = '#f8fafc';
-    for (var i=0;i<feats.length;i++){ var f=feats[i]; var col=ROLE_COLOR[f.role]||'#e2e8f0'; for (var p=f.start-1;p<f.end;p++) colors[p]=col; }
-    var s = '<div class="sg-seq">';
-    for (var p=0;p<size;p++){ s += '<b style="background:'+colors[p]+'">'+k.seq[p]+'</b>'; if((p+1)%10===0) s+=' '; if((p+1)%50===0) s+='&#10;'; }
-    s += '</div>';
-    return s;
-  }
-
-  function pill(role, side){
-    var p = '<span class="pill pill-'+role.toUpperCase()+'" style="margin-left:4px">'+ROLE_LBL[role]+'</span>';
-    if (side) p += '<span class="pill pill-'+side+'" style="margin-left:4px">'+side+'</span>';
-    return p;
+  function caption(c){
+    var k = c.construct;
+    var ins = 0;
+    for (var i=0;i<k.features.length;i++){ if (k.features[i].role === 'insert'){ ins++; } }
+    return '<div class="sg-caption">'+k.size+' bp &middot; 5&prime;&rarr;3&prime; top strand' + (ins ? ' &middot; '+ins+' insert placeholder' : '') + '</div>';
   }
 
   function featTable(c){
@@ -193,16 +212,12 @@
   function structBlock(c){
     var k = c.construct;
     if (!k || !k.size){ return ''; }
-    var s = '<div class="sg-struct">';
-    s += '<div class="sg-toolbar"><span class="sg-head">Structure</span>';
-    s += '<span style="margin-left:auto;display:flex;gap:.5rem">';
-    s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.gb" download>Download .gb (GenBank)</a>';
-    s += '</span></div>';
-    s += mapSvg(c);
-    s += seqView(c);
-    s += featTable(c);
-    s += '</div>';
-    return s;
+    // One primary interactive diagram; the per-base sequence is gone and the full
+    // feature table folds behind a small collapse, so a card reads as a single
+    // clear construct rather than three redundant stacked representations.
+    return '<div class="sg-struct">' + caption(c) + mapSvg(c)
+      + '<details class="card-details"><summary>Feature details</summary>' + featTable(c) + '</details>'
+      + '</div>';
   }
 
   function card(c){
@@ -213,11 +228,14 @@
     var s = '';
     s += '<details class="adapter-card"'+alias+'>';
     s += '<summary data-copy="'+esc(c.scheme)+'"><span class="card-name">'+esc(c.name)+'</span><span class="card-desc">'+esc(c.desc)+'</span>'+(c.alias?'<span class="card-desc">[alias of '+esc(c.alias)+']</span>':'')+'</summary>';
-    s += '<div class="card-body"><div class="seg-row">' + c.tokens.map(function(t){ return seg(t, c.scheme); }).join('') + '</div>';
+    s += '<div class="card-body">';
+    // One primary interactive structure diagram (mapSvg) + the hidden-by-default
+    // feature table inside structBlock. The old colored seg-row chip list is gone.
     s += structBlock(c);
     s += '<div class="card-actions">';
     s += '<button class="copy-btn" data-copy="'+esc(c.scheme)+'">copy scheme</button>';
     s += '<button class="copy-btn" data-copy="'+esc(cmd)+'">copy: '+esc(cmd)+'</button>';
+    s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.gb" download>Download .gb (GenBank)</a>';
     s += '</div>' + points + '</div></details>';
     return s;
   }
@@ -237,13 +255,35 @@
   box.addEventListener('input', render);
   render();
 
+  // Tooltip on hover / focus over a feature band (delegated).
+  function track(e){
+    var el = e.target.closest ? e.target.closest('.feat-band') : null;
+    if (el){ showTip(el, e); } else { hideTip(); }
+  }
+  document.addEventListener('mousemove', track);
+  document.addEventListener('mouseleave', hideTip);
+  document.addEventListener('focusin', function(e){
+    var el = e.target.closest ? e.target.closest('.feat-band') : null;
+    if (el){ showTip(el, e); }
+  }, true);
+  document.addEventListener('focusout', hideTip, true);
+
   document.addEventListener('click', function(e){
     var el = e.target.closest ? e.target.closest('[data-copy]') : null;
     if (!el){ return; }
     var val = el.getAttribute('data-copy');
     function done(){
-      var old = el.getAttribute('data-label');
-      if (!old){ el.setAttribute('data-label', el.textContent); el.textContent = 'copied!'; setTimeout(function(){ el.textContent = el.getAttribute('data-label'); el.removeAttribute('data-label'); }, 900); }
+      // Only the 'copy scheme'/'copy: cmd' BUTTONS are action labels whose
+      // text can be briefly replaced by 'copied!'. A colored segment's text is
+      // the actual scheme sequence — never overwrite it; flash it instead.
+      var isBtn = el.classList && el.classList.contains('copy-btn');
+      if (isBtn){
+        var old = el.getAttribute('data-label');
+        if (!old){ el.setAttribute('data-label', el.textContent); el.textContent = 'copied!'; setTimeout(function(){ el.textContent = el.getAttribute('data-label'); el.removeAttribute('data-label'); }, 900); }
+      } else {
+        var old = el.getAttribute('data-fb');
+        if (!old){ el.setAttribute('data-fb','1'); el.classList.add('copied'); setTimeout(function(){ el.classList.remove('copied'); el.removeAttribute('data-fb'); }, 700); }
+      }
     }
     if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(val).then(done, function(){ legacyCopy(); }); }
     else { legacyCopy(); }
