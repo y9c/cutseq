@@ -130,6 +130,31 @@ def _resolve_boundary(arm, side, custom=None):
     if custom is not None:
         return _resolve_custom(arm, side, custom)
 
+    # An OUTERMOST lowercase ACGT run is an explicit read-external sequencing
+    # primer: the read starts AFTER it, so it is a genuine boundary on its own
+    # (no known-site table needed).  Only the R1-outer (first on the left arm)
+    # and R2-outer (last on the right arm) positions qualify; a lowercase run
+    # elsewhere stays an ordinary inline barcode.
+    if side == "R1":
+        outer_i = 0
+    else:
+        outer_i = len(arm) - 1
+    if arm and arm[outer_i].kind == "inline" and \
+            arm[outer_i].options.get("primer"):
+        tok = arm[outer_i]
+        if side == "R1":
+            # read-1 reads the top strand 5'->3': the primer is upstream of the
+            # read, which starts at the primer's 3' extension end.
+            off = len(tok.value)
+            return (Boundary(side, outer_i, off, "top", "R1",
+                             tok.value, tok.value),
+                    arm[:outer_i])
+        # R2 reads the bottom strand from the outer end inward: the read starts
+        # just inside the primer (offset 0 of the boundary token), and the
+        # insert-adjacent residues are its own arm.
+        return (Boundary(side, outer_i, 0, "bot", "R2",
+                         tok.value, _prc(tok.value)),
+                arm[outer_i + 1:])
     idxs = [i for i, t in enumerate(arm) if t.kind == "adp"]
     # Collect EVERY boundary candidate across the whole arm (including sites
     # separated by N/X tokens and sites embedded within a single merged token),
@@ -327,15 +352,16 @@ class ReadPlan:
 class _Observation:
     """Provenance of one recorded capture on a read."""
 
-    __slots__ = ("label", "start", "end", "seq", "complete", "side")
+    __slots__ = ("label", "start", "end", "seq", "complete", "side", "length")
 
-    def __init__(self, label, start, end, seq, complete, side):
+    def __init__(self, label, start, end, seq, complete, side, length=None):
         self.label = label
         self.start = start
         self.end = end
         self.seq = seq
         self.complete = complete
         self.side = side
+        self.length = length  # declared capture length (used to pad with N when short)
 
     def __repr__(self):
         c = "ok" if self.complete else "short"
@@ -511,7 +537,7 @@ class _PlanExecutor(_mods.SingleEndModifier):
                     st = e - n_ if e - n_ >= start else start
                     cap = s[st:e]
                     obs.append(_Observation(step.label, st, e, cap,
-                                            e - st == n_, self.side))
+                                            e - st == n_, self.side, length=n_))
                     end = st
                 elif step.act == "trim":
                     n_ = step.length
@@ -559,7 +585,7 @@ class _PlanExecutor(_mods.SingleEndModifier):
                     else:
                         cap, complete, e = s[start : start + n_], True, start + n_
                     obs.append(_Observation(step.label, start, e, cap,
-                                            complete, self.side))
+                                            complete, self.side, length=n_))
                     start = e
                 elif step.act == "poly5":
                     cut = _g()._poly_head_trim_index(s[start:], step.seq)
@@ -603,15 +629,19 @@ class _PlanExecutor(_mods.SingleEndModifier):
     def __call__(self, read, info):
         final, obs, start, end = self._run(read, info)
         for o in obs:
-            # Only COMPLETE captures are advertised under an ordinary ``{n}`` /
-            # label reference.  An incomplete capture (read shorter than the
-            # declared capture) is kept as a diagnostic observation but is NOT
-            # recorded as if it were a valid full-length one, so the rename
-            # resolves it to empty.  The read itself is still consumed.
-            if o.complete:
-                _g()._record_capture(info, o.label, o.seq)
+            # A capture is ALWAYS recorded at its declared length so downstream
+            # tooling sees a fixed-width UMI/barcode: if the read did not reach
+            # the full declared length, pad the captured bases with ``N`` to the
+            # declared length (a missing-value marker).  Otherwise a short read
+            # would yield a variable-length UMI and break downstream parsers.
+            if o.length and len(o.seq) < o.length:
+                seq = o.seq + "N" * (o.length - len(o.seq))
+            else:
+                seq = o.seq
+            if o.seq:
+                _g()._record_capture(info, o.label, seq)
                 if o.start == 0:
-                    info.cut_prefix = o.seq
+                    info.cut_prefix = seq
         if start > end:
             start, end = 0, 0
         if final == read.sequence:

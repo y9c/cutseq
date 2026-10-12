@@ -223,6 +223,7 @@ def parse_scheme(scheme, auto_inline=True):
         side.append(tok)
     if auto_inline:
         _auto_detect_inline(left, right)
+    _mark_outer_primers(left, right)
     return orientation, left, right
 
 
@@ -363,6 +364,38 @@ def _auto_detect_inline(left, right):
     _fix_side(right, outer_is_first=False)
 
 
+def _mark_outer_primers(left, right):
+    """Mark an OUTERMOST lowercase run of each side as a sequencing primer.
+
+    A lowercase ``ACGT`` run (``inline``) that sits at the OUTERMOST position of
+    a side is a sequencing-primer / read-external region: the read starts AFTER
+    it, so it is skipped (never matched/captured as an inline barcode) instead of
+    gating the downstream ``N``/``X`` tokens.  Only the very first token of the
+    left arm and the very last token of the right arm are examined — the R1 and
+    R2 outer positions; a lowercase run elsewhere stays an ordinary inline
+    barcode (matched & captured).  A side whose outermost token is already
+    UPPERCASE (an ``adp``) is untouched.
+
+    The marker is `tok.options["primer"] = True`; callers (compile_tokens,
+    readplan._resolve_boundary, assign_labels/_capture_meta) consult it.
+    """
+    def _mark(tok):
+        if tok.kind == "inline":
+            tok.options = {**tok.options, "primer": True}
+
+    if left:
+        _mark(left[0])
+    if right:
+        _mark(right[-1])
+
+
+def _is_primer(tok):
+    """True if *tok* is an outermost lowercase sequencing primer that should be
+    skipped as a read-external boundary rather than matched/captured as an
+    inline barcode."""
+    return tok.kind == "inline" and bool(tok.options.get("primer"))
+
+
 def assign_labels(tokens):
     """Assign a capture label and written ordinal to each capture/inline token.
 
@@ -382,7 +415,9 @@ def assign_labels(tokens):
     used = {}
     n = 0
     for t in tokens:
-        if t.kind in ("capture", "inline"):
+        # An outermost lowercase sequencing primer is skipped (not captured), so
+        # it must not consume a capture ordinal / default label.
+        if t.kind in ("capture", "inline") and not _is_primer(t):
             t.index = n
             label = t.label if t.label is not None else f"barcode{n + 1}"
             if label in used:
@@ -929,6 +964,11 @@ def _chain_emit(items, ctx, r2=False):
     mods = []
     prev = None
     for t, em in items:
+        # An outermost lowercase sequencing primer is skipped entirely: the read
+        # starts AFTER it, so it emits no adapter/capture and does NOT gate the
+        # downstream UMI/mask (the following token sees prev=None -> unconditional).
+        if _is_primer(t):
+            continue
         tok = _for_r2(t) if r2 else t
         m = em(tok, ctx, prev)
         adps = getattr(m, "adapters", ())
@@ -1207,7 +1247,10 @@ def _capture_meta(left, right):
     silently overwrites one captured segment with another.
     """
     parts = (left or []) + (right or [])
-    caps = [t for t in parts if t.kind in ("capture", "inline")]
+    caps = [
+        t for t in parts
+        if t.kind in ("capture", "inline") and not _is_primer(t)
+    ]
     labels = [t.label or f"barcode{i + 1}" for i, t in enumerate(caps)]
     seen = {}
     for i, lb in enumerate(labels):

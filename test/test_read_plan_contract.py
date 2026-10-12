@@ -777,17 +777,20 @@ def test_normal_scheme_without_custom_primer_is_unchanged():
     assert [(t.kind, t.value) for t in cs.left] == [("adp", PRIMER1), ("mask", 2)]
 
 
-def test_incomplete_r2_umi_not_advertised_and_r2_empty():
-    """A 3 bp R2 that starts only a fraction of the 8 nt UMI reads is NOT
-    advertised as a complete capture: ``{1}`` / ``{r2.1}`` stay empty, R2 trims
-    to empty, and R1 is unchanged by the other mate's shortness."""
+def test_incomplete_r2_umi_padded_to_length_and_r2_consumed():
+    """A short R2 that starts only part of the 8 nt UMI: the UMI capture is
+    reported at its DECLARED length by padding the truncated bases with ``N``
+    (a missing-value marker, so downstream parsers always see a fixed-width
+    UMI), the R2 read is consumed (trims to empty), and R1 is unchanged by the
+    other mate's shortness."""
     r1, r2o = _run_paired(XX2 + TRUN + INS, R2_UMI[:3], name_format="{id}_{1}")
     assert r1.sequence == INS, r1.sequence
     assert r2o.sequence == "", r2o.sequence
-    assert r1.name == "x/1_", r1.name
-    assert r2o.name == "x/2_", r2o.name
+    padded = R2_UMI[:3] + "N" * (8 - 3)
+    assert r1.name == f"x/1_{padded}", r1.name
+    assert r2o.name == f"x/2_{padded}", r2o.name
     r1b, _ = _run_paired(XX2 + TRUN + INS, R2_UMI[:3], name_format="{id}_{r2.1}")
-    assert r1b.name == "x/1_", r1b.name
+    assert r1b.name == f"x/1_{padded}", r1b.name
 
 
 def test_failed_in_read_scaffold_does_not_let_umi_consume_insert():
@@ -1312,5 +1315,9 @@ def test_incomplete_inner_fragment_other_complete_explicit_refs():
     r2 = RC_B + RC_LINKER + RC_A[:3]      # inner rc(A) present only 3 bp
     r1o, r2o = _run_yaml_pair(parts, r1, r2, name_format="{id}_inner:{1}_outer:{2}")
     assert r1o.sequence == INS, r1o.sequence
-    assert r1o.name == f"x/1_inner:_outer:{RC_B}", r1o.name
-    assert r2o.name == f"x/2_inner:_outer:{RC_B}", r2o.name
+    # New policy: a capture is always reported at its DECLARED length, so a
+    # truncated inner capture is padded to 8 bp with N (missing-value marker),
+    # while the complete outer keeps its value.  (No empty-suffix fallback.)
+    inner_pad = RC_A[:3] + "N" * (8 - 3)
+    assert r1o.name == f"x/1_inner:{inner_pad}_outer:{RC_B}", r1o.name
+    assert r2o.name == f"x/2_inner:{inner_pad}_outer:{RC_B}", r2o.name
