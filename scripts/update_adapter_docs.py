@@ -519,6 +519,83 @@ _NOTES = (
     "is given, discard files are auto-named from the inputs.</p>"
 )
 
+# Folded from docs/spatial.html (deleted): the DBiT-seq barcode-arm library walkthrough.
+# Kept inside _NOTES so a generator re-run reproduces adapters.html byte-for-byte.
+# Folded from docs/spatial.html (deleted): the DBiT-seq barcode-arm library walkthrough.
+# Kept inside _NOTES so a generator re-run reproduces adapters.html byte-for-byte.
+_DBIT_SECTION = r"""
+<section id="spatial-dbit-seq">
+<h2 id="parsing-spatial-libraries">Parsing spatial (DBiT-seq) libraries</h2>
+<p>This page is the introduction to handling <strong>spatial sequencing</strong> data with CutSeq: what the library construct looks like, which read carries what, the one-line command that trims everything and captures the spatial barcodes into the read names, and how to interpret the QC that results from it.</p>
+<p>It is written for the <strong>DBiT-seq</strong> scheme (<code>cutseq -A DBITSEQ</code>, spatial RNA, 50&times;50 barcode grid), but the same walk-through applies to any barcode-arm library expressed as a CutSeq scheme.</p>
+<hr>
+<h3 id="1-the-library-construct">1. The library construct</h3>
+<p>DBiT-seq puts a row of fixed-length oligos — the <strong>barcode arm</strong> — on one side of each molecule. The full construct, top strand 5&prime;&rarr;3&prime;:</p>
+<pre><code class="language-plaintext">P5(29) | i5(8) | R1-primer(34) | TSO(23) | insert | polyA/T | UMI(12)
+       | rc(L1)(30) | BarcodeA(8) | rc(L2)(30) | BarcodeB(8)
+       | rc(handle)(22) | rc(R2-primer)(34) | i7(8) | rc(P7)(24)</code></pre>
+<p>The sequencing primers just upstream of each read are <strong>never part of the reads</strong> — sequences start downstream of the priming site. So:</p>
+<table><thead><tr><th>Read</th><th>What it actually sequences</th></tr></thead><tbody><tr><td><strong>R1</strong> (from the P5 side)</td><td><strong>TSO</strong> (23 nt template-switch oligo) + cDNA <strong>insert</strong> (variable length), often with a 5&prime; G-stretch right after the TSO</td></tr><tr><td><strong>R2</strong> (from the P7 side)</td><td><strong>barcode arm</strong> then insert read-through: handle(22) → <strong>BarcodeB</strong>(8) → linker2(30) → <strong>BarcodeA</strong>(8) → linker1(30) → <strong>UMI</strong>(12) → polyA/T → 3&prime; end of the insert</td></tr></tbody></table>
+<div class="callout note"><div class="callout-title">Note</div><p>The insert is on R1 (5&prime;&rarr;3&prime;, top strand). R2 only sees the <strong>3&prime; tail</strong> of the insert that reads through past the arm — and it is capped by the sequencer read length (see <a href="#5-interpreting-the-read-length-distribution">§5 – interpreting read lengths</a>).</p></div>
+<h3 id="2-one-command-to-parse-everything">2. One command to parse everything</h3>
+<pre><code class="language-bash">cutseq -A DBITSEQ \
+  -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' \
+  -O mysample \
+  mysample_R1.fastq.gz mysample_R2.fastq.gz</code></pre>
+<p>Fast, single-threaded by default (<code>-t N</code> to parallelize). That one line:</p>
+<ul><li>trims the <strong>TSO + 5&prime; G-stretch off R1</strong>,</li><li>walks the <strong>barcode arm on R2</strong> (handle, both linkers, poly tail),</li><li><strong>captures BarcodeB, BarcodeA and the UMI</strong> and writes them into every read name, e.g.:</li></ul>
+<pre><code class="language-plaintext">@LH00699:99:2533WTLT4:6:1101:36114:1055_BCB:AGAGTCAA_BCA:ACCTCCAA_UMI:TGCACACCAACC</code></pre>
+<h4 id="what-the-built-in-dbitseq-scheme-means">What the built-in <code>DBITSEQ</code> scheme means</h4>
+<pre><code class="language-plaintext">AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG : N12 AGTCGTACGCCGATGCGAAACATCGGCCAC
+                                            N8  CGAATGCTCTGGCCTCTCAAGCACGTGGAT
+                                            N8  AGATGCGAGAAGCCAACGCTTG</code></pre>
+<table><thead><tr><th>Token</th><th>Side</th><th>Meaning in CutSeq</th></tr></thead><tbody><tr><td><code>AAGCAGTGGTATCAACGCAGAGT</code></td><td>left (<code>:</code>⇒R1, as-is)</td><td>TSO — R1&rsquo;s real read-5&prime; scaffold, trimmed off</td></tr><tr><td><code>GAATGGG...GGG</code></td><td>R1</td><td>auto-detected <strong>5&prime; poly-Run</strong> (G-stretch / GAATGGG) leftmost-anchored — trims the template-switch remnant; <code>G&lt;k&gt;</code> tunes the minimum run</td></tr><tr><td><code>N12</code></td><td>right (matched on R2)</td><td><strong>UMI</strong> capture &rarr; <code>{1}</code></td></tr><tr><td>first 30-nt run</td><td>right</td><td>linker 1, trimmed</td></tr><tr><td><code>N8</code></td><td>right</td><td><strong>BarcodeA</strong> capture &rarr; <code>{2}</code></td></tr><tr><td>second 30-nt run</td><td>right</td><td>linker 2, trimmed</td></tr><tr><td><code>N8</code></td><td>right</td><td><strong>BarcodeB</strong> capture &rarr; <code>{3}</code></td></tr><tr><td>final 22-nt run</td><td>right</td><td>handle (rc form), trimmed</td></tr></tbody></table>
+<p>The <code>-R '{id}_BCB:{3}_BCA:{2}_UMI:{1}'</code> template is read-name renaming — see the <a href="rename.html">rename page</a> for the full syntax (transforms, <code>rc()</code>, per-side captures, etc.).</p>
+<h3 id="3-outputs">3. Outputs</h3>
+<p>With <code>-O mysample</code> you get (input file names are used if <code>-O</code> is omitted):</p>
+<pre><code class="language-plaintext">mysample_trimmed_R1.fastq.gz   # insert read, barcodes in header, TSO/G-stretch removed
+mysample_trimmed_R2.fastq.gz   # barcode arm trimmed, barcodes in header, UMI in header
+mysample_discard_R1.fastq.gz   # rejected reads (both mates kept together)
+mysample_discard_R2.fastq.gz</code></pre>
+<p>Rejected reads carry a <code>reason=</code> tag in the name: <code>too_short</code> (below <code>-m/--min-length</code>, default 20), <code>too_many_n</code> (<code>--max-n</code>), <code>low_quality</code> (<code>--min-avg-quality</code>), <code>no_barcode</code> (only with <code>--ensure-inline-barcode</code>). Add <code>--json-file mysample.json</code> for a full trimming report with counts/statistics per step.</p>
+<div class="callout note"><div class="callout-title">Note</div><p>Because trimming is performed on paired, in-order reads, R1 (insert) and R2 (barcode) mates stay in sync — the barcode in an R2 header belongs to the insert sequence in the same R1 record.</p></div>
+<h3 id="4-going-from-trimmed-reads-to-a-spatial-expression-matrix">4. Going from trimmed reads to a spatial expression matrix</h3>
+<ol><li><strong>Parse the header</strong> — split each read name on <code>_BCB:</code>, <code>_BCA:</code>, <code>_UMI:</code> and read the 8+8+12 nt.</li><li><strong>Map (BarcodeB, BarcodeA) → pixel</strong> with the design&rsquo;s barcode whitelist (the two 8-nt sets used to build the 50&times;50 grid; allow 1–2 nt Levenshtein distance if the protocol tolerates it).</li><li><strong>Align R1</strong> to the reference and assign transcripts/features per pixel (m6A-ARTR-style methods typically report per-feature, per-pixel read counts).</li><li><strong>Deduplicate by UMI</strong> — collapse reads sharing the same pixel + feature (+ alignment position) and the same 12-nt UMI.</li></ol>
+<p>A minimal header parser / demultiplexer (paired trimmed R1+R2, barcodes in the R1 name):</p>
+<pre><code class="language-python">import re, gzip
+
+PAT = re.compile(r"_BCB:([ACGT]{8})_BCA:([ACGT]{8})_UMI:([ACGT]{12})")
+
+def records(fq):
+    with gzip.open(fq, "rt") as f:
+        lines = [ln.strip() for ln in f]
+    for i in range(0, len(lines), 4):
+        yield lines[i], lines[i + 1]                # (name, sequence)
+
+with open("pixels.tsv", "w") as out:
+    for (r1n, r1s), (r2n, r2s) in zip(
+            records("mysample_trimmed_R1.fastq.gz"),
+            records("mysample_trimmed_R2.fastq.gz")):
+        m = PAT.search(r1n)
+        if not m:
+            continue
+        bcb, bca, umi = m.groups()
+        out.write(f"{r1n.split()[0]}\t{bcb}\t{bca}\t{umi}\t{r1s}\n")</code></pre>
+<h3 id="5-interpreting-the-read-length-distribution">5. Interpreting the read-length distribution (the R2 “41-nt peak”)</h3>
+<p>After trimming, R1 lengths reflect the real insert-length spread (here ~9–123 nt, peaking at ~11–15). <strong>R2 is different</strong>: the fixed barcode arm occupies 110 nt (handle 22 + BCB 8 + linker2 30 + BCA 8 + linker1 30 + UMI 12) of the sequenced read, so the arm + UMI + read-through has to fit in the read.</p>
+<p>For a 151-cycle run:</p>
+<pre><code class="language-plaintext">151 (read length) − 110 (arm: handle22 + BCB8 + L2 30 + BCA8 + L1 30 + UMI12) = 41 nt</code></pre>
+<p>Every molecule whose insert is <strong>longer than ~41 nt on the R2 side</strong> therefore hits the physical end of the read and piles up at exactly <strong>41 nt</strong> after trimming (<code>raw[-41:]</code> in 99% of cases). In practice this can be ~18% of all R2 reads — it is a <strong>read-truncation artefact, not a biological 41-nt fragment</strong>: the sequences are fully diverse and their R1 mates are long.</p>
+<div class="callout warning"><div class="callout-title">Warning</div><p>Do <strong>not</strong> read R2&rsquo;s length axis as fragment length. R2 is capped by the sequencer, not by the insert. If you need the full 3&prime; R2-side sequence read length 151→250 (<code>--r2-primer</code> is informational only), or rely on <strong>R1</strong> for insert biology.</p></div>
+<p>Correspondingly, in a per-position <strong>base-composition &times; depth</strong> pileup:</p>
+<ul><li><strong>R1</strong> — a clean, slightly composition-skewed stack that runs out around the longest insert lengths;</li><li><strong>R2</strong> — strong constant composition across the arm-bearing positions, then a tail of read-through cDNA; expect the depth to collapse once reads that reached the 151-nt end stop contributing.</li></ul>
+<p>The built-in defaults are gentle (<code>-m 20</code>, <code>-q 20</code>, no <code>--max-n</code> / <code>--min-avg-quality</code> by default); set them from your QC thresholds and check the <code>reason=</code> distribution in the discard files.</p>
+<h3 id="6-notes-extras">6. Notes &amp; extras</h3>
+<ul><li>Legacy name: <code>-A M6AARTR</code> still works as an alias for <code>-A DBITSEQ</code> — prefer <code>-A DBITSEQ</code>.</li><li>The same library as a fully inline custom scheme (no built-in needed): <code>cutseq -A "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' ...</code></li><li>Dry-run inspection: <code>cutseq -A DBITSEQ --graph-vertical R1.fq.gz R2.fq.gz</code> prints the parsed trimming steps without writing any output — useful to confirm the arm layout before running the real job.</li><li><code>--r1-primer</code> / <code>--r2-primer</code> document the sequencing primers but are never trimmed from reads (reads start downstream of them).</li><li>See <a href="quickstart.html">Quick Start</a>, <a href="adapters.html">Adapter schemes</a> and <a href="rename.html">Read-name renaming</a> for more.</li></ul>
+</section>
+"""
+
+_NOTES = _NOTES + _DBIT_SECTION
 _PAGE_TEMPLATE = (
     "<!DOCTYPE html>\n"
     "<html lang=\"en\">\n"
@@ -526,11 +603,39 @@ _PAGE_TEMPLATE = (
     "<meta charset=\"utf-8\">\n"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
     "<title>Adapter Schemes &mdash; CutSeq</title>\n"
+    "<meta name=\"description\" content=\"All built-in CutSeq library schemes, with an interactive viewer.\">\n"
+    "<link rel=\"stylesheet\" href=\"assets/css/site.css\">\n"
+    "<link rel=\"icon\" href=\"favicon.ico\">\n"
+    "<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-EFHY8WFMHK\"></script>\n"
+    "<script>\n"
+    "  window.dataLayer = window.dataLayer || [];\n"
+    "  function gtag(){{dataLayer.push(arguments);}}\n"
+    "  gtag('js', new Date());\n"
+    "  gtag('config', 'G-EFHY8WFMHK', {{ 'anonymize_ip': true }});\n"
+    "</script>\n"
     "<style>{css}</style>\n"
     "<style>{dark_css}</style>\n"
     "</head>\n"
     "<body>\n"
-    "<main style=\"max-width:1100px;margin:auto;padding:0 1rem\">\n"
+    "<header class=\"site-header\">\n"
+    "  <div class=\"site-title-box\"><a class=\"site-title\" href=\"index.html\"><img class=\"site-logo\" src=\"logo.svg\" alt=\"cutseq logo\"><span>cutseq</span></a></div>\n"
+    "  <div class=\"site-aux\"><a href=\"https://github.com/y9c/cutseq\" target=\"_blank\" rel=\"noopener\">View on GitHub</a></div>\n"
+    "</header>\n"
+    "<div class=\"site-shell\">\n"
+    "  <nav class=\"site-nav\" aria-label=\"Main\">\n"
+    "    <div class=\"search-box\">\n"
+    "      <input id=\"site-search\" class=\"site-search-input\" type=\"search\" placeholder=\"Search docs&hellip;\" autocomplete=\"off\">\n"
+    "      <div id=\"site-search-results\" class=\"site-search-results\" role=\"listbox\" hidden></div>\n"
+    "    </div>\n"
+    "    <ul class=\"nav-list\">\n"
+    "      <li class=\"nav-item\"><a href=\"index.html\">Home</a></li>\n"
+    "      <li class=\"nav-item\"><a href=\"quickstart.html\">Quick Start</a></li>\n"
+    "      <li class=\"nav-item active\"><a aria-current=\"page\" href=\"adapters.html\">Adapter Schemes</a></li>\n"
+    "      <li class=\"nav-item\"><a href=\"rename.html\">Read Name Renaming</a></li>\n"
+    "    </ul>\n"
+    "  </nav>\n"
+    "  <div class=\"site-main\">\n"
+    "    <main class=\"site-content site-content-wide\" id=\"content\">\n"
     "<h1>Adapter Schemes</h1>\n"
     "{intro}\n"
     "{legend}\n"
@@ -543,14 +648,21 @@ _PAGE_TEMPLATE = (
     "<script type=\"application/json\" id=\"adapdata\">{data_json}</script>\n"
     "<script>{js}</script>\n"
     "{notes}\n"
-    "</main>\n"
+    "    </main>\n"
+    "  </div><!-- /site-main -->\n"
+    "</div><!-- /site-shell -->\n"
+    "<footer class=\"site-footer\">\n"
+    "  <p>Copyright &copy; 2021-2026, Chang Ye</p>\n"
+    "  <a href=\"#content\" class=\"back-to-top\" id=\"back-to-top\">Back to top</a>\n"
+    "</footer>\n"
+    "<script src=\"assets/js/site.js\"></script>\n"
     "</body>\n"
     "</html>\n"
 )
 
 
 def _page_html(schemes, data_json, css, dark_css, js, legend):
-    """Return the complete self-contained HTML document for the viewer."""
+    """Return the complete shared-shell HTML document for the adapters viewer."""
     return _PAGE_TEMPLATE.format(
         css=css,
         dark_css=dark_css,

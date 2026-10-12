@@ -30,6 +30,18 @@ def _chunk(md: str, tag: str):
     return m.group(1)
 
 
+def _viewer_script(md: str) -> str:
+    """The genuine viewer <script> (the bare one that reads the adapdata JSON).
+
+    The shared shell also emits a bare GA-config <script> in the <head>, so we must
+    key off the "adapdata" reference rather than naively taking the first <script>.
+    """
+    for blk in re.findall(r"<script>(.*?)</script>", md, re.S):
+        if "adapdata" in blk:
+            return blk
+    raise AssertionError("viewer <script> (with adapdata) not found")
+
+
 @pytest.fixture(scope="module")
 def md_text():
     return ADAPTERS.read_text(encoding="utf-8")
@@ -78,7 +90,7 @@ def test_feature_table_insert_uses_multiply_sign(md_text):
 
 def test_no_js_console_fatal_if_rendered(md_text):
     """Smoke: the genuine viewer <script> references the key element ids."""
-    js = _chunk(md_text, r'<script>(.*?)</script>')
+    js = _viewer_script(md_text)
     for needle in ("adapdata", "adapp", "adsearch", "featTable", "mapSvg"):
         assert needle in js
 

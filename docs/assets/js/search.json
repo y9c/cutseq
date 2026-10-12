@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Home",
+    "url": "index.html",
+    "text": "automatically cut adapter barcode UMI from NGS data, in the right order get started adapter schemes view on github why cutseq SMARTer Stranded Total RNA-Seq key features one-parameter trimming built-in custom schemes 70+ libraries cutseq --list-adapters barcodes UMIs QC-aware discard reads too_short too_many_n efficient reproducible single cutadapt pass explore the docs quick start adapter schemes read name renaming"
+  },
+  {
+    "title": "Quick Start",
+    "url": "quickstart.html",
+    "text": "installation pip install cutseq basic usage trim adapters built-in scheme cutseq -A TAKARAV3 custom adapter scheme grammar format scheme string top-strand molecular map read 1 read 2 reverse complement uppercase lowercase adapters inline barcodes NNNNN N8 UMI sequences X6 X8 masked sequences plus minus colon strand semantics auto-rc customizing read names rename name-format positional captures rc canon left slice paired-end inline barcode auto-detection --list-primers discard reads reason tag --min-length --max-n --min-avg-quality how it works"
+  },
+  {
+    "title": "Read Name Renaming",
+    "url": "rename.html",
+    "text": "read name renaming --rename --name-format captured UMI inline barcode cutadapt brace variables positional captures {1} {2} native cutadapt variables id header comment cut_prefix cut_suffix adapter_name match_sequence rc transform functions reverse complement rev comp canon upper lower len left right slice paired-end semantics anchor read r1.1 r2.1 capture-separator examples errors byte-identical"
+  },
+  {
+    "title": "Adapter Schemes",
+    "url": "adapters.html#spatial-dbit-seq",
+    "text": "adapter schemes built-in library schemes interactive viewer cutseq --list-adapters genbank .gb download segment roles adapter primer UMI capture mask inline barcode homopolymer tail insert marker read-through adapter copy scheme clipboard spatial DBiT-seq libraries barcode arm barcode-arm barcode grid cutseq -A DBITSEQ 50x50 barcode grid library construct TSO template-switch oligo insert UMI R1 R2 sequencing primers one command parse everything read-name renaming captures BarcodeB BarcodeA UMI outputs trimmed read header demultiplexer python parser spatial expression matrix read-length distribution 41-nt peak read truncation artefact base composition depth pileup notes extras"
+  }
+]

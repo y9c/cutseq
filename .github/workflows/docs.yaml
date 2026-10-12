@@ -1,4 +1,4 @@
-name: Deploy Jekyll with GitHub Pages dependencies preinstalled
+name: Deploy static docs site (no Jekyll)
 
 on:
   # Runs on pushes targeting the default branch
@@ -24,7 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build job
+  # Build job: docs/ is already fully static HTML (no Jekyll, no Ruby).
+  # We simply publish the docs/ directory verbatim as the site root.
   build:
     runs-on: ubuntu-latest
     steps:
@@ -32,13 +33,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./docs
-          destination: ./_site
-      - name: Upload artifact
+      - name: Strip any stray .md sources before upload
+        # The site is fully static HTML; never hand pages/sources to GH Pages.
+        run: rm -f docs/*.md
+      - name: Upload static site artifact (docs/, verbatim)
         uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
 
   # Deployment job
   deploy:

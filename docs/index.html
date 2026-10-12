@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home &mdash; CutSeq</title>
+<meta name="description" content="CutSeq: automatically cut adapter / barcode / UMI from NGS data.">
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="icon" href="favicon.ico">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EFHY8WFMHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-EFHY8WFMHK', { 'anonymize_ip': true });
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="site-title-box"><a class="site-title" href="index.html"><img class="site-logo" src="logo.svg" alt="cutseq logo"><span>cutseq</span></a></div>
+  <div class="site-aux"><a href="https://github.com/y9c/cutseq" target="_blank" rel="noopener">View on GitHub</a></div>
+</header>
+<div class="site-shell">
+  <nav class="site-nav" aria-label="Main">
+    <div class="search-box">
+      <input id="site-search" class="site-search-input" type="search" placeholder="Search docs&hellip;" autocomplete="off">
+      <div id="site-search-results" class="site-search-results" role="listbox" hidden></div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active"><a aria-current="page" href="index.html">Home</a></li>
+      <li class="nav-item"><a href="quickstart.html">Quick Start</a></li>
+      <li class="nav-item"><a href="adapters.html">Adapter Schemes</a></li>
+      <li class="nav-item"><a href="rename.html">Read Name Renaming</a></li>
+    </ul>
+  </nav>
+  <div class="site-main">
+    <main class="site-content" id="content">
+<h1 id="cutseq" class="fs-9">✂️ CutSeq</h1>
+<p class="fs-6 fw-300">Automatically cut adapter / barcode / UMI from NGS data, in the right order.</p>
+<div class="btn-row"><a class="btn btn-primary fs-5 mb-4 mb-md-0 mr-2" href="quickstart.html">Get started</a><a class="btn fs-5 mb-4 mb-md-0 mr-2" href="adapters.html">Adapter schemes</a><a class="btn fs-5 mb-4 mb-md-0" href="https://github.com/y9c/cutseq">View on GitHub</a></div>
+<hr>
+<h2 id="why-cutseq">Why CutSeq?</h2>
+<p>NGS library prep can need many sequential trimming and extraction steps. The <em>SMARTer® Stranded Total RNA-Seq Kit v3</em> workflow, for example, needs at least 9 operations — adapter removal, UMI extraction, linker masking, poly-A/T trimming — done <strong>in the correct order</strong>. CutSeq compiles a single library <em>scheme</em> into one native cutadapt pass, so the whole pipeline is one parameter and one command.</p>
+<p><img src="takaraV3.png" alt=""></p>
+<h2 id="key-features">Key features</h2>
+<ul><li><strong>One-parameter trimming</strong> — describe the whole library as a scheme and let CutSeq apply every step automatically.</li><li><strong>Built-in + custom schemes</strong> — 70+ bundled libraries (<code>cutseq --list-adapters</code>) or define your own grammar string.</li><li><strong>Barcodes &amp; UMIs</strong> — capture and rename inline barcodes / UMIs into read names.</li><li><strong>QC-aware</strong> — discard reads with a reason (<code>too_short</code>, <code>too_many_n</code>, …).</li><li><strong>Efficient &amp; reproducible</strong> — a single cutadapt pass, no intermediate I/O.</li></ul>
+<h2 id="explore-the-docs">Explore the docs</h2>
+<table><thead><tr><th>Page</th><th>What it covers</th></tr></thead><tbody><tr><td><a href="quickstart.html">Quick Start</a></td><td>Install + first commands</td></tr><tr><td><a href="adapters.html">Adapter Schemes</a></td><td>All built-in schemes, with an interactive viewer &amp; <code>.gb</code> download</td></tr><tr><td><a href="rename.html">Read Name Renaming</a></td><td><code>--rename</code>, captures and transforms</td></tr><tr><td><a href="adapters.html#spatial-dbit-seq">Spatial (DBiT-seq) libraries</a></td><td>Parsing a spatial barcode-arm library (now part of Adapter Schemes)</td></tr></tbody></table>
+<hr>
+<div class="callout note"><div class="callout-title">Note</div><p>CutSeq is open source and contributions are welcome — see the <a href="https://github.com/y9c/cutseq">GitHub repo</a>.</p></div>
+    </main>
+  </div>
+</div>
+<footer class="site-footer">
+  <p>Copyright &copy; 2021-2026, Chang Ye</p>
+  <a href="#content" class="back-to-top" id="back-to-top">Back to top</a>
+</footer>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

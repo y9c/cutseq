@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read Name Renaming &mdash; CutSeq</title>
+<meta name="description" content="Customize captured UMI / barcode naming with --rename and transforms.">
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="icon" href="favicon.ico">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EFHY8WFMHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-EFHY8WFMHK', { 'anonymize_ip': true });
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="site-title-box"><a class="site-title" href="index.html"><img class="site-logo" src="logo.svg" alt="cutseq logo"><span>cutseq</span></a></div>
+  <div class="site-aux"><a href="https://github.com/y9c/cutseq" target="_blank" rel="noopener">View on GitHub</a></div>
+</header>
+<div class="site-shell">
+  <nav class="site-nav" aria-label="Main">
+    <div class="search-box">
+      <input id="site-search" class="site-search-input" type="search" placeholder="Search docs&hellip;" autocomplete="off">
+      <div id="site-search-results" class="site-search-results" role="listbox" hidden></div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html">Home</a></li>
+      <li class="nav-item"><a href="quickstart.html">Quick Start</a></li>
+      <li class="nav-item"><a href="adapters.html">Adapter Schemes</a></li>
+      <li class="nav-item active"><a aria-current="page" href="rename.html">Read Name Renaming</a></li>
+    </ul>
+  </nav>
+  <div class="site-main">
+    <main class="site-content" id="content">
+<h1 id="read-name-renaming">Read Name Renaming</h1>
+<p>By default, CutSeq appends every captured UMI / inline barcode to the read name with <code>_</code>, exactly like the legacy engine (<code>@READID_CTATTAAAAA</code>). The <code>--rename</code> option (alias <code>--name-format</code>) replaces that with a custom template, and — crucially — lets you place each <strong>individual capture</strong> anywhere you want, with optional transforms.</p>
+<pre><code class="language-bash">cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' in_R1.fq.gz in_R2.fq.gz</code></pre>
+<div class="callout note"><div class="callout-title">Note</div><p>The template string is parsed <strong>once</strong> when the pipeline is built and the result is compiled into a lazy rename function. Each read then only walks the compiled field list — there is no per-read string parsing.</p></div>
+<h2 id="what-the-template-can-contain">What the template can contain</h2>
+<p>The template is a mix of literal text, <strong>variables</strong> in <code>{...}</code>, and <strong>function calls</strong>.</p>
+<h3 id="native-cutadapt-variables">Native cutadapt variables</h3>
+<p><code>{id}</code>, <code>{header}</code>, <code>{comment}</code>, <code>{cut_prefix}</code>, <code>{cut_suffix}</code>, <code>{adapter_name}</code>, <code>{match_sequence}</code>, <code>{rc}</code> — byte-identical to <code>cutadapt --rename</code>.</p>
+<h3 id="positional-captures">Positional captures</h3>
+<p><code>{1}</code>, <code>{2}</code>, ... reference the captured parts in <strong>scheme written order</strong> (left side first, then right side), 1-based. Both <code>N</code>-captures (UMIs) and inline barcodes are counted. For example, in <code>AGTTCTACAGTCCGACGATCNNNNN+NNNNNatcacgAGATCGGAAGAGCACACGTC</code>:</p>
+<table><thead><tr><th>capture</th><th>part</th><th>anchor read</th></tr></thead><tbody><tr><td><code>{1}</code></td><td>left <code>NNNNN</code> UMI</td><td>R1</td></tr><tr><td><code>{2}</code></td><td>right <code>NNNNN</code> UMI</td><td>R2 (read as its reverse complement)</td></tr><tr><td><code>{3}</code></td><td>inline <code>atcacg</code></td><td>R2</td></tr></tbody></table>
+<p>Captures can also be referenced by a <code>label</code> (from a YAML scheme <code>label:</code>).</p>
+<h3 id="transform-functions">Transform functions</h3>
+<p>Any capture may be wrapped in functions. They <strong>nest</strong> and are <strong>case-insensitive</strong> (both <code>rc</code> and <code>RC</code> work):</p>
+<table><thead><tr><th>function</th><th>meaning</th><th>example → result (<code>x = "AACC"</code>)</th></tr></thead><tbody><tr><td><code>rc(x)</code></td><td>reverse complement</td><td><code>rc(x)</code> → <code>GGTT</code></td></tr><tr><td><code>rev(x)</code></td><td>reverse only</td><td><code>rev(x)</code> → <code>CCAA</code></td></tr><tr><td><code>comp(x)</code></td><td>complement only</td><td><code>comp(x)</code> → <code>TTGG</code></td></tr><tr><td><code>canon(x)</code></td><td>canonical UMI: <code>min(x, rc(x))</code></td><td><code>canon(x)</code> → <code>AACC</code></td></tr><tr><td><code>upper(x)</code></td><td>uppercase</td><td><code>upper({1})</code></td></tr><tr><td><code>lower(x)</code></td><td>lowercase</td><td><code>lower({1})</code></td></tr><tr><td><code>len(x)</code></td><td>length</td><td><code>len(x)</code> → <code>4</code></td></tr><tr><td><code>left(x, k)</code></td><td>first <code>k</code> bases (<code>k&lt;0</code>: drop last |k|)</td><td><code>left(x,2)</code> → <code>AA</code></td></tr><tr><td><code>right(x, k)</code></td><td>last <code>k</code> bases (<code>k&lt;0</code>: drop first |k|)</td><td><code>right(x,2)</code> → <code>CC</code></td></tr><tr><td><code>slice(x, a, b)</code></td><td>1-based <strong>inclusive</strong> range (negatives allowed)</td><td><code>slice(x,1,2)</code> → <code>AA</code></td></tr></tbody></table>
+<p>Nesting example: <code>upper(RC({1}))</code>, <code>rc(comp({2}))</code>, <code>slice({1},1,4)</code>.</p>
+<h2 id="paired-end-semantics">Paired-end semantics</h2>
+<ul><li>An <strong>unprefixed</strong> capture resolves to its <em>anchor</em> read (left-side captures → R1, right-side → R2; see the table above), so both mates get the <strong>same</strong> extracted value. Left-side captures are read in R1 orientation; right-side captures are read in R2 orientation (i.e. the reverse complement of the top-strand sequence) — matching legacy naming.</li><li><code>{r1.1}</code> / <code>{r2.1}</code> force a specific mate; each <code>info</code> also retains the <em>mirrored</em> value of the other side's capture (e.g. <code>{r2.1}</code> is the reverse complement of <code>{r1.1}</code>).</li></ul>
+<pre><code class="language-bash"># same value on both mates:
+cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}' in_R1.fq.gz in_R2.fq.gz
+# force sides explicitly:
+cutseq -A INLINE --rename '{id}_fwd={r1.1}_rev={r2.1}' in_R1.fq.gz in_R2.fq.gz</code></pre>
+<h2 id="examples">Examples</h2>
+<pre><code class="language-bash"># Label barcodes and reverse-complement the inline barcode (INLINE: 3 parts)
+cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' \
+    in_R1.fq.gz in_R2.fq.gz
+# @READID_BC1:GGGNC_BC2:CNCCC_umi:ATCACG
+
+# Canonical UMI (min(umi, rc(umi))) for UMI collapsing (ECLIP10: 1 capture)
+cutseq -A ECLIP10 --rename '{id}_c=canon({1})' in_R1.fq.gz
+
+# Truncate a long UMI to 6 bases and uppercase the reverse complement
+# (TAKARAV3: 8-nt UMI, 1 capture)
+cutseq -A TAKARAV3 --rename '{id}_{left(rc({1}),6)}' in_R1.fq.gz in_R2.fq.gz
+
+# All captures appended, with ':' between them
+# (reproduces the legacy --capture-separator ':' behavior in --rename)
+cutseq -A INLINE --rename '{id}:{1}:{2}' in_R1.fq.gz in_R2.fq.gz
+# @READID:GGGNC:CNCCC</code></pre>
+<div class="callout note"><div class="callout-title">Note</div><p>Templates that contain <strong>no</strong> capture references are handed to cutadapt's own renamer unchanged (byte-identical behavior). The internal engine only runs when <code>{1}</code>… <code>{N}</code>, labels, or functions are used, so the fast default path is never slowed down.</p></div>
+<h2 id="errors">Errors</h2>
+<p>Unknown variables, out-of-range captures (<code>{4}</code> when the scheme has three parts), missing numeric arguments (<code>left({1})</code>), and unbalanced parentheses all produce a clear error message at build time — before any reads are processed.</p>
+<h2 id="see-also">See also</h2>
+<ul><li><a href="quickstart.html">Quick start</a></li><li><a href="adapters.html">Adapter schemes</a></li></ul>
+    </main>
+  </div>
+</div>
+<footer class="site-footer">
+  <p>Copyright &copy; 2021-2026, Chang Ye</p>
+  <a href="#content" class="back-to-top" id="back-to-top">Back to top</a>
+</footer>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

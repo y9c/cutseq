@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Start &mdash; CutSeq</title>
+<meta name="description" content="Install cutseq and trim adapters, barcodes and UMIs in the right order.">
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="icon" href="favicon.ico">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EFHY8WFMHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-EFHY8WFMHK', { 'anonymize_ip': true });
+</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="site-title-box"><a class="site-title" href="index.html"><img class="site-logo" src="logo.svg" alt="cutseq logo"><span>cutseq</span></a></div>
+  <div class="site-aux"><a href="https://github.com/y9c/cutseq" target="_blank" rel="noopener">View on GitHub</a></div>
+</header>
+<div class="site-shell">
+  <nav class="site-nav" aria-label="Main">
+    <div class="search-box">
+      <input id="site-search" class="site-search-input" type="search" placeholder="Search docs&hellip;" autocomplete="off">
+      <div id="site-search-results" class="site-search-results" role="listbox" hidden></div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item"><a href="index.html">Home</a></li>
+      <li class="nav-item active"><a aria-current="page" href="quickstart.html">Quick Start</a></li>
+      <li class="nav-item"><a href="adapters.html">Adapter Schemes</a></li>
+      <li class="nav-item"><a href="rename.html">Read Name Renaming</a></li>
+    </ul>
+  </nav>
+  <div class="site-main">
+    <main class="site-content" id="content">
+<h1 id="quick-start">Quick Start</h1>
+<h2 id="installation">Installation</h2>
+<pre><code class="language-bash">pip install cutseq</code></pre>
+<h2 id="basic-usage">Basic Usage</h2>
+<p>Trim adapters using a built-in scheme:</p>
+<pre><code class="language-bash">cutseq -A TAKARAV3 test_R1.fq.gz test_R2.fq.gz</code></pre>
+<p>Or specify a custom adapter scheme in the grammar format:</p>
+<pre><code class="language-bash">cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC" test_R1.fq.gz test_R2.fq.gz</code></pre>
+<p><img src="explain_library.png" alt=""></p>
+<p>The scheme string describes the structure of your library. It is a <strong>top-strand molecular map</strong>: write the library as one DNA strand, 5' to 3', with no spaces:</p>
+<ul><li>The part <strong>left of <code>+</code> <code>-</code> <code>:</code></strong> is read by Read 1 as-is (R1 sees the top strand 5' -&gt; 3').</li><li>The part <strong>right of <code>+</code> <code>-</code> <code>:</code></strong> is the molecule's 3' continuation (top strand, 5' -&gt; 3'); Read 2 sequences the bottom strand, so it is matched as the reverse complement of that part (e.g. a right-hand <code>AGATCGGAAGAGCACACGTC</code> is matched on Read 2 as <code>GACGTGTGCTCTTCCGATCT</code>).</li><li>Uppercase <code>ACGT...</code>: adapters (matched &amp; trimmed)</li><li>Lowercase <code>acgt...</code>: inline barcodes (matched &amp; captured)</li><li><code>NNNNN</code> / <code>N8</code>: UMI sequences (captured into the read name)</li><li><code>XXXXXX</code> / <code>X8</code>: masked sequences (trimmed, not captured)</li><li><code>+</code> <code>-</code> <code>:</code> in the middle: library strand semantics (+ sense, - antisense, : unstranded). They do not change what is trimmed — adapter trimming is orientation-agnostic — and are only consulted by <code>--auto-rc</code> (single-end).</li></ul>
+<p>Numeric shorthand (<code>N8</code>, <code>X6</code>) is equivalent to the expanded run form (<code>NNNNNNNN</code>, <code>XXXXXX</code>).</p>
+<h2 id="customizing-read-names">Customizing read names</h2>
+<p>Captured UMIs/barcodes are appended to the read name by default (legacy naming, e.g. <code>@READID_CTATTAAAAA</code>). Customize with <code>--rename</code> (<code>--name-format</code> is an alias). It supports cutadapt's brace variables plus <strong>positional captures</strong>: <code>{1}</code>, <code>{2}</code>, ... reference the individual UMIs / inline barcodes in scheme order, with transform functions (<code>rc({1})</code>, <code>upper(RC({2}))</code>, <code>canon({1})</code>, <code>left({2},6)</code>, <code>slice({1},1,4)</code>, ...).</p>
+<pre><code class="language-bash"># Label each captured part
+cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' test_R1.fq.gz test_R2.fq.gz
+
+# Same effect as the old --capture-separator ':' (insert ':' between captures)
+cutseq -A INLINE --rename '{id}:{1}:{2}' test_R1.fq.gz test_R2.fq.gz</code></pre>
+<p>See the full <a href="rename.html">Read Name Renaming</a> reference for the complete function list and paired-end (<code>{r1.1}</code> / <code>{r2.1}</code>) behavior.</p>
+<p>Defaults reproduce legacy output byte-for-byte.</p>
+<h2 id="inline-barcode-auto-detection">Inline barcode auto-detection</h2>
+<p>Inline barcodes are written in lowercase (<code>acgt...</code>). If you write one in uppercase, it would merge with the adjacent sequencing primer. CutSeq checks the two outermost adapters against a curated database of Illumina / BGI (MGI) sequencing primers (<code>cutseq --list-primers</code>) and reclassifies any fixed uppercase sequence adjacent to a recognized primer as an inline barcode, with a warning. Custom schemes without known primers are never altered.</p>
+<pre><code class="language-bash"># List the known sequencing primers
+cutseq --list-primers
+
+# Disable auto-detection
+cutseq --no-auto-inline -A "..." test_R1.fq.gz</code></pre>
+<h2 id="discarding-reads-with-a-reason-tag">Discarding reads with a reason tag</h2>
+<p>A single discard output captures all reads that fail QC, with the reason in the read name:</p>
+<pre><code class="language-bash">cutseq -A SMALLRNA -d discard_R1.fq.gz discard_R2.fq.gz \
+    --min-length 20 --max-n 5 --min-avg-quality 20 \
+    test_R1.fq.gz test_R2.fq.gz</code></pre>
+<p>Discarded reads carry a <code>reason=...</code> tag:</p>
+<ul><li><code>reason=too_short</code> — shorter than <code>--min-length</code> after trimming</li><li><code>reason=too_many_n</code> — exceeds <code>--max-n</code></li><li><code>reason=low_quality</code> — mean Phred quality below <code>--min-avg-quality</code></li><li><code>reason=no_barcode</code> — missing an expected inline barcode (only with <code>--ensure-inline-barcode</code>)</li></ul>
+<p><code>--ensure-inline-barcode</code> requires the scheme to declare inline barcodes. When no <code>-d</code>/<code>-O</code> is given, discard files are auto-named from the input files.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>A scheme is compiled once into a lazy graph of native cutadapt modifiers and executed in a single pass. The token-kind registry and phase order are data-driven, so the engine is easy to extend with new scheme elements. See the <a href="https://cutseq.yech.science">documentation</a> for details.</p>
+    </main>
+  </div>
+</div>
+<footer class="site-footer">
+  <p>Copyright &copy; 2021-2026, Chang Ye</p>
+  <a href="#content" class="back-to-top" id="back-to-top">Back to top</a>
+</footer>
+<script src="assets/js/site.js"></script>
+</body>
+</html>
