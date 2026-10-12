@@ -392,8 +392,15 @@ _JS = """
       var old = el.getAttribute('data-label');
       if (!old){ el.setAttribute('data-label', el.textContent); el.textContent = 'copied!'; setTimeout(function(){ el.textContent = el.getAttribute('data-label'); el.removeAttribute('data-label'); }, 900); }
     }
-    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(val).then(done); }
-    else { var t = document.createElement('textarea'); t.value = val; document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); }catch(err){}; document.body.removeChild(t); done(); }
+    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(val).then(done, function(){ legacyCopy(); }); }
+    else { legacyCopy(); }
+    function legacyCopy(){
+      var t = document.createElement('textarea'); t.value = val; t.setAttribute('readonly','');
+      t.style.position = 'fixed'; t.style.left = '-9999px';
+      document.body.appendChild(t); t.select();
+      try{ document.execCommand('copy'); }catch(err){}
+      document.body.removeChild(t); done();
+    }
     e.stopPropagation();
   });
 })();
