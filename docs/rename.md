@@ -121,4 +121,4 @@ processed.
 ## See also
 
 - [Quick start](quickstart.md)
-- [Adapter schemes](adapters.md)
+- [Adapter schemes](adapters.html)

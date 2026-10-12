@@ -41,6 +41,6 @@ plugins:
 nav:
   - index.md
   - quickstart.md
-  - adapters.md
+  - adapters.html
   - rename.md
   - spatial.md

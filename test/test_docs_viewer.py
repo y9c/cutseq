@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render-time test for the generated adapters.html viewer widgets.
+"""Render-time test for the generated adapters.html standalone viewer page.
 
-Validates that the chunk of docs/adapters.md the viewer emits (the JSON payload
-inside `<script type="application/json" id="adapdata">`, the viewer <style> and the
-viewer <script>) is well-formed and that JavaScript payload parses. This runs
-without a Jekyll build: it extracts the emitted fragments from the markdown and
-wraps them into a standalone HTML document which a headless browser can load.
+Validates that the self-contained docs/adapters.html the generator emits (the JSON
+payload inside `<script type="application/json" id="adapdata">`, the viewer <style>
+and the viewer <script>) is well-formed and that the JavaScript payload parses. The
+page is a real `.html` file (no Jekyll front-matter), so this runs without a Jekyll
+build and asserts directly on the emitted `.html` content.
 
 Live browser execution is exercised at dev time via puppeteer; this module only
 checks static invariants of the emitted fragments.
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-ADAPTERS = ROOT / "docs" / "adapters.md"
+ADAPTERS = ROOT / "docs" / "adapters.html"
 
 
 def _chunk(md: str, tag: str):

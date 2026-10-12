@@ -190,5 +190,5 @@ The built-in defaults are gentle (`-m 20`, `-q 20`, no `--max-n` /
   confirm the arm layout before running the real job.
 * `--r1-primer` / `--r2-primer` document the sequencing primers but are never
   trimmed from reads (reads start downstream of them).
-* See [Quick Start](quickstart.md), [Adapter schemes](adapters.md) and
+* See [Quick Start](quickstart.md), [Adapter schemes](adapters.html) and
   [Read-name renaming](rename.md) for more.

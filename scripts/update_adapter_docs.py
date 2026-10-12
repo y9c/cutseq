@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate docs/adapters.md as an interactive adapter viewer.
+"""Generate docs/adapters.html as a self-contained interactive adapter viewer.
+
+The emitted page is a real ``.html`` file (no Jekyll front-matter, full ``<html>``
+shell, inline <script> + <style>, inline ``adapdata`` JSON). Jekyll / GitHub Pages
+copies ``.html`` verbatim and never runs it through Kramdown / jekyll-spaceship, so
+the embedded JavaScript is never corrupted.
 
 Every built-in scheme from cutseq/adapters.toml is tokenized with cutseq's own
 grammar (cutseq.grammar.tokenize), so each segment is colored and labelled by
@@ -486,65 +491,98 @@ _DARK_CSS = """
 }
 """
 
+# --- standalone viewer page (self-contained, Jekyll/Liquid-safe) -------------
+_INTRO = (
+    "<p>CutSeq bundles built-in library schemes &mdash; list them in a terminal with "
+    "<code>cutseq --list-adapters</code>, and use a name (or a custom grammar string) "
+    "via <code>-A/--adapter-scheme</code> (<code>-a</code> is an alias). This page is "
+    "a live viewer: <strong>search</strong> to filter, <strong>hover</strong> a colored "
+    "segment to see its role, <strong>click</strong> any segment or button to copy it.</p>"
+)
+
+_NOTES = (
+    "<h2>Inline-barcode auto-detection</h2>\n"
+    "<p>Inline barcodes are written in lowercase (<code>acgt...</code>). If you write "
+    "one in uppercase, it merges with the adjacent sequencing primer into one adapter "
+    "run. CutSeq checks the two outermost adapters of a scheme against a curated "
+    "database of Illumina / BGI (MGI) sequencing primers "
+    "(<code>cutseq --list-primers</code>) and reclassifies any fixed uppercase "
+    "sequence adjacent to (or between) recognized primers as an inline barcode, with "
+    "a warning. Custom schemes without known primers are never altered. Disable with "
+    "<code>--no-auto-inline</code>.</p>\n"
+    "<h2>Discarding reads with a reason tag</h2>\n"
+    "<p>A single <code>-d</code> output collects every rejected read with the reason "
+    "in the name (<code>reason=too_short</code>, <code>reason=too_many_n</code>, "
+    "<code>reason=low_quality</code>, <code>reason=no_barcode</code>), gated by "
+    "<code>-m/--min-length</code>, <code>--max-n</code>, <code>--min-avg-quality</code> "
+    "and <code>--ensure-inline-barcode</code>. When no <code>-d</code>/<code>-O</code> "
+    "is given, discard files are auto-named from the inputs.</p>"
+)
+
+_PAGE_TEMPLATE = (
+    "<!DOCTYPE html>\n"
+    "<html lang=\"en\">\n"
+    "<head>\n"
+    "<meta charset=\"utf-8\">\n"
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+    "<title>Adapter Schemes &mdash; CutSeq</title>\n"
+    "<style>{css}</style>\n"
+    "<style>{dark_css}</style>\n"
+    "</head>\n"
+    "<body>\n"
+    "<main style=\"max-width:1100px;margin:auto;padding:0 1rem\">\n"
+    "<h1>Adapter Schemes</h1>\n"
+    "{intro}\n"
+    "{legend}\n"
+    "<div class=\"ad-toolbar\">\n"
+    "<input id=\"adsearch\" class=\"ad-search\" type=\"search\" "
+    "placeholder=\"Search schemes\u2026\" />\n"
+    "<span id=\"adcount\" class=\"ad-count\">{count} schemes</span>\n"
+    "</div>\n"
+    "<div id=\"adapp\"></div>\n"
+    "<script type=\"application/json\" id=\"adapdata\">{data_json}</script>\n"
+    "<script>{js}</script>\n"
+    "{notes}\n"
+    "</main>\n"
+    "</body>\n"
+    "</html>\n"
+)
+
+
+def _page_html(schemes, data_json, css, dark_css, js, legend):
+    """Return the complete self-contained HTML document for the viewer."""
+    return _PAGE_TEMPLATE.format(
+        css=css,
+        dark_css=dark_css,
+        intro=_INTRO,
+        legend=legend,
+        count=len(schemes),
+        data_json=data_json,
+        js=js,
+        notes=_NOTES,
+    )
+
+
 def main():
-    out_md = project_root / "docs" / "adapters.md"
     schemes = _load_schemes()
     if not schemes:
         sys.exit("Error: no schemes loaded from adapters.toml")
 
+    legend = _legend_html()
     payload = {"schemes": schemes, "roles": {k: v[0] for k, v in ROLES.items()},
-               "legend": _legend_html()}
+               "legend": legend}
     data_json = json.dumps(payload, ensure_ascii=True)
 
-    # write downloadable construct files (.gb + .dna)
+    # write downloadable construct files (.gb) into docs/constructs
     constructs_dir = project_root / "docs" / "constructs"
     for s in schemes:
         _write_exports(s["name"], s["construct"], constructs_dir)
     print(f"wrote constructs for {len(schemes)} schemes to {constructs_dir}")
 
-    payload = {"schemes": schemes, "roles": {k: v[0] for k, v in ROLES.items()},
-               "legend": _legend_html()}
-    data_json = json.dumps(payload, ensure_ascii=True)
-
-    md = []
-    md.append("---\ntitle: Adapter Schemes\nnav_order: 3\n---\n\n")
-    md.append("# Adapter Schemes\n\n")
-    md.append("CutSeq bundles built-in library schemes — list them in a terminal "
-              "with `cutseq --list-adapters`, and use a name (or a custom grammar "
-              "string) via `-A/--adapter-scheme` (`-a` is an alias).\n\n")
-    md.append("This page is a live viewer: **search** to filter, **hover** a colored "
-              "segment to see its role, **click** any segment or button to copy it.\n\n")
-    md.append(_legend_html())
-    md.append('\n<div class="ad-toolbar">')
-    md.append('<input id="adsearch" class="ad-search" type="search" '
-              'placeholder="Search schemes…" />')
-    md.append(f'<span id="adcount" class="ad-count">{len(schemes)} schemes</span>')
-    md.append('</div>\n')
-    md.append('<div id="adlegend-host" style="display:none"></div>')
-    md.append('<div id="adapp"></div>\n')
-    md.append(f'<script type="application/json" id="adapdata">{data_json}</script>\n')
-    md.append('<style>' + _CSS + '</style>\n')
-    md.append('<style>' + _DARK_CSS + '</style>')
-    md.append('<script>' + _JS + '</script>\n')
-
-    md.append("\n## Inline-barcode auto-detection\n\n")
-    md.append("Inline barcodes are written in lowercase (`acgt...`). If you write "
-              "one in uppercase, it merges with the adjacent sequencing primer into "
-              "one adapter run. CutSeq checks the two outermost adapters of a scheme "
-              "against a curated database of Illumina / BGI (MGI) sequencing primers "
-              "(`cutseq --list-primers`) and reclassifies any fixed uppercase "
-              "sequence adjacent to (or between) recognized primers as an inline "
-              "barcode, with a warning. Custom schemes without known primers are "
-              "never altered. Disable with `--no-auto-inline`.\n\n")
-    md.append("## Discarding reads with a reason tag\n\n")
-    md.append("A single `-d` output collects every rejected read with the reason in "
-              "the name (`reason=too_short`, `reason=too_many_n`, `reason=low_quality`, "
-              "`reason=no_barcode`), gated by `-m/--min-length`, `--max-n`, "
-              "`--min-avg-quality` and `--ensure-inline-barcode`. When no `-d`/`-O` is "
-              "given, discard files are auto-named from the inputs.\n")
-
-    out_md.write_text("".join(md), encoding="utf-8")
-    print(f"wrote {out_md}: {len(schemes)} schemes")
+    out_html = project_root / "docs" / "adapters.html"
+    page = _page_html(schemes, data_json, _CSS, _DARK_CSS, _JS, legend)
+    out_html.write_text(page, encoding="utf-8")
+    print(f"wrote {out_html}: {len(schemes)} schemes")
 
 
 if __name__ == "__main__":

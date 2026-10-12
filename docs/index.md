@@ -13,7 +13,7 @@ Automatically cut adapter / barcode / UMI from NGS data, in the right order.
 {: .fs-6 .fw-300 }
 
 [Get started](quickstart.md){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[Adapter schemes](adapters.md){: .btn .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Adapter schemes](adapters.html){: .btn .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/y9c/cutseq){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -43,7 +43,7 @@ native cutadapt pass, so the whole pipeline is one parameter and one command.
 | Page | What it covers |
 |------|----------------|
 | [Quick Start](quickstart.md) | Install + first commands |
-| [Adapter Schemes](adapters.md) | All built-in schemes, with an interactive viewer & `.gb`/`.dna` download |
+| [Adapter Schemes](adapters.html) | All built-in schemes, with an interactive viewer & `.gb` download |
 | [Read Name Renaming](rename.md) | `--rename`, captures and transforms |
 | [Spatial (DBiT-seq) libraries](spatial.md) | Parsing a spatial barcode-arm library |
 
