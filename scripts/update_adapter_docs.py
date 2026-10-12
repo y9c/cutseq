@@ -274,10 +274,13 @@ _JS = """
     if (t.n){ txt += ' -> rename tag {' + t.n + '}'; }
     return txt;
   }
-  function seg(t){
+  function seg(t, scheme){
     var cls = 'seg seg-' + t.k;
     var tip = title(t);
-    return '<span class="'+cls+'" tabindex="0" data-copy="'+esc(t.s)+'" data-tip="'+esc(tip)+'">'+esc(t.s)+'<span class="tooltiptext">'+esc(tip)+'</span></span>';
+    // Copy the WHOLE scheme (not just this token) so a click anywhere on the
+    // card yields the runnable scheme string, matching the "copy scheme" button.
+    var copy = (scheme || t.s);
+    return '<span class="'+cls+'" tabindex="0" data-copy="'+esc(copy)+'" data-tip="'+esc(tip)+'">'+esc(t.s)+'<span class="tooltiptext">'+esc(tip)+'</span></span>';
   }
   var ROLE_COLOR = {adp:'#A8E6CF', capture:'#B2EBF2', mask:'#e2e8f0', inline:'#FFD700', polytail:'#FFB3BA', back:'#C3B1E1', insert:'#FF8A65'};
   var ROLE_LBL = {adp:'adapter', capture:'UMI', mask:'mask', inline:'barcode', polytail:'poly-tail', back:'read-through', insert:'insert'};
@@ -360,7 +363,7 @@ _JS = """
     var s = '';
     s += '<details class="adapter-card"'+alias+'>';
     s += '<summary><span class="card-name">'+esc(c.name)+'</span><span class="card-desc">'+esc(c.desc)+'</span>'+(c.alias?'<span class="card-desc">[alias of '+esc(c.alias)+']</span>':'')+'</summary>';
-    s += '<div class="card-body"><div class="seg-row">' + c.tokens.map(seg).join('') + '</div>';
+    s += '<div class="card-body"><div class="seg-row">' + c.tokens.map(function(t){ return seg(t, c.scheme); }).join('') + '</div>';
     s += structBlock(c);
     s += '<div class="card-actions">';
     s += '<button class="copy-btn" data-copy="'+esc(c.scheme)+'">copy scheme</button>';
