@@ -53,6 +53,7 @@
 .feat-band:hover rect,.feat-band:focus rect{stroke:var(--cs-primary-deep,#115e59)!important;stroke-width:1.8;filter:brightness(1.05)}
 .feat-band.copied rect{stroke:var(--cs-primary,#0d9488)!important;stroke-width:2.4}
 .feat-band.feat-struct rect{filter:grayscale(.3)}
+.sg-spine{stroke:#d5dce6}
 .feat-label{font-size:10.5px;fill:#134e4a;font-weight:700;pointer-events:none;paint-order:stroke;stroke:var(--cs-bg,#fff);stroke-width:2.5px;stroke-linejoin:round}
 .sg-scale{font-size:11px;font-weight:600;fill:#475569}
 .sg-env{font-size:11px;fill:#94a3b8;font-weight:600}
@@ -98,6 +99,7 @@
   .copy-btn:hover{background:#12333a;border-color:#5eead4;color:#e2e8f0}
   .sg-dl{background:rgba(45,212,191,.12);color:#5eead4;border-color:#14b8a6}
   .sg-dl:hover{background:rgba(45,212,191,.2);color:#99f6e4}
+  .sg-spine{stroke:#26303f}
   .feat-label{fill:#eafcf9;stroke:#0b1017}
   .sg-scale{fill:#9fb2c3}
   .sg-env{fill:#64748b}
@@ -203,35 +205,78 @@
     var k = c.construct, size = k.size, feats = k.features;
     var w = 920, h = 70, x0 = 8, x1 = w - 8;
     function sx(p){ return x0 + (x1 - x0) * (p - 1) / Math.max(1, size - 1); }
+    // Layout constants. Features carry contiguous coords, so raw band rects would
+    // share an edge and read as one continuous color strip; we inset every band by
+    // GAP on each side so adjacent bands show a clean, even gap and read as
+    // distinct blocks sitting on the subtle spine track behind them.
+    var GAP = 3;            // px inset per side  -> 6px visible pit between neighbours
+    var MINW = 9;           // min rendered band width so 1-3bp masks stay as ticks
+    var MID = 34;           // spine / band vertical centreline
+    var BH = 14;            // band height
+    // Precompute the inset x-extent (ax..bx) of every band. Each band is inset by
+    // GAP on both sides so adjacent bands keep a clean visible gap. Tiny features
+    // (a few bp) would collapse to a sliver once inset, so a run of consecutive tiny
+    // bands is widened to stay legible but ONLY within the free space between the
+    // surrounding full-size bands — that way a min-width tick never overlaps a
+    // neighbour and the arrow can rely on each band's true left edge.
+    var nat = [], tiny = [];
+    for (var i=0;i<feats.length;i++){ var a0 = sx(feats[i].start), b0 = sx(feats[i].end); nat.push([a0 + GAP, b0 - GAP, a0, b0]); tiny.push((b0 - GAP) - (a0 + GAP) < MINW); }
+    var spans = [];
+    for (var i=0;i<feats.length;i++){
+      if (!tiny[i]){ spans.push(nat[i].slice(0,2)); continue; }
+      // gather the full run of consecutive tiny bands that starts at i
+      var run = []; var j = i;
+      while (j < feats.length && tiny[j]){ run.push(j); j++; }
+      var leftBound = (i - 1 >= 0) ? nat[i-1][1] : x0;
+      var rightBound = (j < feats.length) ? nat[j][0] : x1;
+      var avail = rightBound - leftBound, num = run.length, gapMin = 2;
+      // Always keep a small outer margin between the tick-run and its two
+      // full-size neighbours so a min-width tick never sits flush against them.
+      var outer = Math.min(gapMin / 2, avail * 0.05);
+      var usable = avail - 2 * outer;
+      var tickW, clusterW;
+      if (num * MINW + (num - 1) * gapMin <= usable){ tickW = MINW; }
+      else { tickW = Math.max(2, (usable - (num - 1) * gapMin) / num); }
+      clusterW = num * tickW + (num - 1) * gapMin;
+      var start = leftBound + outer + (usable - clusterW) / 2;
+      if (start + clusterW > rightBound){ start = rightBound - clusterW; }
+      for (var k = 0;k < num;k++){ spans[run[k]] = [start + k * (tickW + gapMin), start + k * (tickW + gapMin) + tickW]; }
+      i = j - 1;
+    }
     var s = '<div class="sg-map-svg"><svg viewBox="0 0 '+w+' '+h+'" width="100%" role="list" aria-label="Structure diagram">';
-    s += '<line x1="'+x0+'" y1="34" x2="'+x1+'" y2="34" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round"/>';
+    s += '<line class="sg-spine" x1="'+x0+'" y1="'+MID+'" x2="'+x1+'" y2="'+MID+'" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round"/>';
     s += '<text class="sg-env" x="'+x0+'" y="64">5&prime;</text>';
     s += '<text class="sg-env" x="'+x1+'" y="64" text-anchor="end">3&prime;</text>';
     for (var i=0;i<feats.length;i++){
       var f = feats[i];
-      var a = sx(f.start), b = sx(f.end);
-      if (b - a < 6){ var mid=(a+b)/2; a=mid-3; b=mid+3; }
+      var ax = spans[i][0], bx = spans[i][1], bw = bx - ax;
       var col = ROLE_COLOR[f.role] || '#e0e0e0';
       // Flowcell/index scaffolding is library-prep, NOT read-visible: dim it so the
       // read-visible adapter / UMI / mask / insert structure is the focus.
       var struct = isStructural(f);
       var bandCls = struct ? 'feat-band feat-struct' : 'feat-band';
       var op = struct ? ' opacity="0.36"' : '';
+      var top = MID - BH/2;
       // Each band is one feature: hovering/focusing shows its detail, clicking copies its sequence.
       s += '<g class="'+bandCls+'" tabindex="0" role="listitem" data-copy="'+esc(f.role==='insert' ? ('N'+f.len) : f.seq)+'" '+featHtml(f)+'>';
-      s += '<rect x="'+a+'" y="27" width="'+(b-a)+'" height="14" rx="3" fill="'+col+'" stroke="#94a3b8" stroke-width="1"'+op+'/>';
+      s += '<rect x="'+ax+'" y="'+top+'" width="'+bw+'" height="'+BH+'" rx="'+Math.min(3, bw/3)+'" fill="'+col+'" stroke="#94a3b8" stroke-width="1"'+op+'/>';
       // The insert is the read's variable cDNA: mark it with a clear right-facing
       // direction arrow (pointing 3') so the read direction is obvious, while
       // primer/index/flowcell bands stay clean rects (5' / 3' at the ends + the
-      // insert arrow carry orientation). The arrow sits at the insert's right end
-      // (pointing 3'), just outside its rounded rect so it doesn't overlap the body.
+      // insert arrow carry orientation). The arrow is sized to the gap between the
+      // insert band and its right neighbour (nAx) so it never collides: when there is
+      // room it sits in the pit right of the band; when the neighbour is close it
+      // becomes a compact arrowhead pulled onto the band's own right edge.
       if (f.role === 'insert'){
-        var ax = b + 1.5;
-        s += '<path d="M '+ax+' 27 L '+(ax+7)+' 34 L '+ax+' 41 z" fill="'+col+'" stroke="#64748b"/>';
+        var nAx = (i + 1 < feats.length) ? spans[i+1][0] : null;
+        var avail = (nAx === null) ? 20 : (nAx - bx);
+        if (avail >= 9){ var aRx = bx + 2; var aW = Math.min(7, avail - 3); }   // pit, 1px clearance
+        else { var aW = Math.max(4, Math.min(7, avail - 2)); var aRx = bx - aW; } // compact head on right edge
+        s += '<path d="M '+aRx+' '+top+' L '+(aRx+aW)+' '+MID+' L '+aRx+' '+(MID+BH/2)+' z" fill="'+col+'" stroke="#64748b"/>';
       }
       // Inline specific label when the read-visible band can carry it — only when
       // it actually fits, so short names never get crushed or overlap.
-      if (!struct){ var lbl = shortName(f); var labW = lbl.length*6.6 + 12; if ((b - a) >= labW){ s += '<text class="feat-label" x="'+((a+b)/2)+'" y="38" text-anchor="middle">'+esc(lbl)+'</text>'; } }
+      if (!struct){ var lbl = shortName(f); var labW = lbl.length*6.6 + 12; if (bw >= labW){ s += '<text class="feat-label" x="'+((ax+bx)/2)+'" y="38" text-anchor="middle">'+esc(lbl)+'</text>'; } }
       s += '</g>';
     }
     s += '<text class="sg-scale" x="'+(x0+x1)/2+'" y="63" text-anchor="middle">'+size+' bp &middot; linear</text>';
