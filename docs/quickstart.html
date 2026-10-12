@@ -45,7 +45,7 @@
 <pre><code class="language-bash">cutseq -A "ACACGACGCTCTTCCGATCTXXX-XXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC" test_R1.fq.gz test_R2.fq.gz</code></pre>
 <p><img src="explain_library.png" alt=""></p>
 <p>The scheme string describes the structure of your library. It is a <strong>top-strand molecular map</strong>: write the library as one DNA strand, 5' to 3', with no spaces:</p>
-<ul><li>The part <strong>left of <code>+</code> <code>-</code> <code>:</code></strong> is read by Read 1 as-is (R1 sees the top strand 5' -&gt; 3').</li><li>The part <strong>right of <code>+</code> <code>-</code> <code>:</code></strong> is the molecule's 3' continuation (top strand, 5' -&gt; 3'); Read 2 sequences the bottom strand, so it is matched as the reverse complement of that part (e.g. a right-hand <code>AGATCGGAAGAGCACACGTC</code> is matched on Read 2 as <code>GACGTGTGCTCTTCCGATCT</code>).</li><li>Uppercase <code>ACGT...</code>: adapters (matched &amp; trimmed)</li><li>Lowercase <code>acgt...</code>: inline barcodes (matched &amp; captured)</li><li><code>NNNNN</code> / <code>N8</code>: UMI sequences (captured into the read name)</li><li><code>XXXXXX</code> / <code>X8</code>: masked sequences (trimmed, not captured)</li><li><code>+</code> <code>-</code> <code>:</code> in the middle: library strand semantics (+ sense, - antisense, : unstranded). They do not change what is trimmed — adapter trimming is orientation-agnostic — and are only consulted by <code>--auto-rc</code> (single-end).</li></ul>
+<ul><li>The part <strong>left of <code>+</code> <code>-</code> <code>:</code></strong> is read by Read 1 as-is (R1 sees the top strand 5' -&gt; 3').</li><li>The part <strong>right of <code>+</code> <code>-</code> <code>:</code></strong> is the molecule's 3' continuation (top strand, 5' -&gt; 3'); Read 2 sequences the bottom strand, so it is matched as the reverse complement of that part (e.g. a right-hand <code>AGATCGGAAGAGCACACGTC</code> is matched on Read 2 as <code>GACGTGTGCTCTTCCGATCT</code>).</li><li>Uppercase <code>ACGT...</code> (between the two lowercase edges): the read-internal <strong>insert region</strong> &mdash; a fixed uppercase run directly adjacent to a lowercase edge is an <strong>inline barcode</strong> (matched &amp; captured), any other fixed uppercase run is an <strong>adapter</strong> (matched &amp; trimmed).</li><li>Lowercase <code>acgt...</code>: a <strong>read-external</strong> sequencing primer / flowcell / outer edge &mdash; it is NOT part of the read, so the read starts after it (the run is skipped, never matched, captured or trimmed).</li><li><code>NNNNN</code> / <code>N8</code>: UMI sequences (captured into the read name)</li><li><code>XXXXXX</code> / <code>X8</code>: masked sequences (trimmed, not captured)</li><li>Case may <strong>not</strong> be mixed inside one feature: lowercase and uppercase blocks must be cleanly separated (<code>lower|upper|lower</code>); a run that flips case more than once (e.g. <code>ACtaGT</code>) is rejected.</li><li><code>+</code> <code>-</code> <code>:</code> in the middle: library strand semantics (+ sense, - antisense, : unstranded). They do not change what is trimmed — adapter trimming is orientation-agnostic — and are only consulted by <code>--auto-rc</code> (single-end).</li></ul>
 <p>Numeric shorthand (<code>N8</code>, <code>X6</code>) is equivalent to the expanded run form (<code>NNNNNNNN</code>, <code>XXXXXX</code>).</p>
 <h2 id="customizing-read-names">Customizing read names</h2>
 <p>Captured UMIs/barcodes are appended to the read name by default (legacy naming, e.g. <code>@READID_CTATTAAAAA</code>). Customize with <code>--rename</code> (<code>--name-format</code> is an alias). It supports cutadapt's brace variables plus <strong>positional captures</strong>: <code>{1}</code>, <code>{2}</code>, ... reference the individual UMIs / inline barcodes in scheme order, with transform functions (<code>rc({1})</code>, <code>upper(RC({2}))</code>, <code>canon({1})</code>, <code>left({2},6)</code>, <code>slice({1},1,4)</code>, ...).</p>
@@ -56,13 +56,19 @@ cutseq -A INLINE --rename '{id}_BC1:{1}_BC2:{2}_umi:rc({3})' test_R1.fq.gz test_
 cutseq -A INLINE --rename '{id}:{1}:{2}' test_R1.fq.gz test_R2.fq.gz</code></pre>
 <p>See the full <a href="rename.html">Read Name Renaming</a> reference for the complete function list and paired-end (<code>{r1.1}</code> / <code>{r2.1}</code>) behavior.</p>
 <p>Defaults reproduce legacy output byte-for-byte.</p>
-<h2 id="inline-barcode-auto-detection">Inline barcode auto-detection</h2>
-<p>Inline barcodes are written in lowercase (<code>acgt...</code>). If you write one in uppercase, it would merge with the adjacent sequencing primer. CutSeq checks the two outermost adapters against a curated database of Illumina / BGI (MGI) sequencing primers (<code>cutseq --list-primers</code>) and reclassifies any fixed uppercase sequence adjacent to a recognized primer as an inline barcode, with a warning. Custom schemes without known primers are never altered.</p>
-<pre><code class="language-bash"># List the known sequencing primers
-cutseq --list-primers
-
-# Disable auto-detection
-cutseq --no-auto-inline -A "..." test_R1.fq.gz</code></pre>
+<h2 id="inline-barcode-detection">Inline-barcode detection (lowercase edges)</h2>
+<p>Within the read-internal <strong>insert region</strong> (between the two lowercase read-external edges), a <strong>fixed uppercase run directly adjacent to a lowercase edge</strong> is an inline barcode (matched &amp; captured); any other fixed uppercase run is an ordinary adapter (matched &amp; trimmed). This is a structural grammar rule &mdash; it no longer relies on a primer database.</p>
+<p>The built-in Illumina / BGI primer list (<code>cutseq --list-primers</code>) is kept as a <strong>knowledge base / diagnostic only</strong>: it is never used to change trimming or matching. When a lowercase run matches a known primer, CutSeq logs &ldquo;looks like known sequencing primer &hellip;&rdquo;; otherwise it logs &ldquo;is not in the known primer list; confirm it is a sequencing primer / external region&rdquo;.</p>
+<pre><code class="language-bash"># List the known sequencing primers (diagnostic only; never changes trimming or matching)
+cutseq --list-primers</code></pre>
+<h2 id="scheme-grammar-example">Scheme grammar example</h2>
+<p>Lowercase outer primers with an insert region embedded in one scheme (single-end):</p>
+<pre><code class="language-bash"># gacgt&hellip;   lowercase = read-external read-1 / read-2 sequencing primers, skipped (read starts after them).
+# N11 = 11-nt UMI (captured &amp; kept; fixed width, padded with N if short) &middot; X5 = 5-nt mask (trimmed)
+# + = insert marker between the two arms &middot; XX = the R2-side 2-nt mask &middot; agatcg&hellip; = read-2 primer.
+# Single-end starts after the left lowercase primer and extracts the 11-nt UMI (no primer flag).
+cutseq -A 'gacgtgtgctcttccgatctNNNNNNNNNNNXXXXX+XXagatcggaagagcgtcgtgt' \
+  -R '{id}_umi:{1}' R1.fq.gz</code></pre>
 <h2 id="discarding-reads-with-a-reason-tag">Discarding reads with a reason tag</h2>
 <p>A single discard output captures all reads that fail QC, with the reason in the read name:</p>
 <pre><code class="language-bash">cutseq -A SMALLRNA -d discard_R1.fq.gz discard_R2.fq.gz \
@@ -72,7 +78,7 @@ cutseq --no-auto-inline -A "..." test_R1.fq.gz</code></pre>
 <ul><li><code>reason=too_short</code> — shorter than <code>--min-length</code> after trimming</li><li><code>reason=too_many_n</code> — exceeds <code>--max-n</code></li><li><code>reason=low_quality</code> — mean Phred quality below <code>--min-avg-quality</code></li><li><code>reason=no_barcode</code> — missing an expected inline barcode (only with <code>--ensure-inline-barcode</code>)</li></ul>
 <p><code>--ensure-inline-barcode</code> requires the scheme to declare inline barcodes. When no <code>-d</code>/<code>-O</code> is given, discard files are auto-named from the input files.</p>
 <h2 id="how-it-works">How it works</h2>
-<p>A scheme is compiled once into a lazy graph of native cutadapt modifiers and executed in a single pass. The token-kind registry and phase order are data-driven, so the engine is easy to extend with new scheme elements. See the <a href="https://cutseq.yech.science">documentation</a> for details.</p>
+<p>A scheme is compiled once into a lazy graph of native cutadapt modifiers and executed in a single pass. The token-kind registry and phase order are data-driven, so the engine is easy to extend with new scheme elements. Read boundaries come from the scheme's lowercase runs (a lowercase ACGT run is read-external, so the read starts after it). See the <a href="https://cutseq.yech.science">documentation</a> for details.</p>
     </main>
   </div>
 </div>

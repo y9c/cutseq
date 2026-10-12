@@ -35,9 +35,11 @@ This module builds that read plan.  The model is:
 
 Primer identification
 ---------------------
-The built-in ``SEQUENCING_SITES`` map (see ``cutseq/primers``) is direction- and
-role-aware, plus explicitly supplied ``--r1-primer`` / ``--r2-primer`` (the
-actual read oligos) override the DB.  A recognised site must map to a genuine
+Read boundaries are determined by the grammar's LOWERCASE edges (a read-external
+sequencing primer is skipped; the read starts after it) — the ``--r1-primer`` /
+``--r2-primer`` flags were removed.  The built-in ``SEQUENCING_SITES`` map (see
+``cutseq/primers``) remains only as a backward-compatible fallback for
+read-visible (all-uppercase) schemes.  A recognised site must map to a genuine
 3' extension boundary: for the R1 (left) site only the primer's 3' end defines
 where the read starts; for the R2 (right) site only the top-strand site's prefix
 defines it.  An arbitrary primer prefix is NOT a boundary.  When several distinct
@@ -113,22 +115,19 @@ class Boundary:
                 f"{self.token_offset}, {self.strand}, {self.role})")
 
 
-def _resolve_boundary(arm, side, custom=None):
-    """Resolve the recognised sequencing-site boundary on ``arm``.
+def _resolve_boundary(arm, side):
+    """Resolve the read-start boundary on ``arm``.
 
-    Returns ``(Boundary, upstream_tokens)`` or ``None`` when no site maps to a
-    genuine extension boundary.  When a CUSTOM primer is supplied it OVERRIDES
-    the built-in DB: it must locate a single distinct read-start offset, else
-    the resolve fails actionably (absent -> ValueError; ambiguous -> ValueError
-    containing ``ambig``).  Same-boundary aliases (distinct site records giving
-    the same boundary offset) merge; distinct boundaries raise.
+    Returns ``(Boundary, upstream_tokens)`` or ``None`` when no boundary maps to
+    a genuine read start.  The boundary is now determined ENTIRELY by the
+    grammar's lowercase edges (a read-external sequencing primer is skipped, so
+    the read starts after it) plus the built-in site table for backward-
+    compatible read-visible (all-uppercase) schemes.  The removed
+    ``--r1-primer``/``--r2-primer`` flags no longer drive it.  Same-boundary
+    aliases merge; distinct boundaries raise.
     """
     from .primers import (_rc as _prc, _norm as _pn, SEQUENCING_SITES,
                           _site_boundaries)
-
-    # --- explicit custom primers override the DB ---------------------------
-    if custom is not None:
-        return _resolve_custom(arm, side, custom)
 
     # An OUTERMOST lowercase ACGT run is an explicit read-external sequencing
     # primer: the read starts AFTER it, so it is a genuine boundary on its own
@@ -182,7 +181,8 @@ def _resolve_boundary(arm, side, custom=None):
             "cutseq: multiple distinct " + ("R1" if side == "R1" else "R2") +
             " primer boundaries (ambiguous) on the " +
             ("left" if side == "R1" else "right") +
-            " arm; specify --r1-primer / --r2-primer to disambiguate"
+            " arm; write the sequencing primer as a lowercase ACGT run to "
+            "mark it a read-external region"
         )
     (ti, off), site = next(iter(best.items()))
     value = _pn(arm[ti].value)
@@ -196,70 +196,6 @@ def _resolve_boundary(arm, side, custom=None):
     observed = value[off:off + len(site)]
     return (Boundary("R2", ti, off, "bot", "R2", observed, _prc(observed)),
             arm[ti + 1 :])
-
-
-def _resolve_custom(arm, side, custom):
-    """Resolve a boundary for an explicitly supplied custom read-oligo.
-
-    ``custom`` is the actual read primer 5'->3'.  For ``side == 'R1'`` the read
-    starts at the primer's 3' extension end; for ``'R2'`` the top-strand site is
-    ``rc(custom)`` and the read starts at its left (insert-adjacent) edge.  All
-    occurrences are collected across the whole arm; 0 -> absent, >1 distinct
-    offsets -> ambiguous (both raise actionably).
-    """
-    from .primers import _rc as _prc, _norm as _pn, MIN_PRIMER_MATCH
-
-    primer = _pn(custom)
-    # A custom primer must locate a genuine boundary.  A short custom primer is
-    # accepted verbatim ("full shorter user custom"); a longer one locates a
-    # boundary only via a full occurrence or a terminal stem of at least the
-    # curated fragment strength (don't credit a 1 bp fragment of a long primer).
-    min_frag = min(len(primer), MIN_PRIMER_MATCH)
-    hits = []  # (token_index, token_offset, site_seq)
-    for i, t in enumerate(arm):
-        if t.kind != "adp":
-            continue
-        value = _pn(t.value)
-        if side == "R1":
-            # boundary at the primer 3' end wherever the primer appears fully
-            # (a +1 scan catches overlapping occurrences).
-            pos = value.find(primer)
-            while pos != -1:
-                hits.append((i, pos + len(primer), primer))
-                pos = value.find(primer, pos + 1)
-            # a terminal stem shorter than the primer (>= min_frag)
-            if len(value) < len(primer) and primer.endswith(value) and \
-                    len(value) >= min_frag:
-                hits.append((i, len(value), primer))
-        else:
-            site = _prc(primer)
-            pos = value.find(site)
-            while pos != -1:
-                hits.append((i, pos, site))
-                pos = value.find(site, pos + 1)
-            if len(value) < len(site) and site.startswith(value) and \
-                    len(value) >= min_frag:
-                hits.append((i, 0, site))
-    if not hits:
-        raise ValueError(
-            f"cutseq: supplied {'--r1-primer' if side == 'R1' else '--r2-primer'} "
-            f"{custom!r} was not found in the scheme"
-        )
-    # deduplicate distinct boundaries
-    distinct = {}
-    for ti, off, site in hits:
-        distinct[(ti, off)] = site
-    if len(distinct) > 1:
-        raise ValueError(
-            "cutseq: custom primer resolves to multiple distinct read-start "
-            f"boundaries on the {'left' if side == 'R1' else 'right'} arm "
-            "(ambiguous); it should occur once"
-        )
-    (ti, off), site = next(iter(distinct.items()))
-    if side == "R1":
-        return (Boundary("R1", ti, off, "top", "R1", site, primer), arm[:ti])
-    return (Boundary("R2", ti, off, "bot", "R2", site, primer), arm[ti + 1 :])
-
 
 
 # --- read-step model ------------------------------------------------------
@@ -894,7 +830,7 @@ def _read_visible_start_steps(arm, r2=False):
 # --- public entry point ---------------------------------------------------
 
 
-def compile_read_plan(orientation, left, right, ctx, r1_primer=None, r2_primer=None):
+def compile_read_plan(orientation, left, right, ctx):
     """Build ``(r1_mods, r2_mods, ReadPlan)`` or ``None`` (no primer found).
 
     Each side is resolved independently.  When only one side has a recognised
@@ -902,6 +838,12 @@ def compile_read_plan(orientation, left, right, ctx, r1_primer=None, r2_primer=N
     ``plan.r1_is_plan``/``r2_is_plan`` so the caller fills the legacy per-token
     emission for the read-visible side.  Single-end with a recognised R1 site
     also starts downstream.
+
+    The boundary is now determined by the grammar's lowercase edges (a lowercase
+    ACGT run is a read-external sequencing primer, skipped; the read starts after
+    it) plus the built-in site table for backward-compatible read-visible
+    (all-uppercase) schemes.  The removed ``--r1-primer``/``--r2-primer`` flags
+    no longer override the boundary.
     """
     # Every side is resolved independently; a plan is built whenever ANY side
     # has a recognised primer, and BOTH reads are then routed through a coherent
@@ -909,8 +851,8 @@ def compile_read_plan(orientation, left, right, ctx, r1_primer=None, r2_primer=N
     # tokens plus the opposite correct binder's read-through).  A scheme with no
     # primer on either side (e.g. DBiT / TSO handle) resolves to ``None`` and
     # falls back to the legacy per-token emission.
-    r1b = _resolve_boundary(left, "R1", r1_primer)
-    r2b = _resolve_boundary(right, "R2", r2_primer)
+    r1b = _resolve_boundary(left, "R1")
+    r2b = _resolve_boundary(right, "R2")
     plan = _build_plan(left, right, r1b, r2b, orientation)
     if plan is None:
         return None

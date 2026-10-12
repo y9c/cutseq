@@ -45,12 +45,19 @@ def _names(fastq_gz):
 
 
 def _build_reads(prefix, insert, bc_phys="ATCACG", p5=None, p7=None):
-    """Build correctly-oriented R1/R2 for scheme P5 + insert + bc + P7."""
+    """Build correctly-oriented R1/R2 for scheme P5 + insert + bc + P7.
+
+    The outer primers p5 / p7 are the read-external sequencing-primer binding
+    sites (the grammar's read boundary), so they are NOT part of the reads: R1
+    starts at the insert (p5 upstream), R2 starts at rc(bc) (p7 upstream).
+    """
     p5 = p5 or "AGTTCTACAGTCCGACGATC"
     p7 = p7 or "AGATCGGAAGAGCACACGTC"
     bcrc = _rc(bc_phys)
+    # p5 is read-visible on R1 (trimmed as an in-read adapter), but p7 is a
+    # read-external binding site: R2 starts at rc(bc), so it does NOT carry p7.
     r1 = p5 + insert + bc_phys + p7
-    r2 = _rc(p7) + bcrc + _rc(insert) + _rc(p5)
+    r2 = bcrc + _rc(insert) + _rc(p5)
     return (prefix, r1, r2)
 
 

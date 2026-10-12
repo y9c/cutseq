@@ -1,11 +1,10 @@
 """Known Illumina / BGI (MGI) sequencing primer and adapter sequences.
 
-Used to auto-detect inline barcodes in a library scheme. A scheme is expected
-to carry the sequencing primers (p5/p7 or the read-adjacent adapter sequences)
-at its two outermost ends; any fixed uppercase sequence between them is an
-inline barcode (matched and trimmed), so a barcode written in uppercase by
-[Output truncated. Continue viewing below]
-mistake can be detected and treated as ``inline``.
+This is a knowledge base / diagnostic reference only. Read boundaries are
+now expressed by a lowercase ACGT run in the grammar scheme (a read-external
+sequencing primer is skipped, so the read starts after it); the built-in
+primer list is never used to force or infer a read boundary. A lowercase run
+is checked against these primers purely for a diagnostic log.
 
 Sources:
   - Illumina Adapter Sequences document 1000000002694 (support.illumina.com)
@@ -297,37 +296,3 @@ def detect_5prime_primer(seq, max_scan=40):
     return best
 
 
-def detect_5prime_from_reads(paths, n=200, max_scan=40):
-    """Detect the read-5' sequencing primer(s) from a sample of reads.
-
-    ``paths`` is one (R1) or two (R1, R2) input FASTQ paths. Returns a list
-    aligned with the inputs: for each file, ``(primer_name_or_None,
-    primer_seq_or_None)`` where ``primer_seq`` is the matched fragment to trim
-    (most common detection across the sample). Ungzipped/gzipped reads are both
-    supported.
-    """
-    try:
-        import dnaio
-    except ImportError:  # pragma: no cover
-        logging.debug("dnaio unavailable; primer auto-detection skipped")
-        return [(None, None) for _ in paths]
-
-    out = []
-    for path in paths:
-        counts = {}      # (name, frag) -> count
-        read_total = 0
-        with dnaio.open(path, fileformat="fastq") as fh:
-            for rec in fh:
-                read_total += 1
-                hit = detect_5prime_primer(rec.sequence, max_scan)
-                if hit is not None:
-                    _L, name, frag = hit
-                    counts[(name, frag)] = counts.get((name, frag), 0) + 1
-                if read_total >= n:
-                    break
-        if not counts:
-            out.append((None, None))
-            continue
-        (name, frag), _ = max(counts.items(), key=lambda kv: kv[1])
-        out.append((name, frag))
-    return out

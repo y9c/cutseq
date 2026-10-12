@@ -60,13 +60,15 @@ def test_primer_name_reports_match():
 # --- auto-detection --------------------------------------------------------
 
 
-def test_split_barcode_merged_with_p7_right_side():
-    # INLINE scheme where the user wrote ATCACG in uppercase next to p7
+def test_uppercase_inline_adjacent_to_lowercase_right_edge():
+    # An uppercase fixed run immediately LEFT of a lowercase edge (the read-external
+    # right primer) is an INLINE barcode — the grammar's lowercase edges, not the
+    # primer DB, determine it.
     left, right = _kinds(
-        "AGTTCTACAGTCCGACGATCNNNNN+NNNNNATCACGAGATCGGAAGAGCACACGTC"
+        "AGTTCTACAGTCCGACGATCNNNNN+NNNNNATCACGagatcggaagagcgtcgtgt"
     )
     assert ("inline", "ATCACG") in right
-    assert ("adp", "AGATCGGAAGAGCACACGTC") in right
+    assert ("inline", "agatcggaagagcgtcgtgt") in right  # lowercase edge = read-external primer
 
 
 def test_correct_lowercase_unchanged():
@@ -77,10 +79,12 @@ def test_correct_lowercase_unchanged():
     assert ("adp", "AGATCGGAAGAGCACACGTC") in right
 
 
-def test_split_barcode_merged_with_p5_left_side():
-    left, right = _kinds("AGTTCTACAGTCCGACGATCGGATCC+AGATCGGAAGAGCACACGTC")
-    assert ("inline", "GGATCC") in left
-    assert ("adp", "AGTTCTACAGTCCGACGATC") in left
+def test_uppercase_inline_adjacent_to_lowercase_left_edge():
+    # An uppercase fixed run immediately RIGHT of a lowercase edge (the read-external
+    # left primer) is an INLINE barcode.
+    left, right = _kinds("agttctacagtccgacgatcATCACG+AGATCGGAAGAGCACACGTC")
+    assert ("inline", "ATCACG") in left
+    assert ("inline", "agttctacagtccgacgatc") in left
 
 
 def test_custom_scheme_untouched():

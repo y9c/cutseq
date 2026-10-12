@@ -144,7 +144,10 @@ X3_SCHEME = "XXXACACGACGCTCTTCCGATCTXX-XXXXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC"
 # oligo, whose top-strand molecular site is rc(Q2) on the right.
 P1_CUSTOM = "CGTGCGATCGTACGGTACCGGTCAG"
 Q2_CUSTOM = "TAGCGTACGTACCGGATCGTACGT"
-CUSTOM_SCHEME = P1_CUSTOM + "XXT...T-XXXXXXXXNNNNNNNN" + _rc(Q2_CUSTOM)
+# The custom (non-DB) primers are written as lowercase runs so the grammar's
+# lowercase edges (read-external, skipped) locate the boundary WITHOUT the
+# removed --r1-primer/--r2-primer flags.
+CUSTOM_SCHEME = P1_CUSTOM.lower() + "XXT...T-XXXXXXXXNNNNNNNN" + _rc(Q2_CUSTOM).lower()
 
 # --- adversarial primer-plan cases (approved-design gaps) --------------------
 
@@ -452,28 +455,26 @@ def test_upstream_excluded_token_before_known_primer():
 # --- custom sequencing primers located in the scheme --------------------------
 
 def test_custom_primers_in_scheme_no_readthrough_via_cli():
-    """Actual custom primers (not in the DB) appear in the scheme as outer
-    adapters; ``--r1-primer``/``--r2-primer`` give their true 5'->3' oligo
-    orientation (R1 = P1, R2 = Q2, right molecular site = rc(Q2)) and locate the
-    read start, so no-read-through trims to insert."""
+    """Actual custom primers (not in the DB) are written as lowercase runs in the
+    scheme; the grammar's lowercase edges (read-external, skipped) locate the
+    read start with no ``--r1-primer``/``--r2-primer`` flag, so no-read-through
+    trims to insert."""
     r1 = XX2 + TRUN + INS
     r2 = R2_UMI + _rc(MASK8) + RC_INS
     (n1, s1), (n2, s2) = _cli(
         CUSTOM_SCHEME, r1, r2, "{id}",
-        "--r1-primer", P1_CUSTOM, "--r2-primer", Q2_CUSTOM,
     )
     assert s1 == INS and s2 == RC_INS, (s1, s2)
     assert n1 == "@x/1" and n2 == "@x/2", (n1, n2)
 
 
 def test_custom_primers_in_scheme_full_readthrough_via_cli():
-    """Same custom-primer scheme, but both mates read through the opposite arm;
-    the read-through arm is trimmed and the insert preserved."""
+    """Same lowercase-primer scheme, but both mates read through the opposite
+    arm; the read-through arm is trimmed and the insert preserved."""
     r1 = XX2 + TRUN + INS + MASK8 + UMI8 + _rc(Q2_CUSTOM)
     r2 = R2_UMI + _rc(MASK8) + RC_INS + _rc(TRUN) + _rc(XX2) + _rc(P1_CUSTOM)
     (n1, s1), (n2, s2) = _cli(
         CUSTOM_SCHEME, r1, r2, "{id}",
-        "--r1-primer", P1_CUSTOM, "--r2-primer", Q2_CUSTOM,
     )
     assert s1 == INS and s2 == RC_INS, (s1, s2)
     assert n1 == "@x/1" and n2 == "@x/2", (n1, n2)
@@ -612,14 +613,13 @@ def test_cli_full_readthrough_trim():
     assert n1 == "@x/1" and n2 == "@x/2", (n1, n2)
 
 
-def test_cli_r1_r2_primer_oligo_orientation_accepted():
-    """``--r1-primer``/``--r2-primer`` take the actual sequencing oligo 5'->3'
-    orientation: --r2-primer is the rc of the top-strand p7 binding site (the
-    true read-2 primer), not the binding site itself. They identify upstream
-    binding sites and do not inject any 5' trim; reads still trim to insert."""
+def test_cli_known_primer_boundary_without_flags():
+    """The built-in p5/p7 sequencing sites are recognised from the grammar's
+    lowercase/uppercase edges alone, so the removed ``--r1-primer``/
+    ``--r2-primer`` flags are NO LONGER required: the primer is upstream and
+    the read still trims to the insert with no 5' primer injection."""
     n1, s1 = _cli(
         SCHEME, _r1_nort(), _r2_nort(), "{id}",
-        "--r1-primer", PRIMER1, "--r2-primer", R2_PRIMER_OLIGO,
     )[0]
     assert s1 == INS, s1
     assert n1 == "@x/1", n1
@@ -704,18 +704,19 @@ def test_polyt_2dot_alias_equivalent():
 # ============================================================================
 
 
-def test_embedded_custom_primer_preserves_downstream_scaffold():
-    """A custom (non-DB) primer embedded INSIDE one merged uppercase token, with
-    an upstream offset-prefix and a downstream literal scaffold (>= 10 nt),
-    auto_inline off: the upstream offset + primer are NOT consumed, and the
-    residual downstream scaffold IS matched (anchored) and trimmed, so each mate
-    trims to its insert.  This is the "no whole-token skip" case where the
-    primer boundary is interior to a token."""
+def test_lowercase_primer_boundary_keeps_downstream_scaffold():
+    """A custom (non-DB) primer written as a LOWERCASE run is a read-external
+    boundary (read starts after it); a downstream literal scaffold (>= 10 nt)
+    stays read-visible and is matched (anchored) and trimmed, so each mate
+    trims to its insert.  This is the "no whole-token skip" case: the lowercase
+    edge splits the primer from the visible residual, with no
+    --r1-primer/--r2-primer flag."""
     r1 = CUSTOM_SCAFFOLD_L + INS
     r2 = _rc(CUSTOM_SCAFFOLD_R) + RC_INS
+    scheme = (P1_CUSTOM.lower() + CUSTOM_SCAFFOLD_L + "-"
+              + CUSTOM_SCAFFOLD_R + _rc(Q2_CUSTOM).lower())
     (n1, s1), (n2, s2) = _cli(
-        CUSTOM_MERGED_SCHEME, r1, r2, "{id}",
-        "--no-auto-inline", "--r1-primer", P1_CUSTOM, "--r2-primer", Q2_CUSTOM,
+        scheme, r1, r2, "{id}", "--no-auto-inline",
     )
     assert s1 == INS, s1
     assert s2 == RC_INS, s2
@@ -744,27 +745,23 @@ def test_x3_before_primer_full_readthrough_r2_must_not_cut_x3():
     assert r2o.sequence == RC_INS, r2o.sequence
 
 
-def test_custom_primer_appearing_twice_is_ambiguous():
-    """If the SAME custom primer resolves to two distinct read-start boundaries
-    in the same arm, the plan must FAIL actionably (ValueError / CLI nonzero)
-    rather than guess.  Same-boundary aliases are not the target here."""
+def test_mixed_case_feature_is_rejected():
+    """A contiguous feature that mixes case (upper->lower->upper) violates the
+    strict grammar and must fail actionably rather than silently mis-tokenize
+    (the confirmed grammar demands clean lower|upper block separation)."""
     s = CutadaptConfig()
-    s.auto_inline = False
-    s.r1_primer = P1_CUSTOM
-    cs = _build_scheme(AMBIGUOUS_R1_SCHEME, s)
     with pytest.raises(ValueError) as excinfo:
-        _scheme_modifiers(cs, paired=True, settings=s)
-    assert "ambig" in str(excinfo.value).lower()
+        _build_scheme("ACtaGTNNNN", s)
+    assert "case" in str(excinfo.value).lower()
 
 
-def test_custom_primer_supplied_but_absent_fails_actionably():
-    """A custom primer explicitly supplied but ABSENT from the scheme is a
-    configuration error and must fail actionably, not silently no-op."""
+def test_lowercase_coverage_marker_rejected():
+    """Lowercase 'n'/'x' coverage markers are invalid (N/X must be uppercase);
+    the parser fails actionably instead of treating them as a 0-length capture."""
     s = CutadaptConfig()
-    s.r1_primer = P1_CUSTOM
-    cs = _build_scheme(CASE5_SCHEME, s)
-    with pytest.raises(ValueError):
-        _scheme_modifiers(cs, paired=True, settings=s)
+    with pytest.raises(ValueError) as excinfo:
+        _build_scheme("NNnnNN", s)
+    assert "N" in str(excinfo.value) or "marker" in str(excinfo.value).lower()
 
 
 def test_normal_scheme_without_custom_primer_is_unchanged():

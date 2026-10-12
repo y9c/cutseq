@@ -295,12 +295,6 @@ class CutadaptConfig:
     force_anywhere: bool = False
     name_format: Optional[str] = None
     auto_inline: bool = True
-    seq_primer1: Optional[str] = None
-    seq_primer2: Optional[str] = None
-    r1_primer: Optional[str] = None  # R1 sequencing primer -> injected (outer left)
-    r2_primer: Optional[str] = (
-        None  # R2 sequencing primer -> injected (outer right, RC)
-    )
 
 
 def json_report(
@@ -392,17 +386,25 @@ _renamers = (Renamer, PairedEndRenamer)
 
 
 def _print_known_primers():
-    """Print the known sequencing primers used for inline-barcode detection."""
+    """Print the known sequencing primers (knowledge base / diagnostic only).
+
+    The built-in primer list is no longer used to force or infer read
+    boundaries (that is now expressed by a lowercase ACGT run in the grammar);
+    it is kept purely as a diagnostic reference so a lowercase run can be
+    checked against the known sequencing primers.
+    """
     from .primers import MIN_PRIMER_MATCH, SEQUENCING_PRIMERS
 
     print(
         f"\nKnown sequencing primers (terminal match >= {MIN_PRIMER_MATCH} bp, "
-        f"either strand) used for inline-barcode auto-detection:\n"
+        f"either strand) -- knowledge base / diagnostic only.\n"
     )
     width = max(len(n) for n in SEQUENCING_PRIMERS)
     for name, seq in SEQUENCING_PRIMERS.items():
         print(f"{name.ljust(width)}  {seq}")
-    print("\nUse --no-auto-inline to disable auto-detection.\n")
+    print("\nThese primers are NOT used to trim reads. A lowercase ACGT run in "
+          "the scheme is a read-external sequencing primer region (skipped); "
+          "compare it here, or use --no-auto-inline to disable auto-detection.\n")
 
 
 # Adapter matching strategy, used to annotate AdapterCutter steps in the
@@ -613,9 +615,9 @@ def _build_scheme(scheme, settings):
     """Resolve a scheme value (built-in name / grammar string / YAML tokens)
     into a CompiledScheme bound to the current pipeline settings."""
     orientation, left, right = _resolve_scheme(scheme, auto_inline=settings.auto_inline)
-    # NOTE: --r1-primer / --r2-primer are sequencing PRIMERS: they anneal
-    # upstream of where each read starts and are NOT part of the read, so they
-    # are never trimmed here — they identify the read-plan binding boundary.
+    # The read boundary is now expressed directly in the grammar: a lowercase
+    # ACGT run is a read-external sequencing primer (skipped, read starts after
+    # it), so there are no primer flags / pass-through here.
     return CompiledScheme(
         orientation,
         left,
@@ -623,15 +625,7 @@ def _build_scheme(scheme, settings):
         conditional_cutter=settings.conditional_cutter,
         force_trim_min_length=settings.force_trim_min_length,
         force_anywhere=settings.force_anywhere,
-        r1_primer=settings.r1_primer,
-        r2_primer=settings.r2_primer,
     )
-
-
-def _primer_cutter(seq):
-    """A 5' front-adapter that trims a sequencing read's 5' primer if present
-    (no-op if the sequence isn't at the read's 5' end)."""
-    return AdapterCutter([RightmostFrontAdapter(seq, max_errors=0.1, min_overlap=10)])
 
 
 def _scheme_modifiers(cs, paired, settings):
@@ -640,17 +634,6 @@ def _scheme_modifiers(cs, paired, settings):
         mods1, mods2 = cs.modifiers(paired=True)
         n = max(len(mods1), len(mods2))
         modifiers = []
-        if settings.seq_primer1 or settings.seq_primer2:
-            modifiers.append(
-                (
-                    _primer_cutter(settings.seq_primer1)
-                    if settings.seq_primer1
-                    else None,
-                    _primer_cutter(settings.seq_primer2)
-                    if settings.seq_primer2
-                    else None,
-                )
-            )
         if settings.rname_suffix:
             modifiers.append((SuffixRemover(".1"), SuffixRemover(".2")))
             modifiers.append((SuffixRemover("/1"), SuffixRemover("/2")))
@@ -676,11 +659,6 @@ def _scheme_modifiers(cs, paired, settings):
         return modifiers
 
     modifiers, _ = cs.modifiers(paired=False)
-    if settings.seq_primer1 or settings.seq_primer2:
-        # A single read has one 5' primer: use the explicitly-set one
-        # (primer2 for an R2 single-end run, primer1 for R1).
-        p = settings.seq_primer1 or settings.seq_primer2
-        modifiers = [_primer_cutter(p)] + modifiers
     if settings.rname_suffix:
         modifiers = [SuffixRemover(".1"), SuffixRemover("/1")] + modifiers
     modifiers = modifiers + [
@@ -943,42 +921,6 @@ def pipeline_grammar_paired(
     _head_cleanup()
 
 
-def _ensure_seq_primers(settings, input_files):
-    """Fill ``settings.seq_primer1/2`` by auto-detecting from the reads' 5'
-    ends when not explicitly given (skipped in dry-run so construction never
-    touches input files). Logs what was found or that nothing matched."""
-    if settings.dry_run:
-        return
-    need = (settings.seq_primer1 is None, settings.seq_primer2 is None)
-    if not any(need):
-        return
-    from .primers import detect_5prime_from_reads
-
-    try:
-        results = detect_5prime_from_reads(input_files[:2])
-    except Exception as e:  # missing/unreadable input in auto-detect
-        logging.warning(f"Seq-primer auto-detection skipped: {e}")
-        return
-    for idx, (is_none, (name, frag)) in enumerate(zip(need, results)):
-        if not is_none:
-            continue
-        side = "R1" if idx == 0 else "R2"
-        if frag:
-            logging.info(
-                f"Auto-detected {side} 5' sequencing primer: "
-                f"{name or 'unknown'} ({frag}); trimming from {side} 5'."
-            )
-            if idx == 0:
-                settings.seq_primer1 = frag
-            else:
-                settings.seq_primer2 = frag
-        else:
-            logging.info(
-                f"No known {side} 5' sequencing primer detected in the read "
-                f"ends; specify it with --seq-primer{idx + 1} if needed."
-            )
-
-
 def run_cutseq(args):
     """
     Sets up configurations and executes the grammar-based cutadapt pipeline.
@@ -1010,11 +952,6 @@ def run_cutseq(args):
     settings.auto_inline = not args.no_auto_inline
     if getattr(args, "scheme_no_auto_inline", False):
         settings.auto_inline = False
-    settings.seq_primer1 = args.seq_primer1
-    settings.seq_primer2 = args.seq_primer2
-    settings.r1_primer = args.r1_primer
-    settings.r2_primer = args.r2_primer
-    _ensure_seq_primers(settings, args.input_file)
     if len(args.input_file) == 1:
         pipeline_grammar_single(
             args.input_file[0],
@@ -1153,48 +1090,6 @@ def main():
     )
 
     parser.add_argument(
-        "--seq-primer1",
-        type=str,
-        default=None,
-        help="Read-1 5' sequencing primer: the sequence found right at the "
-        "start of R1 that should be trimmed (e.g. the TSO). If omitted, "
-        "cutseq samples the input reads and tries to auto-detect it from the "
-        "built-in primer database (cutseq --list-primers).",
-    )
-    parser.add_argument(
-        "--seq-primer2",
-        type=str,
-        default=None,
-        help="Read-2 5' sequencing primer: the sequence found right at the "
-        "start of R2 that should be trimmed (e.g. a PCR/RT handle). If "
-        "omitted, auto-detected from the built-in primer database.",
-    )
-
-    parser.add_argument(
-        "--r1-primer",
-        type=str,
-        default=None,
-        help="Read-1 sequencing primer oligo (5'->3'). It locates the read-plan "
-        "binding boundary: R1 starts DOWNSTREAM of this primer's 3' extension "
-        "end, and the primer itself is not part of the read (never trimmed from "
-        "it). Overrides the built-in sequencing-site table; supplying one that "
-        "is absent from the scheme, or that resolves to multiple distinct "
-        "boundaries, fails actionably. Example: "
-        "TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG.",
-    )
-    parser.add_argument(
-        "--r2-primer",
-        type=str,
-        default=None,
-        help="Read-2 sequencing primer oligo (5'->3', i.e. rc of the top-strand "
-        "right binding site). It locates the read-plan binding boundary: R2 "
-        "starts DOWNSTREAM of this primer and the primer is not part of the read "
-        "(never trimmed from it). Overrides the built-in sequencing-site table; "
-        "supplying one that is absent from the scheme, or that resolves to "
-        "multiple distinct boundaries, fails actionably. Example: "
-        "GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG.",
-    )
-    parser.add_argument(
         "--graph",
         action="store_true",
         help="Print the lazy trimming graph (parsed scheme tokens + compiled "
@@ -1276,8 +1171,9 @@ def main():
     parser.add_argument(
         "--list-primers",
         action="store_true",
-        help="List the known sequencing primers used for inline-barcode "
-        "auto-detection, then exit.",
+        help="List the known sequencing primers (knowledge base / diagnostic "
+        "only); they are NOT used to trim reads. Read boundaries are set by a "
+        "lowercase ACGT run in the grammar scheme.",
     )
 
     parser.add_argument(
@@ -1433,8 +1329,6 @@ def main():
         settings.conditional_cutter = args.conditional_cutter
         settings.force_trim_min_length = args.force_trim_min_length
         settings.force_anywhere = args.force_anywhere
-        settings.r1_primer = args.r1_primer
-        settings.r2_primer = args.r2_primer
         try:
             cs = _build_scheme(args.adapter_scheme, settings)
             paired = len(args.input_file) == 2

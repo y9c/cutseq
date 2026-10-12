@@ -62,7 +62,7 @@ CANON = {
         ( "A scheme is compiled once into a lazy graph of native cutadapt "
           "modifiers and executed in a single pass." ),
         "Defaults reproduce legacy output byte-for-byte.",
-        "CutSeq checks the two outermost adapters against a curated database",
+        "fixed uppercase run directly adjacent to a lowercase edge",
     ],
     "rename": [
         "By default, CutSeq appends every captured UMI / inline barcode to the read name",

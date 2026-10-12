@@ -448,14 +448,14 @@ def test_seq_primer_detection_db():
     assert detect_5prime_primer("CAAGCGTTGGCTTCTCGCATCTACGT") is None
 
 
-def test_seq_primer1_single_end_trims_tso():
-    """--seq-primer1 trims R1's 5' TSO scaffold."""
+def test_tso_as_inread_adapter_trims_5prime():
+    """A 5' TSO scaffold written as an uppercase in-read adapter is matched and
+    trimmed (the read ITSELF carries it), so no --seq-primer1 flag is needed."""
     from cutseq.grammar import _capture_registry
 
     r1, r2, bcb, bca, umi = _m6a_pair()
     s = CutadaptConfig()
-    s.seq_primer1 = _M6A_TSO
-    cs = _build_scheme(":", s)   # `:` = keep the cDNA insert, no left tokens
+    cs = _build_scheme(_M6A_TSO, s)   # uppercase adapter at the read 5'
     mods = _scheme_modifiers(cs, paired=False, settings=s)
     mods[-1] = cs.renamer(paired=False, name_format="{id}")
     grammar._RENAME_NEEDS_CAPTURES = True
@@ -472,14 +472,14 @@ def test_seq_primer1_single_end_trims_tso():
     assert read.sequence == r1[len(_M6A_TSO):]
 
 
-def test_seq_primer2_single_end_trims_handle():
-    """--seq-primer2 trims the 5' handle so the scheme can start at BCB."""
+def test_handle_as_inread_adapter_then_barcode_arm():
+    """The 5' handle is an uppercase in-read adapter; the scheme starts with it so
+    the capture arm begins at BCB (no --seq-primer2 flag needed)."""
     from cutseq.grammar import _capture_registry
 
     r1, r2, bcb, bca, umi = _m6a_pair()
     s = CutadaptConfig()
-    s.seq_primer2 = _M6A_HANDLE
-    scheme = "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
+    scheme = _M6A_HANDLE + "N8" + _M6A_L2 + "N8" + _M6A_L1 + "N10"
     cs = _build_scheme(scheme, s)
     mods = _scheme_modifiers(cs, paired=False, settings=s)
     mods[-1] = cs.renamer(paired=False, name_format="{id}_BCB:{1}_BCA:{2}_UMI:{3}")

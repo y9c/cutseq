@@ -5,10 +5,12 @@ module is the (new) grammar engine: it uses the *same* element vocabulary
 (adapters, inline barcodes, ``N`` captures, ``X`` masks) but takes a
 space-separated, ordered full-library template (see grammar below).
 
-Grammar (space-separated tokens, every character shell-safe)::
+Grammar (space-free tokens, every character shell-safe)::
 
-    AC.GT...     exact adapter / exact homopolymer   -> match & trim
-    ac.gt...     inline barcode (lowercase)          -> match & capture
+    ac.gt...     read-EXTERNAL sequencing primer (lowercase) -> skipped; read starts after
+    AC.GT...     read-internal fixed run (uppercase):
+                      adjacent to a lowercase edge   -> INLINE barcode (match & capture)
+                      NOT adjacent to a lowercase edge -> APAPTER (match & trim)
     NNNN  / N<n> random bases                        -> capture into read name
     XXXX  / X<n> mask                                -> trim (not captured)
     AAA...AAA    variable poly-A/T tail             -> trim whole 3' run (>= min)
@@ -67,7 +69,7 @@ class _Token:
     __slots__ = ("kind", "value", "label", "index", "options")
 
     def __init__(self, kind, value, label=None, options=None):
-        self.kind = kind  # adp | inline | capture | mask | polytail
+        self.kind = kind  # adp (adapter/inline) | inline (lowercase) | capture | mask | polytail
         self.value = value  # seq / length / (base,) as appropriate
         self.label = label  # capture label
         self.index = None  # written capture ordinal (fixes name tag order)
@@ -77,6 +79,81 @@ class _Token:
 
 
 _INSERT = frozenset(":+-")
+
+
+def _validate_case_separation(scheme):
+    """Enforce the strict clean lower/upper-case separation rule.
+
+    The confirmed grammar treats a LOWERCASE ``ACGT`` run as a read-EXTERNAL
+    region (sequencing primer / flowcell / outer edge: skipped, read starts
+    after it) and an UPPERCASE run as read-internal INSERT region.  So case is
+    never mixed INSIDE one feature.  Two violations are rejected with a clear
+    ``ValueError``:
+
+    * a lowercase ``n``/``x`` (coverage markers must be the uppercase
+      ``N``/``X``), and
+    * a maximal run of base letters (``A/a/C/c/G/g/T/t``) whose case flips MORE
+      THAN ONCE — e.g. ``ACtaGT`` (upper->lower->upper) or ``nnAGCnn``
+      (lower->upper->lower).  A single clean transition (``ATCCAC...cagt``,
+      ``atcacgAGATCG...``) is a legitimate lower|upper block boundary and is
+      allowed; flipping a second time within one contiguous run means the user
+      wrote one feature with mixed case.
+    """
+    for run in re.findall(r"[ACGTacgt]+", scheme):
+        transitions = 0
+        prev_upper = None
+        for ch in run:
+            cur_upper = ch.isupper()
+            if prev_upper is not None and cur_upper != prev_upper:
+                transitions += 1
+                if transitions > 1:
+                    raise ValueError(
+                        "cutseq: scheme mixes case inside one contiguous "
+                        f"feature ({run!r}); case must not flip more than once "
+                        "in a run. Write each adapter/inline-barcode either all "
+                        "uppercase or all lowercase — a lowercase ACGT run is a "
+                        "read-external sequencing primer (skipped), an uppercase "
+                        "run is read-internal (adapter / inline barcode)."
+                    )
+            prev_upper = cur_upper
+    m = re.search(r"[nx]", scheme)
+    if m:
+        raise ValueError(
+            "cutseq: lowercase 'n'/'x' is not a valid coverage marker in the "
+            f"scheme (at byte {m.start()}); use uppercase 'N' (UMI capture) or "
+            "'X' (mask) instead."
+        )
+
+
+def _reclassify_inline_from_lowercase_edges(left, right):
+    """Reclassify an uppercase run directly adjacent to a lowercase edge as an
+    INLINE barcode.
+
+    Within the read-internal INSERT region (between the two read-external
+    lowercase runs), a fixed uppercase ``ACGT`` run that sits IMMEDIATELY next to
+    a lowercase edge — the first thing after a left lowercase run, or the last
+    thing before a right lowercase run — is an inline barcode (matched &
+    captured).  A fixed uppercase run NOT adjacent to a lowercase edge is an
+    APAPTER (matched & trimmed).  This determines inline barcodes from the
+    grammar's lowercase edges instead of the old primer-DB auto-detection.
+
+    Runs after ``_auto_detect_inline`` so a DB-recognised barcode+primer split
+    is preserved, then the structural lowercase-edge rule is applied.
+    """
+    def _reclassify(side, before):
+        for i, t in enumerate(side):
+            if t.kind != "adp":
+                continue
+            if before:
+                if i == 0 or side[i - 1].kind != "inline":
+                    continue
+            else:
+                if i == len(side) - 1 or side[i + 1].kind != "inline":
+                    continue
+            side[i] = _Token("inline", t.value, t.label, options=t.options)
+
+    _reclassify(left, True)
+    _reclassify(right, False)
 
 
 def _scan_polytail(s, i):
@@ -118,10 +195,16 @@ def tokenize(scheme):
     """Split a space-free scheme into a list of ``_Token`` objects.
 
     Tokens are delimited by character-class transitions (no whitespace
-    allowed): uppercase runs -> adapter, lowercase runs -> inline barcode,
-    ``N``/``X`` (+ optional length) -> capture/mask, ``: + -`` -> insert marker,
-    and ``A...A``-style dot-delimited runs -> poly-A/T tail.
+    allowed): lowercase runs -> read-external sequencing primer (``inline``
+    kind, skipped; the read starts after it), uppercase runs -> adapter / inline
+    barcode (``adp``, reclassified to ``inline`` when adjacent to a lowercase
+    edge), ``N``/``X`` (+ optional length) -> capture/mask, ``: + -`` -> insert
+    marker, and ``A...A``-style dot-delimited runs -> poly-A/T tail.
+
+    Strict case-mix validation is enforced up front (see
+    ``_validate_case_separation``).
     """
+    _validate_case_separation(scheme)
     tokens = []
     i = 0
     n = len(scheme)
@@ -206,9 +289,10 @@ def parse_scheme(scheme, auto_inline=True):
     (applied to R2 as reverse-complemented, reversed sequence). *orientation*
     is one of ``':'``, ``'+'``, ``'-'`` or ``None`` (no insert marker).
 
-    With ``auto_inline``, uppercase adapter runs that sit strictly between two
-    known sequencing primers are reclassified as inline barcodes (a barcode the
-    user wrote in uppercase by mistake).
+    An uppercase fixed run directly adjacent to a lowercase edge is reclassified
+    as an inline barcode (matched & captured); an uppercase run NOT adjacent to a
+    lowercase edge is a plain adapter (matched & trimmed).  The grammar's
+    lowercase edges — not a primer database—determine inline barcodes.
     """
     orientation = None
     left, right = [], []
@@ -221,147 +305,13 @@ def parse_scheme(scheme, auto_inline=True):
             side = right
             continue
         side.append(tok)
-    if auto_inline:
-        _auto_detect_inline(left, right)
+    # The grammar's lowercase edges, not the primer DB, determine an inline
+    # barcode: an uppercase run immediately adjacent to a lowercase edge (the
+    # read-external boundary) is an inline barcode (matched & captured).  The
+    # old primer-DB ``_auto_detect_inline`` is no longer relied on.
+    _reclassify_inline_from_lowercase_edges(left, right)
     _mark_outer_primers(left, right)
     return orientation, left, right
-
-
-def _auto_detect_inline(left, right):
-    """Reclassify/ split uppercase adapters into inline barcodes + primers.
-
-    The outermost adapters of a library scheme are the sequencing primers (p5
-    on the 5' side, p7 on the 3' side). A fixed uppercase sequence adjacent to
-    a primer is an inline barcode the user wrote in uppercase by mistake — it
-    merges with the primer into one run (e.g. ``ATCACGAGATCGGAAGAGCACACGTC``).
-    This splits ``barcode + primer`` (right side) or ``primer + barcode``
-    (left side) back into an ``inline`` token plus the primer, and reclassifies
-    any standalone inner adapter as ``inline``. Only fires when the scheme's
-    outermost adapters are recognized sequencing primers, so genuinely custom
-    schemes are never altered.
-    """
-    import logging
-
-    from .primers import MIN_PRIMER_MATCH, SEQUENCING_PRIMERS, _norm, _rc
-
-    # A detected barcode must be at least this long; shorter leftovers are
-    # partial-primer match noise, not real barcodes.
-    MIN_INLINE_BC = 4
-
-    def _all_adp():
-        return [t.value for t in left + right if t.kind == "adp"]
-
-    all_adp = _all_adp()
-    if len(all_adp) < 2:
-        return
-
-    primers = list({_norm(p) for p in SEQUENCING_PRIMERS.values()})
-
-    def _primer_overlap(v, strand):
-        """Longest suffix of *strand* (>= MIN_PRIMER_MATCH) that is a prefix
-        or suffix of *v*. Returns (primer_part, is_prefix_of_v) or None."""
-        hi = min(len(v), len(strand))
-        for L in range(hi, MIN_PRIMER_MATCH - 1, -1):
-            if v[:L] == strand[-L:]:
-                return strand[-L:], True
-            if v[-L:] == strand[-L:]:
-                return strand[-L:], False
-        return None
-
-    def _is_pure_primer(value):
-        """True if the whole value is a terminal fragment of a known primer
-        (>= MIN_PRIMER_MATCH bp), so it is a primer itself, not a barcode."""
-        v = _norm(value)
-        for p in primers:
-            for strand in (p, _rc(p)):
-                if len(strand) < MIN_PRIMER_MATCH:
-                    continue
-                if len(v) >= MIN_PRIMER_MATCH and (
-                    strand.endswith(v) or strand.startswith(v)
-                ):
-                    return True
-        return False
-
-    def _match_terminal(value):
-        """Return (primer, barcode) if *value* = primer+barcode (primer at the
-        value's 5' end) or barcode+primer (primer at the 3' end), with the
-        barcode on the other side being non-trivial; else None.
-
-        The longest primer match across all known primers wins, and a value
-        that is itself a known primer is never split (its barcode side is
-        empty).
-        """
-        v = _norm(value)
-        if _is_pure_primer(v):
-            return None
-        best = None
-        for p in primers:
-            for strand in (p, _rc(p)):
-                hit = _primer_overlap(v, strand)
-                if hit is None:
-                    continue
-                primer_part, at_5prime = hit
-                bc = (
-                    v[len(primer_part) :]
-                    if at_5prime
-                    else v[: len(v) - len(primer_part)]
-                )
-                if not (MIN_INLINE_BC <= len(bc) < len(primer_part)):
-                    continue
-                if best is None or len(primer_part) > len(best[0]):
-                    best = (primer_part, bc)
-        return best
-
-    def _as_inline(tok):
-        return _Token("inline", tok.value, tok.label, options=tok.options)
-
-    def _fix_side(side, outer_is_first):
-        adp_idx = [i for i, t in enumerate(side) if t.kind == "adp"]
-        if not adp_idx:
-            return
-        outer_i = adp_idx[0] if outer_is_first else adp_idx[-1]
-        outer = side[outer_i]
-        # Only touch a side whose outermost adapter is a standard sequencing
-        # primer (pure or merged with a barcode); custom schemes are left as-is.
-        if not (_is_pure_primer(outer.value) or _match_terminal(outer.value)):
-            return
-        # Split a merged barcode off the outermost adapter first.
-        hit = _match_terminal(outer.value)
-        if hit is not None:
-            primer, bc = hit
-            logging.warning(
-                "Auto-detected inline barcode %r adjacent to sequencing "
-                "primer %r; treating it as an inline barcode.",
-                bc,
-                primer,
-            )
-            outer.value = primer
-            outer.kind = "adp"
-            # Left side: primer+barcode -> barcode after primer.
-            # Right side: barcode+primer -> barcode before primer.
-            insert_at = outer_i + (1 if outer_is_first else 0)
-            side.insert(
-                insert_at, _Token("inline", bc, outer.label, options=outer.options)
-            )
-            adp_idx = [i for i, t in enumerate(side) if t.kind == "adp"]
-        # Reclassify remaining standalone inner adapters as inline barcodes.
-        if len(adp_idx) < 2:
-            return
-        for i in adp_idx:
-            if (outer_is_first and i == adp_idx[0]) or (
-                not outer_is_first and i == adp_idx[-1]
-            ):
-                continue
-            logging.warning(
-                "Auto-detected inline barcode %r between sequencing primers; "
-                "treating it as an inline barcode (write it lowercase if "
-                "this is unintended).",
-                side[i].value,
-            )
-            side[i] = _as_inline(side[i])
-
-    _fix_side(left, outer_is_first=True)
-    _fix_side(right, outer_is_first=False)
 
 
 def _mark_outer_primers(left, right):
@@ -387,6 +337,47 @@ def _mark_outer_primers(left, right):
         _mark(left[0])
     if right:
         _mark(right[-1])
+    _diagnose_lowercase_runs(left + right)
+
+
+_logged_primer_runs = set()
+
+
+def _diagnose_lowercase_runs(tokens):
+    """Emit a diagnostic log for every lowercase read-external run.
+
+    The built-in ``SEQUENCING_PRIMERS`` list is a KNOWLEDGE BASE / diagnostic
+    only — it never changes trimming or matching.  For a lowercase ``acgt`` run
+    (a read-external sequencing primer / flowcell / outer edge, skipped by the
+    read plan) this logs whether it matches a known primer (``is_known_primer``)
+    or is not in the list (so the user can confirm it is a genuine external
+    region).  Each unique run sequence is logged once per process so repeated
+    parses do not spam the log.
+    """
+    import logging
+
+    from .primers import is_known_primer, primer_name
+
+    for t in tokens:
+        if t.kind != "inline":
+            continue
+        seq = t.value
+        if seq in _logged_primer_runs:
+            continue
+        _logged_primer_runs.add(seq)
+        names = primer_name(seq)
+        if names:
+            logging.info(
+                "lowercase run %r looks like known sequencing primer: %s; "
+                "treated as a read-external region (skipped).",
+                seq, ", ".join(names),
+            )
+        else:
+            logging.info(
+                "lowercase run %r is not in the known primer list; confirm it "
+                "is a sequencing primer / external region (read starts after it).",
+                seq,
+            )
 
 
 def _is_primer(tok):
@@ -993,8 +984,6 @@ def compile_tokens(
     conditional_cutter=True,
     force_trim_min_length=50,
     force_anywhere=False,
-    r1_primer=None,
-    r2_primer=None,
 ):
     """Compile the parsed token graph into ``(r1_mods, r2_mods)``.
 
@@ -1018,8 +1007,7 @@ def compile_tokens(
     if paired and orientation is not None:
         from .readplan import compile_read_plan
 
-        built = compile_read_plan(orientation, left, right, ctx,
-                                  r1_primer=r1_primer, r2_primer=r2_primer)
+        built = compile_read_plan(orientation, left, right, ctx)
         if built is not None:
             r1_mods, r2_mods, plan = built
             # Build the legacy per-token chain for any side that was NOT a read
@@ -1050,8 +1038,7 @@ def compile_tokens(
         # single-end routing honours a read plan for R1 when present.
         from .readplan import compile_read_plan
 
-        built_se = compile_read_plan(orientation, left, right, ctx,
-                                     r1_primer=r1_primer, r2_primer=r2_primer)
+        built_se = compile_read_plan(orientation, left, right, ctx)
         # A read plan needs an insert marker to locate the read start; a flat
         # single-end scheme (orientation None, e.g. a legacy TSO primer + barcode
         # read) stays on the legacy per-token path.
@@ -1075,8 +1062,7 @@ def compile_tokens(
     return mods1, mods2
 
 
-def _scheme_has_readplan(orientation, left, right, ctx=None, r1_primer=None,
-                         r2_primer=None):
+def _scheme_has_readplan(orientation, left, right, ctx=None):
     """True if the scheme resolves to a read plan with at least one recognised
     primer side (used by :meth:`CompiledScheme.r2_arm_adapters` and the
     dry-run / summary reporting)."""
@@ -1084,8 +1070,7 @@ def _scheme_has_readplan(orientation, left, right, ctx=None, r1_primer=None,
 
     if ctx is None:
         ctx = _Ctx(True, 50, False)
-    built = compile_read_plan(orientation, left, right, ctx,
-                              r1_primer=r1_primer, r2_primer=r2_primer)
+    built = compile_read_plan(orientation, left, right, ctx)
     return built is not None and (built[2].r1_is_plan or built[2].r2_is_plan)
 
 
@@ -1728,8 +1713,6 @@ class CompiledScheme:
         conditional_cutter=True,
         force_trim_min_length=50,
         force_anywhere=False,
-        r1_primer=None,
-        r2_primer=None,
     ):
         self.orientation = orientation
         self.left = left
@@ -1737,8 +1720,6 @@ class CompiledScheme:
         self.conditional_cutter = conditional_cutter
         self.force_trim_min_length = force_trim_min_length
         self.force_anywhere = force_anywhere
-        self.r1_primer = r1_primer
-        self.r2_primer = r2_primer
         # Assign capture labels eagerly so dry-run/JSON show what each capture
         # is and so {N} positional references can resolve (labels default to
         # barcode1, barcode2, ...; YAML `label:` fields are preserved).
@@ -1776,8 +1757,6 @@ class CompiledScheme:
             conditional_cutter=self.conditional_cutter,
             force_trim_min_length=self.force_trim_min_length,
             force_anywhere=self.force_anywhere,
-            r1_primer=self.r1_primer,
-            r2_primer=self.r2_primer,
         )
         # Cache the inline-barcode Adapter objects from THIS compile so a
         # subsequent inline_adapters() call returns the exact same instances
@@ -1795,7 +1774,6 @@ class CompiledScheme:
                 self.orientation, self.left, self.right,
                 _Ctx(self.conditional_cutter, self.force_trim_min_length,
                      self.force_anywhere),
-                r1_primer=self.r1_primer, r2_primer=self.r2_primer,
             )
             self._plan_cache = getattr(self, "_plan_cache", {})
             self._plan_cache[paired] = built[2] if built else None
@@ -1893,7 +1871,6 @@ def _rc(seq):
 
 def build_modifiers(
     scheme, paired=True, conditional_cutter=True, force_trim_min_length=50,
-    r1_primer=None, r2_primer=None,
 ):
     """Compile a library-grammar scheme into ``(r1_mods, r2_mods, orientation)``."""
     orientation, left, right = parse_scheme(scheme)
@@ -1904,8 +1881,6 @@ def build_modifiers(
         paired,
         conditional_cutter,
         force_trim_min_length,
-        r1_primer=r1_primer,
-        r2_primer=r2_primer,
     )
 
 
@@ -1916,14 +1891,11 @@ def build_modifiers_from_parts(
     paired=True,
     conditional_cutter=True,
     force_trim_min_length=50,
-    r1_primer=None,
-    r2_primer=None,
 ):
     """Compile parsed part tokens into ``(r1_mods, r2_mods, orientation)``."""
     assign_labels(left + right)
     r1, r2 = compile_tokens(
         orientation, left, right, paired, conditional_cutter, force_trim_min_length,
-        r1_primer=r1_primer, r2_primer=r2_primer,
     )
     return r1, r2, orientation
 

@@ -48,10 +48,21 @@ spaces:
   **R2 as its reverse complement** automatically (e.g. a right-hand
   `AGATCGGAAGAGCACACGTC` is matched on R2 as `GACGTGTGCTCTTCCGATCT`).
 - `+` = sense, `-` = antisense, `:` = unstranded.
-- **Uppercase** `ACGT…` = adapters/primers, trimmed.
+- **Lowercase `acgt…`** = a **read-external** sequencing-primer / flowcell region:
+  it is NOT part of the read, so the read starts **after** it (the scheme's
+  read boundary). *This is the confirmed grammar rule — a lowercase ACGT run is
+  skipped, never captured or trimmed.*
+- **Uppercase `ACGT…`** (between the two lowercase edges) is the read-internal
+  **insert region**: a fixed uppercase run directly **adjacent to a lowercase
+  edge** is an **inline barcode** (matched & captured), while an uppercase run
+  **not** adjacent to a lowercase edge is an **adapter** (matched & trimmed).
 - **`N`** = random UMI, captured into the read name (`NNNNNNNN` / `N8`).
-- **`X`** = masked sequence, trimmed but not captured (`XXXXXX` / `X6`).
-- **Lowercase** `acgt…` = inline barcode, matched and captured.
+- **`X`** = masked sequence, trimmed but not captured (`XXXXXX` / `X6`); this is
+  the only non-sequence character class besides `N` (both uppercase).
+- Case may **not** be mixed inside one contiguous feature: lowercase and
+  uppercase blocks must be cleanly separated (`lower|upper|lower|upper…`). A
+  run that flips case more than once (e.g. `ACtaGT`, `nnAGCnn`) is rejected with
+  a clear error.
 - **Homopolymer tails** use the dot form `AAA...AAA` / `TTT...TTT` /
   `GGG...GGG`; the 5′/3′ direction is auto-detected from the scheme layout
   (a run at the read start trims the 5′, elsewhere the 3′), and `G<k>` sets the
@@ -59,6 +70,25 @@ spaces:
 - A **3′ read-through adapter** (from the other read's 5′ arm) is trimmed
   automatically from the opposite end of each read.
 - Numeric shorthand (`N8`, `X6`) equals the expanded run form.
+
+## Scheme grammar
+
+The scheme is a **top-strand molecular map** (5′ → 3′, no spaces); the **case** of a base run sets its role:
+
+- **Lowercase `acgt…`** = a **read-external** sequencing primer / flowcell / outer edge. It is NOT part of the read, so the read starts **after** it — the run is skipped, never matched, captured or trimmed. This is what replaced the old `--r1-primer`/`--r2-primer`/`--seq-primer1`/`--seq-primer2` flags (now removed).
+- **Uppercase `ACGT…`** (between the two lowercase edges) = the read-internal **insert region**. A fixed uppercase run **directly adjacent to a lowercase edge** is an **inline barcode** (matched & captured); any other fixed uppercase run is an **adapter** (matched & trimmed).
+- **`N…` / `N<k>`** = UMI capture (into the read name); **`X…` / `X<k>`** = mask (trimmed, not captured). Both must be uppercase.
+- Case may **not** be mixed inside one feature: lowercase and uppercase blocks must be cleanly separated (`lower|upper|lower`); a run that flips case more than once (e.g. `ACtaGT`) is rejected with a clear error.
+
+```bash
+# lowercase read-1 primer … skipped (read starts after it); N11 = 11-nt UMI
+# (captured, padded with N if short), X5 = 5-nt mask; +XX = reverse-complemented
+# 3' mask; single-end extracts the UMI and trims the mask.
+cutseq -A 'gacgtgtgctcttccgatctNNNNNNNNNNNXXXXX+XXagatcggaagagcgtcgtgt' \
+  -R '{id}_umi:{1}' R1.fq.gz
+```
+
+The built-in primer list (`cutseq --list-primers`) remains as a **knowledge base / diagnostic only** — it never changes trimming or matching.
 
 ## Customizing read names
 
@@ -122,9 +152,10 @@ AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG : N12 AGTCGTACGCCGATGCGAAACATCGGCCAC
   linker trimmed, **BarcodeA** `N8` → capture `{2}`, linker trimmed,
   **BarcodeB** `N8` → capture `{3}`, handle trimmed. The `-R` template writes
   `@READID_BCB:…_BCA:…_UMI:…`.
-- `M6AARTR` is kept as a deprecated alias. `--r1-primer` / `--r2-primer` are
-  **informational only** — reads start downstream of the priming site, so the
-  sequencing primers are never trimmed.
+- `M6AARTR` is kept as a deprecated alias. Read boundaries come from the
+  scheme's **lowercase edges** (`--r1-primer`/`--r2-primer`/`--seq-primer1`/
+  `--seq-primer2` have been removed): a lowercase ACGT run is a read-external
+  sequencing primer, skipped so the read starts after it.
 
 The same library as a fully inline scheme:
 
@@ -141,14 +172,20 @@ P5(29) | i5(8) | R1-primer(34) | TSO(23) | insert | polyA/T | UMI(12)
 | rc(R2-primer)(34) | i7(8) | rc(P7)(24)
 ```
 
-## Inline-barcode auto-detection
+## Inline-barcode detection (lowercase edges)
 
-If an uppercase barcode is written next to a sequencing primer, the engine
-checks the scheme's two outermost adapters against a curated database of
-Illumina / BGI primers (`cutseq --list-primers`); a fixed uppercase run
-adjacent to a recognized primer is reclassified as an inline barcode (with a
-warning). Custom schemes without known primers are never altered. Disable with
-`--no-auto-inline`.
+Within the read-internal **insert region** (between the two read-external
+lowercase edges), a fixed uppercase run directly **adjacent to a lowercase edge**
+is an **inline barcode** (matched & captured). An uppercase run **not** adjacent
+to a lowercase edge is an ordinary **adapter** (matched & trimmed). `N` captures
+and `X` masks keep their meaning. This is a structural rule — it no longer relies
+on a primer database.
+
+The built-in Illumina/BGI primer list (`cutseq --list-primers`) is now kept as a
+**knowledge base / diagnostic only**: it is never used to change trimming or
+matching. When a lowercase run matches a known primer, CutSeq logs
+"looks like known sequencing primer …"; otherwise it logs "is not in the known
+primer list; confirm it is a sequencing primer / external region".
 
 ## Discarding reads with a reason
 
@@ -178,33 +215,32 @@ across all built-in schemes, paired- and single-end.
 
 More details: <https://cutseq.yech.science>
 
-### Primer-boundary read plans (recognised sequencing sites)
+### Read boundaries from lowercase edges (read plans)
 
-When a library's outer adapters are genuine **sequencing-primer binding sites**
-(e.g. the Illumina read-1 / read-2 primers), CutSeq recognises them as upstream
-and ABSENT from the read, so the read starts INSIDE the scheme rather than
-containing the primer.  Such a scheme is routed through a *read plan*: R1 begins
-downstream of the read-1 site (the first `N`/`X`/poly run after it is cut
-unconditionally), R2 begins at its read-2 site, and the mirrored read-through
-cuts (adapter gate → preceding UMI/masks, poly-T mirrored as an A-run) fire only
-when that arm really was sequenced — never because a read happens to be long.
+When a library's outer primers are genuine **sequencing-primer binding sites**
+(e.g. the Illumina read-1 / read-2 primers), write them as **lowercase** runs.
+CutSeq treats a lowercase ACGT run as a read-**external** region: the read starts
+**after** it (it is absent from the FASTQ), so the run is skipped — never captured
+or trimmed.  Such a scheme is routed through a *read plan*: R1 begins downstream
+of the lowercase read-1 edge (the first `N`/`X`/poly run after it is cut
+unconditionally), R2 begins at its lowercase read-2 edge, and the mirrored
+read-through cuts fire only when that arm really was sequenced — never because
+it happens to be long.
 
 ```bash
-# read-1 site ACACGACGCTCTTCCGATCT is upstream of R1; the read starts at XX2.
-# read-2 site AGATCGGAAGAGCACACGTC is upstream of R2; the read starts at the UMI.
-cutseq -A 'ACACGACGCTCTTCCGATCTXXT...T-XXXXXXXXNNNNNNNNAGATCGGAAGAGCACACGTC' \
-  -R '{id}_umi:{r2.1}' R1.fq.gz R2.fq.gz
+# gacgt…   lowercase = the read-1/read-2 sequencing primers, upstream & skipped.
+# N11 X5   = UMI capture {1} + 5-nt mask, then the insert; +XX = Kappa 3' mask.
+# Single-end extracts the 11-nt UMI and trims the mask, with no primer flag.
+cutseq -A 'gacgtgtgctcttccgatctNNNNNNNNNNNXXXXX+XXagatcggaagagcgtcgtgt' \
+  -R '{id}_umi:{1}' R1.fq.gz
 ```
 
 A library whose outer adapters are ordinary read-visible scaffolds (e.g. the
-legacy DBiT / INLINE schemes) is unchanged: those adapters stay in the read and
-are trimmed as normal.  The recognised R1/R2 sites are curated (`cutseq
---list-primers`); genuine upstream sites are matched end-directed (R1 by the
-primer's 3′ extension end, R2 by the top-strand site's prefix), so a primer that
-is ambiguous or missing from the scheme fails actionably.  Explicit
-`--r1-primer` / `--r2-primer` (the actual sequencing oligo 5′→3′, R2 = rc of the
-top-strand site) overrides the curated table and lets custom primers be
-recognised.
+legacy all-uppercase DBiT / INLINE schemes) is unchanged: those uppercase
+adapters stay in the read and are trimmed as normal (no lowercase edge → no read
+boundary).  A lowercase run that is ambiguous (resolves to multiple distinct
+boundaries) fails actionably.  The primer list (`cutseq --list-primers`) is a
+**diagnostic only** — it is never used to change the read boundary.
 
 ## TODO
 

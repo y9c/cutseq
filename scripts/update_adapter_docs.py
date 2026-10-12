@@ -638,18 +638,35 @@ _INTRO = (
     "via <code>-A/--adapter-scheme</code> (<code>-a</code> is an alias). This page is "
     "a live viewer: <strong>search</strong> to filter, <strong>hover</strong> a colored "
     "segment to see its role, <strong>click</strong> any segment or button to copy it.</p>"
+    "<p><strong>Grammar in a nutshell</strong> (the scheme is one top-strand DNA map, "
+    "5&prime;&rarr;3&prime;): a <strong>lowercase</strong> <code>acgt</code> run is a "
+    "<strong>read-external sequencing primer / outer edge</strong> &mdash; it is NOT "
+    "part of the read, so the read starts <em>after</em> it and the run is skipped. "
+    "The <strong>uppercase</strong> runs are read-internal: a fixed uppercase run "
+    "directly adjacent to a lowercase edge is an <strong>inline barcode</strong> "
+    "(matched &amp; captured), any other fixed uppercase run is an <strong>adapter</strong> "
+    "(matched &amp; trimmed). <code>N</code> = UMI capture (into the read name), "
+    "<code>X</code> = mask (trimmed, not kept). Case may not be mixed inside one "
+    "feature (<code>lower|upper|lower</code>).</p>"
 )
 
 _NOTES = (
-    "<h2>Inline-barcode auto-detection</h2>\n"
-    "<p>Inline barcodes are written in lowercase (<code>acgt...</code>). If you write "
-    "one in uppercase, it merges with the adjacent sequencing primer into one adapter "
-    "run. CutSeq checks the two outermost adapters of a scheme against a curated "
-    "database of Illumina / BGI (MGI) sequencing primers "
-    "(<code>cutseq --list-primers</code>) and reclassifies any fixed uppercase "
-    "sequence adjacent to (or between) recognized primers as an inline barcode, with "
-    "a warning. Custom schemes without known primers are never altered. Disable with "
-    "<code>--no-auto-inline</code>.</p>\n"
+    "<h2>Scheme grammar: case sets the role</h2>\n"
+    "<p>In the grammar the <strong>case</strong> of a base run sets its role. A "
+    "<strong>lowercase</strong> <code>acgt</code> run is a <strong>read-external</strong> "
+    "sequencing primer / flowcell / outer edge: it is NOT part of the read, so the read "
+    "starts after it and the run is skipped (never matched, captured or trimmed). The "
+    "read-internal <strong>insert region</strong> is the <strong>uppercase</strong> part "
+    "between the two lowercase edges: a <strong>fixed uppercase run directly adjacent to "
+    "a lowercase edge</strong> is an <strong>inline barcode</strong> (matched &amp; "
+    "captured), and any other fixed uppercase run is an <strong>adapter</strong> "
+    "(matched &amp; trimmed). <code>N</code> = UMI capture (into the read name), "
+    "<code>X</code> = mask (trimmed, not kept). Case may not be mixed inside one "
+    "feature: lowercase and uppercase blocks must be cleanly separated "
+    "(<code>lower|upper|lower</code>); a run that flips case more than once (e.g. "
+    "<code>ACtaGT</code>) is rejected. The built-in primer list "
+    "(<code>cutseq --list-primers</code>) is diagnostic only &mdash; it never changes "
+    "trimming or matching.</p>\n"
     "<h2>Discarding reads with a reason tag</h2>\n"
     "<p>A single <code>-d</code> output collects every rejected read with the reason "
     "in the name (<code>reason=too_short</code>, <code>reason=too_many_n</code>, "
@@ -726,12 +743,12 @@ with open("pixels.tsv", "w") as out:
 <p>For a 151-cycle run:</p>
 <pre><code class="language-plaintext">151 (read length) − 110 (arm: handle22 + BCB8 + L2 30 + BCA8 + L1 30 + UMI12) = 41 nt</code></pre>
 <p>Every molecule whose insert is <strong>longer than ~41 nt on the R2 side</strong> therefore hits the physical end of the read and piles up at exactly <strong>41 nt</strong> after trimming (<code>raw[-41:]</code> in 99% of cases). In practice this can be ~18% of all R2 reads — it is a <strong>read-truncation artefact, not a biological 41-nt fragment</strong>: the sequences are fully diverse and their R1 mates are long.</p>
-<div class="callout warning"><div class="callout-title">Warning</div><p>Do <strong>not</strong> read R2&rsquo;s length axis as fragment length. R2 is capped by the sequencer, not by the insert. If you need the full 3&prime; R2-side sequence read length 151→250 (<code>--r2-primer</code> is informational only), or rely on <strong>R1</strong> for insert biology.</p></div>
+<div class="callout warning"><div class="callout-title">Warning</div><p>Do <strong>not</strong> read R2&rsquo;s length axis as fragment length. R2 is capped by the sequencer, not by the insert. If you need the full 3&prime; R2-side sequence read length 151→250, or rely on <strong>R1</strong> for insert biology. (Read boundaries come from the scheme&rsquo;s lowercase ACGT runs; the primer flags were removed.)</p></div>
 <p>Correspondingly, in a per-position <strong>base-composition &times; depth</strong> pileup:</p>
 <ul><li><strong>R1</strong> — a clean, slightly composition-skewed stack that runs out around the longest insert lengths;</li><li><strong>R2</strong> — strong constant composition across the arm-bearing positions, then a tail of read-through cDNA; expect the depth to collapse once reads that reached the 151-nt end stop contributing.</li></ul>
 <p>The built-in defaults are gentle (<code>-m 20</code>, <code>-q 20</code>, no <code>--max-n</code> / <code>--min-avg-quality</code> by default); set them from your QC thresholds and check the <code>reason=</code> distribution in the discard files.</p>
 <h3 id="6-notes-extras">6. Notes &amp; extras</h3>
-<ul><li>Legacy name: <code>-A M6AARTR</code> still works as an alias for <code>-A DBITSEQ</code> — prefer <code>-A DBITSEQ</code>.</li><li>The same library as a fully inline custom scheme (no built-in needed): <code>cutseq -A "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' ...</code></li><li>Dry-run inspection: <code>cutseq -A DBITSEQ --graph-vertical R1.fq.gz R2.fq.gz</code> prints the parsed trimming steps without writing any output — useful to confirm the arm layout before running the real job.</li><li><code>--r1-primer</code> / <code>--r2-primer</code> document the sequencing primers but are never trimmed from reads (reads start downstream of them).</li><li>See <a href="quickstart.html">Quick Start</a>, <a href="adapters.html">Adapter schemes</a> and <a href="rename.html">Read-name renaming</a> for more.</li></ul>
+<ul><li>Legacy name: <code>-A M6AARTR</code> still works as an alias for <code>-A DBITSEQ</code> — prefer <code>-A DBITSEQ</code>.</li><li>The same library as a fully inline custom scheme (no built-in needed): <code>cutseq -A "AAGCAGTGGTATCAACGCAGAGTGAATGGG...GGG:N12AGTCGTACGCCGATGCGAAACATCGGCCACN8CGAATGCTCTGGCCTCTCAAGCACGTGGATN8AGATGCGAGAAGCCAACGCTTG" -R '{id}_BCB:{3}_BCA:{2}_UMI:{1}' ...</code></li><li>Dry-run inspection: <code>cutseq -A DBITSEQ --graph-vertical R1.fq.gz R2.fq.gz</code> prints the parsed trimming steps without writing any output — useful to confirm the arm layout before running the real job.</li><li>Read boundaries are expressed by <strong>lowercase ACGT runs</strong> in the scheme (read-external sequencing primers, skipped); the old <code>--r1-primer</code>/<code>--r2-primer</code>/<code>--seq-primer1</code>/<code>--seq-primer2</code> flags were removed.</li><li>See <a href="quickstart.html">Quick Start</a>, <a href="adapters.html">Adapter schemes</a> and <a href="rename.html">Read-name renaming</a> for more.</li></ul>
 </section>
 """
 
