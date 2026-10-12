@@ -362,7 +362,7 @@ _JS = """
     if (c.points && c.points.length){ points = '<ul class="card-points">' + c.points.map(function(p){return '<li>'+esc(p)+'</li>';}).join('') + '</ul>'; }
     var s = '';
     s += '<details class="adapter-card"'+alias+'>';
-    s += '<summary><span class="card-name">'+esc(c.name)+'</span><span class="card-desc">'+esc(c.desc)+'</span>'+(c.alias?'<span class="card-desc">[alias of '+esc(c.alias)+']</span>':'')+'</summary>';
+    s += '<summary data-copy="'+esc(c.scheme)+'"><span class="card-name">'+esc(c.name)+'</span><span class="card-desc">'+esc(c.desc)+'</span>'+(c.alias?'<span class="card-desc">[alias of '+esc(c.alias)+']</span>':'')+'</summary>';
     s += '<div class="card-body"><div class="seg-row">' + c.tokens.map(function(t){ return seg(t, c.scheme); }).join('') + '</div>';
     s += structBlock(c);
     s += '<div class="card-actions">';
