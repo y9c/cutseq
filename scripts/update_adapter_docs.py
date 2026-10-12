@@ -344,7 +344,6 @@ _JS = """
     s += '<div class="sg-toolbar"><span class="sg-head">Structure</span>';
     s += '<span style="margin-left:auto;display:flex;gap:.5rem">';
     s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.gb" download>Download .gb (GenBank)</a>';
-    s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.dna" download>Download .dna (SnapGene)</a>';
     s += '</span></div>';
     s += mapSvg(c);
     s += seqView(c);
@@ -438,27 +437,20 @@ def _gb_quote(s):
 
 
 def _gb_date():
-    from datetime import date
-    return date.today().strftime("%d-%b-%Y").upper()
+    """A deterministic GenBank LOCUS date.
+
+    Using a fixed date keeps the generated ``.gb`` byte-identical across runs and
+    machines (local vs CI), so the ``update-adapter-docs`` pre-commit hook never
+    reports a spurious change. The LOCUS date is display-only metadata.
+    """
+    return "01-JAN-1970"
 
 
 def _write_exports(name, construct, constructs_dir):
-    """Write a GenBank (.gb) and a SnapGene (.dna) file for one scheme."""
+    """Write a GenBank (.gb) file for one scheme."""
     constructs_dir.mkdir(parents=True, exist_ok=True)
     gb = _genbank(name, "", "", construct["seq"], construct["features"])
     (constructs_dir / f"{name}.gb").write_text(gb, encoding="utf-8")
-    try:
-        from sgffp import SgffObject, SgffWriter
-    except Exception as e:  # pragma: no cover
-        print(f"  [warn] sgffp unavailable, skipping .dna for {name}: {e}")
-        return
-    obj = SgffObject.new(construct["seq"], topology="linear")
-    for f in construct["features"]:
-        try:
-            obj.add_feature(f["name"], f["type"], f["start"] - 1, f["end"])
-        except Exception as e:
-            print(f"  [warn] feature skipped for {name}: {e}")
-    SgffWriter.to_file(obj, str(constructs_dir / f"{name}.dna"))
 
 
 

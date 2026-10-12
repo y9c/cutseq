@@ -162,7 +162,6 @@ This page is a live viewer: **search** to filter, **hover** a colored segment to
     s += '<div class="sg-toolbar"><span class="sg-head">Structure</span>';
     s += '<span style="margin-left:auto;display:flex;gap:.5rem">';
     s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.gb" download>Download .gb (GenBank)</a>';
-    s += '<a class="sg-dl" href="constructs/'+encodeURIComponent(c.name)+'.dna" download>Download .dna (SnapGene)</a>';
     s += '</span></div>';
     s += mapSvg(c);
     s += seqView(c);

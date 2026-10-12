@@ -89,7 +89,7 @@ def test_darkmode_css_present(md_text):
 
 
 def test_constructs_unchanged():
-    """The `.gb`/`.dna` constructs on disk must not be dirty vs HEAD."""
+    """The `.gb` constructs on disk must not be dirty vs HEAD."""
     out = subprocess.run(
         ["git", "-C", str(ROOT), "status", "--short", "--", "docs/constructs"],
         capture_output=True,
