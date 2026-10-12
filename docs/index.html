@@ -35,10 +35,11 @@
   </nav>
   <div class="site-main">
     <main class="site-content" id="content">
+<div class="hero">
 <h1 id="cutseq" class="fs-9">✂️ CutSeq</h1>
 <p class="fs-6 fw-300">Automatically cut adapter / barcode / UMI from NGS data, in the right order.</p>
 <div class="btn-row"><a class="btn btn-primary fs-5 mb-4 mb-md-0 mr-2" href="quickstart.html">Get started</a><a class="btn fs-5 mb-4 mb-md-0 mr-2" href="adapters.html">Adapter schemes</a><a class="btn fs-5 mb-4 mb-md-0" href="https://github.com/y9c/cutseq">View on GitHub</a></div>
-<hr>
+</div>
 <h2 id="why-cutseq">Why CutSeq?</h2>
 <p>NGS library prep can need many sequential trimming and extraction steps. The <em>SMARTer® Stranded Total RNA-Seq Kit v3</em> workflow, for example, needs at least 9 operations — adapter removal, UMI extraction, linker masking, poly-A/T trimming — done <strong>in the correct order</strong>. CutSeq compiles a single library <em>scheme</em> into one native cutadapt pass, so the whole pipeline is one parameter and one command.</p>
 <p><img src="takaraV3.png" alt=""></p>
