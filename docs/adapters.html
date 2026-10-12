@@ -220,8 +220,15 @@
       // Each band is one feature: hovering/focusing shows its detail, clicking copies its sequence.
       s += '<g class="'+bandCls+'" tabindex="0" role="listitem" data-copy="'+esc(f.role==='insert' ? ('N'+f.len) : f.seq)+'" '+featHtml(f)+'>';
       s += '<rect x="'+a+'" y="27" width="'+(b-a)+'" height="14" rx="3" fill="'+col+'" stroke="#94a3b8" stroke-width="1"'+op+'/>';
-      // The whole molecule is one linear 5'->3' strand, so no per-band direction
-      // chevron is needed (the 5' / 3' labels at the ends convey orientation).
+      // The insert is the read's variable cDNA: mark it with a clear right-facing
+      // direction arrow (pointing 3') so the read direction is obvious, while
+      // primer/index/flowcell bands stay clean rects (5' / 3' at the ends + the
+      // insert arrow carry orientation). The arrow sits at the insert's right end
+      // (pointing 3'), just outside its rounded rect so it doesn't overlap the body.
+      if (f.role === 'insert'){
+        var ax = b + 1.5;
+        s += '<path d="M '+ax+' 27 L '+(ax+7)+' 34 L '+ax+' 41 z" fill="'+col+'" stroke="#64748b"/>';
+      }
       // Inline specific label when the read-visible band can carry it — only when
       // it actually fits, so short names never get crushed or overlap.
       if (!struct){ var lbl = shortName(f); var labW = lbl.length*6.6 + 12; if ((b - a) >= labW){ s += '<text class="feat-label" x="'+((a+b)/2)+'" y="38" text-anchor="middle">'+esc(lbl)+'</text>'; } }
